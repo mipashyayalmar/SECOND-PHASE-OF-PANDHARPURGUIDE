@@ -1,0 +1,198 @@
+{% extends 'base/main_base.html' %}
+
+
+{% block second_nav %}
+{% load static %}
+<style>
+    .header {
+        border-bottom: 1px solid black;
+        border-top: 1px solid black;
+        }
+
+    a{
+        text-decoration:none;
+    }
+        
+</style>
+<header id="header" class="header d-flex align-items-center sticky-top">
+    <div class="container-fluid container-xl position-relative d-flex align-items-center">
+        <a href="{% url 'myapp:home' %}" class="logo d-flex align-items-center me-auto">
+            <h1 class="sitename">
+              <img src="{% static 'assets/img/logo.png' %}" alt="">    PandharpurGuide
+            </h1>
+        </a>
+  
+         {% comment %} <!-- Messages -->
+         {% for message in messages %}
+         <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+             {{ message }}
+             <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                 <span aria-hidden="true">×</span>
+             </button>
+         </div>
+         {% endfor %} {% endcomment %}
+  
+        <nav id="navmenu" class="navmenu">
+            <ul>
+                <li><a href="{% url 'myapp:home' %}#hero">Home</a></li>
+  
+  
+            <li class="dropdown">
+              <a href="">
+                <span>Accommodations</span> 
+                <i class="bi bi-chevron-down toggle-dropdown"></i>
+              </a>
+              <ul>
+                <li><a class="dropdown-item" href="{% url 'homepage' %}?hotel_type=hotel_restaurant&t={{ now|date:'U' }}">Hotel</a></li>
+                 <li><a class="dropdown-item" href="{% url 'homepage' %}?hotel_type=dormitory&t={{ now|date:'U' }}">Dormitory</a></li>
+                <li><a class="dropdown-item" href="{% url 'homepage' %}?hotel_type=math_dharmashala&t={{ now|date:'U' }}">Math / Dharmshala</a></li>
+                <li><a class="dropdown-item" href="{% url 'homepage' %}?hotel_type=other&t={{ now|date:'U' }}">Other</a></li>
+              </ul>
+            </li>
+
+                <!-- Staff and User Options -->
+                {% if user.maintainer_profile and user.is_maintainer  %}
+                <li class="dropdown">
+                    <a href="#"><span>Maintainer checik</span> <i class="bi bi-chevron-down toggle-dropdown"></i></a>
+                    <ul>
+                        <li><a href="{% url 'maintainer_panel' %}">maintainer</a></li>
+                        <li><a href="{% url 'maintainer_all_bookings' %}">maintainer Bookings</a></li>
+                        <li><a href="{% url 'maintainer_view_hotels' %}">View Hotels</a></li>
+                        <li><a href="{% url 'assign-hotel' %}">hotel assigned</a></li>
+                    </ul>
+                </li>
+
+                {% elif user.is_staff and user.is_superuser %}
+                <li class="dropdown">
+                    <a href="#"><span>Staff Check</span> <i class="bi bi-chevron-down toggle-dropdown"></i></a>
+                    <ul>
+                        <li><a href="{% url 'assign-hotel' %}">hotel assigned</a></li>
+                    </ul>
+                </li>
+  
+                
+                {% elif user.is_staff  %}
+                <li class="dropdown">
+                    <a href="#"><span>Staff Check</span> <i class="bi bi-chevron-down toggle-dropdown"></i></a>
+                    <ul>
+                        <li><a href="{% url 'staffpanel' %}">Dashboard</a></li>
+                        <li><a href="{% url 'allbookings' %}"> My Bookings</a></li>
+                    </ul>
+                </li>
+
+                
+  
+  
+                {% endif %}
+
+
+
+               
+  
+                {% if not user.is_staff and user.is_authenticated %}
+                <li><a href="{% url 'dashboard' %}"> My Bookings</a></li>
+                {% endif %}
+  
+                <!-- User/Staff Dropdown -->
+                <li class="dropdown">
+                    <a href="#">
+                        <span>
+                            {% if user.is_staff %}
+                            Staff
+                            {% else %}
+                             User
+                            {% endif %}
+                        </span>
+                        <i class="bi bi-chevron-down toggle-dropdown"></i>
+                    </a>
+                    <ul>
+                        {% if user.is_authenticated %}
+                        <li><a data-toggle="modal" data-target="#forlogin"><i class="fas fa-bullhorn"></i> Hello, {{ request.user }}</a></li>
+                        <li><a href="{% url 'user:user_logout'%}"><i class="fas fa-bullhorn"></i> Logout</a></li>
+                        {% else %}
+                        <li><a href="{% url 'user:signin' %}">User Login<i class="fas fa-user-circle"></i></a></li>
+                        {% endif %}
+                    </ul>
+                </li>
+
+                <li class="dropdown">
+                    <a href="#"><span>Review</span> <i class="bi bi-chevron-down toggle-dropdown"></i></a>
+                    <ul>
+                        <li><a href="#">English</a></li>
+                        <li><a href="#">Hindi</a></li>
+                        <li><a href="#">Marathi</a></li>
+                    </ul>
+                </li>
+                
+            </ul>
+            <i class="mobile-nav-toggle d-xl-none bi bi-list"></i>
+            
+        </nav>
+  
+        {% if user.is_authenticated %}
+    {% if user.is_active and not user.is_staff and not user.is_superuser and not user.is_verified and not user.is_authority_to_manage_hotel and not user.is_admin %}
+    <a href="{% url 'user:user_profile' %}" class="btn-getstarted">
+      {% if social_data.picture %}
+          <img src="{{ social_data.picture }}" alt="Profile" class="round-img-heading">
+      {% elif user.profile_image %}
+          <img src="{{ user.profile_image.url }}" alt="Profile" class="round-img-heading">
+      {% else %}
+          <img src="https://img.freepik.com/premium-vector/avatar-profile-icon-flat-style-male-user-profile-vector-illustration-isolated-background-man-profile-sign-business-concept_157943-38764.jpg" alt="Profile" class="round-img-heading">
+      {% endif %}
+      user
+  </a>
+  <style>
+    .round-img-heading {
+      width: 18px;         /* or 40px depending on preference */
+      height: 18px;
+      border-radius: 50%;
+      object-fit: cover;
+      margin-left: 8px;    /* optional: space between icon/text and image */
+      vertical-align: middle;
+  }
+  
+  </style>
+    {% elif user.is_active and user.is_staff and user.is_superuser and user.is_verified and user.is_authority_to_manage_hotel and user.is_admin %}
+        <a href="{% url 'admin:index' %}" class="btn-getstarted" >
+            <i class="fas fa-user-circle"></i> Admin
+        </a>
+    {% elif user.is_active and user.is_staff and user.is_superuser and user.is_verified and user.is_authority_to_manage_hotel %}
+        <a href="{% url 'user:maintainer_profile' %}" class="btn-getstarted" >
+            <i class="fas fa-user-circle"></i> sup-maintainer 
+    {% elif not user.is_authority_to_manage_hotel and user.is_maintainer and user.is_active and not user.is_verified and user.is_staff %}
+        <a href="{% url 'user:maintainer_profile' %}" class="btn-getstarted" style="color: red; position: relative; display: inline-block;" title="this manager not authority to manage hotel permission to admin">
+            <span style="position: absolute; top: 36%; left: 0px; height: 10px; width: 10px; background-color: rgb(27, 181, 55); border-radius: 50%; z-index: 1;"></span>
+            <i class="fas fa-user-circle"></i> maintainer 
+        </a>
+    {% elif not user.is_verified and user.is_active and user.is_superuser and not user.is_maintainer %}
+        <a href="{% url 'user:maintainer_profile' %}" class="btn-getstarted" style="color: red; position: relative; display: inline-block;" title="Account not verified">
+            <span style="position: absolute; top: 36%; left: 0px; height: 10px; width: 10px; background-color: #000000; border-radius: 50%; z-index: 1;"></span>
+            <i class="fas fa-user-circle"></i> Sup-STAFF 
+        </a>
+    {% elif not user.is_verified and user.is_active and user.is_staff and not user.is_superuser and not user.is_maintainer %}
+        <a href="{% url 'user:maintainer_profile' %}" class="btn-getstarted" style="color: red; position: relative; display: inline-block;" title="Account not verified">
+            <span style="position: absolute; top: 36%; left: 0px; height: 10px; width: 10px; background-color: #000000; border-radius: 50%; z-index: 1;"></span>
+            <i class="fas fa-user-circle"></i> STAFF 
+        </a>
+    {% elif user.maintainer_profile and user.is_maintainer %}
+        <a href="{% url 'user:maintainer_profile' %}" class="btn-getstarted">
+            <i class="fas fa-user-circle"></i> maintainer 
+        </a>
+    {% elif user.is_staff and user.is_active and not user.is_maintainer %}
+        <a href="{% url 'user:staff_profile' %}" class="btn-getstarted" >
+            <i class="fas fa-user-circle"></i> staff 
+        </a>
+    {% else %}
+        <a href="{% url 'user:user_profile' %}" class="btn-getstarted" >
+            <i class="fas fa-user-circle"></i> user 
+        </a>
+    {% endif %}
+{% else %}
+    <a href="{% url 'user:signin' %}" class="btn-getstarted">
+        <i class="fas fa-user-circle"></i> Log In
+    </a>
+{% endif %}
+    </div>
+  </header>
+
+  {% endblock %}

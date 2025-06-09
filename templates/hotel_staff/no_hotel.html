@@ -1,0 +1,9 @@
+<!-- templates/hotel_staff/no_hotel.html -->
+{% extends 'rooms/room_basic.html' %}
+{% block content %}
+<div class="alert alert-danger">
+    <h2>No Hotel Assigned</h2>
+    <p>Your staff account is not currently assigned to any hotel.</p>
+    <p>Please contact the administrator at <a href="mailto:{{ contact_email }}">{{ contact_email }}</a> to have a hotel assigned to your account.</p>
+</div>
+{% endblock %}

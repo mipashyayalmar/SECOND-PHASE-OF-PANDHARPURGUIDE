@@ -1,0 +1,90 @@
+{% extends 'home/base.html' %}
+
+{% block title %}Email Verification Success{% endblock %}
+
+{% block content %}
+  <div class="container">
+    <div class="verification-message">
+      <h2>Email Verification Successful</h2>
+      <p>Your email has been successfully verified. You can now log in to your account.</p>
+      <a href="{% url 'user:signin' %}" class="btn btn-primary">Sign In</a>
+    </div>
+  </div>
+  <style>
+    .container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    
+    .verification-message {
+      text-align: center;
+      margin: 30%;
+      padding: 20px;
+      background-color: #f8f9fa; 
+      border-radius: 10px;
+      animation: fadeIn 1.5s ease-in-out;
+      opacity: 0;
+      animation-fill-mode: forwards;
+    }
+    
+    .verification-message h2 {
+      font-size: 24px;
+      color: #28a745; 
+    }
+    
+    .verification-message p {
+      font-size: 18px;
+      color: #555;
+    }
+    
+    .verification-message a.btn-primary {
+      margin-top: 15px;
+      background-color: #007bff;
+      color: #fff;
+      padding: 10px 20px;
+      text-decoration: none;
+      border-radius: 5px;
+    }
+    
+    .verification-message a.btn-primary:hover {
+      background-color: #0056b3;
+    }
+    
+    /* Animation */
+    @keyframes fadeIn {
+      0% {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .verification-message {
+      text-align: center;
+      margin: 22%;
+      width: 59%;
+      padding: 20px;
+      background-color: #f8f9fa;
+      border-radius: 26px;
+      animation: fadeIn 1.5s ease-in-out;
+      opacity: 0;
+      animation-fill-mode: forwards;
+  }
+  
+  /* Media query for screens with a maximum width of 670px */
+  @media (max-width: 670px) {
+      .verification-message {
+          width: 80%; 
+          padding-top: 15px; 
+          font-size: 14px; 
+          margin-top:150px;
+      }
+  }
+  
+    
+  </style>
+{% endblock %}

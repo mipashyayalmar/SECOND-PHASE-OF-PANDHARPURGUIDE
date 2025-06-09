@@ -1,0 +1,144 @@
+
+{% extends 'base/base.html' %}
+{% load static %}
+{% block title %}Staff-SignIn{% endblock %}
+{% block content %}
+<!DOCTYPE html>
+<html>
+<head>
+    {% load static %}
+    <meta charset="utf-8">
+    <title>Signup Here</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{% static 'user/css/style.css' %}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+    <div class="wrapper">
+        <div class="inner">
+            <div class="image-holder">
+                <center>
+                    <img src="{% static 'imgs/sign/signup-icon.png' %}"style="width: 200px;padding-top:12px;"alt="">
+                </center>
+            <img src="{% static 'imgs/sign/sign-up.avif' %}" alt="">
+        </div>
+
+            <form action="{% url 'user:staff_signup' %}" method="POST" id="signup-form">
+                <h3>Staff Sign Up</h3>
+                {% csrf_token %}
+               
+
+                {% comment %} {% if  messages  %}
+                {% for message in messages %}
+                <div class="popup alert-{{ message.tags }}" role="alert">
+                    <button class="cancel-btn" aria-label="Cancel">×</button>
+                    <div class="popup-content">
+                        <p>{{ message }}</p>
+                        <div class="popup-buttons">
+                            <button class="btn close-btn">Close</button>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+                {% endif %} {% endcomment %}
+
+                <div class="form-holder active">
+                    <input type="email" class="form-control" name="username" placeholder="Email" required="required">
+                </div>
+                <div class="form-holder">
+                    <input type="text" class="form-control" name="name" placeholder="Name" required="required">
+                </div>
+                <div class="form-holder">
+                    <input type="Number" class="form-control" name="phone" placeholder="Phone Number" required="required">
+                </div>
+
+                <!-- Password inputs with toggle -->
+                <div class="form-holder" style="position: relative;">
+                    <input type="password" placeholder="Password" name="password1" class="form-control" id="password1" required>
+                    <span toggle="#password1" class="fa fa-fw fa-eye-slash field-icon" id="togglePassword1" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); cursor: pointer;"></span>
+                </div>
+                <div class="form-holder" style="position: relative;">
+                    <input type="password" placeholder="Confirm Password" name="password2" class="form-control" id="password2" required>
+                    <span toggle="#password2" class="fa fa-fw fa-eye-slash field-icon" id="togglePassword2" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); cursor: pointer;"></span>
+                </div>
+
+                <!-- Checkbox for Terms and Conditions -->
+                
+                
+                <div class="form-holder">
+                    <input type="checkbox" id="terms-checkbox" checked> I agree to all statements in <a href="#">Terms & Conditions</a>
+                        <span class="checkmark"  ></span>
+                </div>
+               
+                <div class="checkbox">
+                        <p>Already have an account? <a href="{% url 'user:staff_signin' %}">Login</a></p>
+                </div>
+
+                <!-- Signup button -->
+                <div class="form-login">
+                    <a href="/">
+                        <i class="fa fa-home home-icon" aria-hidden="true"></i>
+                    </a>&nbsp;&nbsp;&nbsp;<button type="submit" id="signup-button">Sign up</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {% comment %} trim the username like "mipashya@gmail.com "debug it  {% endcomment %}
+
+    <script>
+        // Add this JavaScript to trim spaces from the input
+        document.addEventListener('DOMContentLoaded', function() {
+            const usernameInput = document.querySelector('input[name="username"]');
+            
+            usernameInput.addEventListener('input', function(e) {
+                // Remove leading and trailing spaces as the user types
+                this.value = this.value.trim();
+            });
+            
+            // Or if you're handling form submission
+            const form = document.querySelector('form'); // Assuming this is in a form
+            if (form) {
+                form.addEventListener('submit', function(e) {
+                    usernameInput.value = usernameInput.value.trim();
+                    // Rest of your form submission logic
+                });
+            }
+        });
+        </script>
+
+    <!-- Password Toggle Script -->
+    <script>
+        const toggles = [
+            { toggle: '#togglePassword1', field: '#password1' },
+            { toggle: '#togglePassword2', field: '#password2' }
+        ];
+        toggles.forEach(item => {
+            const togglePassword = document.querySelector(item.toggle);
+            const password = document.querySelector(item.field);
+            togglePassword.addEventListener('click', function () {
+                const type = password.getAttribute('type') === 'password' ? 'text' : 'password';
+                password.setAttribute('type', type);
+                this.classList.toggle('fa-eye');
+                this.classList.toggle('fa-eye-slash');
+            });
+        });
+    </script>
+
+    <!-- Validation Script for Terms & Conditions -->
+    <script>
+        const checkbox = document.getElementById('terms-checkbox');
+        const signupButton = document.getElementById('signup-button');
+        document.getElementById('signup-form').addEventListener('submit', function (e) {
+            if (!checkbox.checked) {
+                e.preventDefault();
+                alert('Please agree to the Terms and Conditions before signing up.');
+            }
+        });
+    </script>
+
+    <script src="{% static 'user/js/jquery-3.3.1.min.js' %}"></script>
+    <script src="{% static 'user/js/main.js' %}"></script>
+</body>
+</html>
+{% endblock %}

@@ -1,0 +1,952 @@
+{% extends 'rooms/room_basic.html' %}
+{% block title %}Hotel Search{% endblock title %}
+{% load static %}
+{% load app_tags %}
+{% block content %}
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+  :root {
+    --primary-color: #4a6fa0;
+    --primary-hover: #3a5980;
+    --light-bg: #f8f9fa;
+    --dark-text: #333;
+    --light-text: #fff;
+    --border-radius: 8px;
+    --shadow: 0 4px 12px rgba(0,0,0,0.1);
+  }
+  
+  body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    color: var(--dark-text);
+    background-color: #f5f7f9;
+  }
+  
+  .search-section {
+    background: linear-gradient(135deg, var(--primary-color), #2c3e50);
+    padding: 2rem 0;
+    border-radius: 0 0 var(--border-radius) var(--border-radius);
+    box-shadow: var(--shadow);
+  }
+  
+  .search-container {
+    background-color: rgba(255, 255, 255, 0.9);
+    border-radius: var(--border-radius);
+    padding: 1.5rem;
+    box-shadow: var(--shadow);
+  }
+  
+  .search-container h3 {
+    color: var(--primary-color);
+    margin-bottom: 1.5rem;
+    font-weight: 600;
+  }
+  
+  .form-label {
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+    color: var(--dark-text);
+  }
+  
+  .form-control, .form-select {
+    border-radius: var(--border-radius);
+    padding: 0.75rem;
+    border: 1px solid #e0e0e0;
+    box-shadow: none;
+    transition: all 0.3s;
+  }
+  
+  .form-control:focus, .form-select:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 0.2rem rgba(74, 111, 160, 0.25);
+  }
+  
+  .btn-search {
+    background-color: var(--accent-color);
+    border: none;
+    color: var(--dark-text);
+    padding: 0.75rem 1.5rem;
+    border-radius: var(--border-radius);
+    font-weight: 600;
+    transition: all 0.3s;
+    width: 100%;
+  }
+  
+  .btn-search:hover {
+    background-color: #e69c4a;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+  }
+  
+  .filter-box {
+    background-color: white;
+    border-radius: var(--border-radius);
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    box-shadow: var(--shadow);
+    position: sticky;
+    top: 1rem;
+  }
+  
+  .filter-box h5 {
+    color: var(--primary-color);
+    margin-bottom: 1rem;
+    font-weight: 600;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid #f0f0f0;
+  }
+  
+  .amenity-group {
+    margin-bottom: 0.75rem;
+  }
+  
+  .form-check-label {
+    cursor: pointer;
+    padding-left: 0.5rem;
+  }
+  
+  .room-card {
+    margin-bottom: 1.5rem;
+  }
+  
+  .card {
+    border-radius: var(--border-radius);
+    overflow: hidden;
+    border: none;
+    box-shadow: var(--shadow);
+    transition: transform 0.3s, box-shadow 0.3s;
+  }
+  
+  .card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+  }
+  
+  .card-img-top {
+    height: 200px;
+    object-fit: cover;
+  }
+  
+  .card-title {
+    font-weight: 600;
+    color: var(--primary-color);
+  }
+  
+  .room-heading {
+    color: #8a56ac;
+    font-size: 1.1rem;
+    font-weight: 500;
+  }
+  
+  .location {
+    color: #666;
+    font-size: 0.9rem;
+  }
+  
+  .location i {
+    color: var(--primary-color);
+  }
+  
+  .details-row {
+    font-size: 0.9rem;
+    margin-top: 1rem;
+    background-color: var(--light-bg);
+    border-radius: var(--border-radius);
+    padding: 0.75rem;
+  }
+  
+  .btn-book {
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: var(--border-radius);
+    padding: 0.6rem 1.5rem;
+    font-weight: 500;
+    transition: all 0.3s;
+  }
+  
+  .btn-book:hover {
+    background-color: var(--primary-hover);
+    transform: translateY(-2px);
+  }
+  
+  .modal-content {
+    border-radius: var(--border-radius);
+    overflow: hidden;
+  }
+  
+  .close-button {
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    background: rgba(0,0,0,0.5);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    font-size: 1.2rem;
+    line-height: 1;
+    z-index: 10;
+  }
+  
+  .availability-notice {
+    background-color: #d4edda;
+    color: #155724;
+    text-align: center;
+    padding: 0.5rem;
+    border-radius: var(--border-radius);
+    margin-bottom: 1rem;
+  }
+  
+  @media (max-width: 768px) {
+    .search-container {
+      padding: 1rem;
+    }
+    
+    .form-group {
+      margin-bottom: 1rem;
+    }
+    
+    .filter-box {
+      position: relative;
+      margin-bottom: 1rem;
+    }
+    
+    .details-row {
+      font-size: 0.85rem;
+    }
+  }
+  
+  /* Checkbox custom styling */
+  .form-check-input {
+    width: 1.1em;
+    height: 1.1em;
+    margin-top: 0.2em;
+    cursor: pointer;
+  }
+  
+  .form-check-input:checked {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+  }
+  
+  /* Image hover effect */
+  .img-container {
+    overflow: hidden;
+    position: relative;
+  }
+  
+  .card-img-top {
+    transition: transform 0.5s;
+  }
+  
+  .img-container:hover .card-img-top {
+    transform: scale(1.05);
+  }
+  
+  .img-container::after {
+    content: 'Click to enlarge';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background-color: rgba(0,0,0,0.6);
+    color: white;
+    text-align: center;
+    padding: 5px;
+    font-size: 0.8rem;
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+  
+  .img-container:hover::after {
+    opacity: 1;
+  }
+</style>
+<style>
+  :root {
+    --primary-color: #4a6fa0;
+    --primary-hover: #3a5980;
+    --light-bg: #f8f9fa;
+    --dark-text: #333;
+    --light-text: #fff;
+    --border-radius: 8px;
+    --shadow: 0 4px 12px rgba(0,0,0,0.1);
+  }
+
+  body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    color: var(--dark-text);
+    background-color: #f5f7f9;
+  }
+
+  .search-section {
+    background: linear-gradient(135deg, var(--primary-color), #2c3e50);
+    padding: 2rem 0;
+    border-radius: 0 0 var(--border-radius) var(--border-radius);
+    box-shadow: var(--shadow);
+    margin-bottom: 2rem;
+  }
+
+  .search-container {
+    background-color: rgba(255, 255, 255, 0.95);
+    border-radius: var(--border-radius);
+    padding: 1.5rem;
+    box-shadow: var(--shadow);
+  }
+
+  .filter-box {
+    background-color: white;
+    border-radius: var(--border-radius);
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    box-shadow: var(--shadow);
+    position: sticky;
+    top: 1rem;
+  }
+
+  /* Price Range Slider Styles */
+  .range-slider-container {
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    margin-bottom: 20px;
+  }
+  
+  .slider {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 8px;
+    border-radius: 5px;
+    background: #d3d3d3;
+    outline: none;
+    margin: 15px 0;
+  }
+  
+  .slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--primary-color);
+    cursor: pointer;
+  }
+  
+  .slider::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--primary-color);
+    cursor: pointer;
+  }
+  
+  .price-inputs {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  
+  .price-inputs input {
+    width: 45%;
+  }
+  
+  /* Amenities tags style */
+  .amenity-tag {
+    display: block;
+    padding: 8px 12px;
+    margin: 5px 0;
+    background-color: #e9ecef;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: all 0.3s;
+  }
+  
+  .amenity-tag:hover {
+    background-color: #dee2e6;
+  }
+  
+  .amenity-tag.active {
+    background-color: var(--primary-color);
+    color: white;
+  }
+  
+  .amenity-tag.active i {
+    color: white !important;
+  }
+  
+  .amenity-tag i {
+    color: var(--primary-color);
+    width: 20px;
+    text-align: center;
+  }
+  
+  .click-notice {
+    font-size: 12px;
+    color: #6c757d;
+  }
+
+  .hotel-card {
+    margin-bottom: 1.5rem;
+    transition: transform 0.3s;
+  }
+
+  .hotel-card:hover {
+    transform: translateY(-5px);
+  }
+
+  .img-container {
+    overflow: hidden;
+    position: relative;
+    height: 200px;
+  }
+
+  .card-img-top {
+    height: 100%;
+    width: 100%;
+    object-fit: cover;
+    transition: transform 0.5s;
+  }
+
+  .img-container:hover .card-img-top {
+    transform: scale(1.05);
+  }
+
+  .img-container::after {
+    content: 'Click to enlarge';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background-color: rgba(0,0,0,0.6);
+    color: white;
+    text-align: center;
+    padding: 5px;
+    font-size: 0.8rem;
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+
+  .img-container:hover::after {
+    opacity: 1;
+  }
+
+  @media (max-width: 768px) {
+    .filter-box {
+      position: relative;
+      top: auto;
+    }
+    
+    .img-container {
+      height: 150px;
+    }
+  }
+</style>
+<!-- Search Section -->
+<section class="search-section">
+  <div class="container py-2">
+    <div class="search-container">
+      <h3 class="text-center mb-4">Find Your Perfect Stay</h3>
+      <form action="" method="GET" id="searchForm" onsubmit="return validateDates()">
+        <div class="row g-3">
+          <div class="col-md-4">
+            <label class="form-label" for="location">Location</label>
+            <select class="form-select" id="location" name="search_location">
+              <option value="" {% if not location %}selected{% endif %}>Select a location</option>
+              {% for hotel in all_hotels %}
+                {% if hotel.location %}
+                  {% if hotel.is_available %}
+                    <option value="{{ hotel.id }}" {% if location == hotel.id|stringformat:"s" %}selected{% endif %}>
+                      {{ hotel.location }}
+                    </option>
+                  {% else %}
+                    <option value="{{ hotel.id }}" disabled>
+                      {{ hotel.location }} (Unavailable)
+                    </option>
+                  {% endif %}
+                {% endif %}
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-md-3">
+            <label class="form-label" for="check-in-display">Check In</label>
+            <input type="text" class="form-control" id="check-in-display" placeholder="Select check-in date" readonly required>
+            <input type="hidden" id="check-in" name="cin" value="{{ check_in }}">
+          </div>
+          <div class="col-md-3">
+            <label class="form-label" for="check-out-display">Check Out</label>
+            <input type="text" class="form-control" id="check-out-display" placeholder="Select check-out date" readonly required>
+            <input type="hidden" id="check-out" name="cout" value="{{ check_out }}">
+          </div>
+          <div class="col-md-2">
+            <label class="form-label" for="capacity">Guests</label>
+            <input class="form-control" id="capacity" min="1" name="capacity" type="number" value="{{ capacity|default:'1' }}" required>
+          </div>
+          <div class="col-12 mt-4">
+            <button class="btn btn-primary w-100 py-2" type="submit">
+              <i class="fas fa-search me-2"></i>Search Availability
+            </button>
+          </div>
+        </div>
+        <div id="dateError" class="text-danger mt-2 text-center" style="display: none;"></div>
+      </form>
+    </div>
+  </div>
+</section>
+
+<!-- Flatpickr CSS and JS -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<!-- SweetAlert2 for Popup -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<!-- Results Section -->
+<div class="container py-4">
+  <div class="row">
+    <!-- Filter Sidebar -->
+    <div class="col-lg-3 col-md-4 mb-4">
+      <div class="filter-box">
+        <h5><i class="fas fa-filter me-2"></i>Filter Results</h5>
+        
+        <!-- Price Range Slider -->
+        <div class="range-slider-container mb-4">
+          <label class="form-label">Price Range (per night)</label>
+          <div class="price-inputs mb-2">
+            <input type="number" name="min_price" id="min_price" class="form-control d-inline-block w-45" placeholder="Min" value="{{ min_price|default:'0' }}">
+            <span class="d-inline-block mx-2">-</span>
+            <input type="number" name="max_price" id="max_price" class="form-control d-inline-block w-45" placeholder="Max" value="{{ max_price|default:'10000' }}">
+          </div>
+          <input type="range" min="0" max="10000" value="{{ min_price|default:'0' }}" class="slider" id="min_range">
+          <input type="range" min="0" max="10000" value="{{ max_price|default:'10000' }}" class="slider" id="max_range">
+        </div>
+        
+        <!-- Amenities Filter -->
+        <div class="amenities-filter">
+          <label class="form-label">Amenities</label>
+          <div class="amenities-tags">
+            <span class="amenity-tag {% if active_amenities.ac == '1' %}active{% endif %}" data-amenity="ac">
+              <i class="fas fa-snowflake me-2"></i>Air Conditioning
+            </span>
+            <span class="amenity-tag {% if active_amenities.fan == '1' %}active{% endif %}" data-amenity="fan">
+              <i class="fas fa-wind me-2"></i>Fan
+            </span>
+            <span class="amenity-tag {% if active_amenities.wifi == '1' %}active{% endif %}" data-amenity="wifi">
+              <i class="fas fa-wifi me-2"></i>Wi-Fi
+            </span>
+            <span class="amenity-tag {% if active_amenities.parking == '1' %}active{% endif %}" data-amenity="parking">
+              <i class="fas fa-parking me-2"></i>Parking
+            </span>
+            <span class="amenity-tag {% if active_amenities.heater == '1' %}active{% endif %}" data-amenity="heater">
+              <i class="fas fa-fire me-2"></i>Heater
+            </span>
+            <span class="amenity-tag {% if active_amenities.food_facility == '1' %}active{% endif %}" data-amenity="food_facility">
+              <i class="fas fa-utensils me-2"></i>Food Facility
+            </span>
+          </div>
+          <p class="click-notice mt-2">Click on amenities to filter (changes apply immediately)</p>
+          
+          <!-- Hidden inputs for form submission -->
+          <input type="hidden" name="ac" id="ac_input" value="{{ active_amenities.ac|default:'0' }}">
+          <input type="hidden" name="fan" id="fan_input" value="{{ active_amenities.fan|default:'0' }}">
+          <input type="hidden" name="wifi" id="wifi_input" value="{{ active_amenities.wifi|default:'0' }}">
+          <input type="hidden" name="parking" id="parking_input" value="{{ active_amenities.parking|default:'0' }}">
+          <input type="hidden" name="heater" id="heater_input" value="{{ active_amenities.heater|default:'0' }}">
+          <input type="hidden" name="food_facility" id="food_facility_input" value="{{ active_amenities.food_facility|default:'0' }}">
+        </div>
+      </div>
+    </div>
+    
+    <!-- Hotel Results -->
+      <div class="col-lg-9 col-md-8">
+            <div class="row" id="hotel">
+                {% for hotel_data in hotels %}
+                <div class="col-lg-6 col-xl-4 hotel-card">
+                    <div class="card h-100">
+                        <div class="img-container">
+                            {% if hotel_data.hotel.image_1 %}
+                            <img alt="{{ hotel_data.hotel.name }}" class="card-img-top gallery-img" src="{{ hotel_data.hotel.image_1.url }}" onclick="openModal(this)">
+                            {% else %}
+                            <img alt="Hotel placeholder" class="card-img-top gallery-img" src="https://r1imghtlak.mmtcdn.com/1ecd1aceec2611e997630242ac110002.jpg" onclick="openModal(this)">
+                            {% endif %}
+                        </div>
+                        
+                        <div class="card-body">
+                            <h5 class="card-title text-center">{{ hotel_data.hotel.name|title }}({{hotel_data.hotel.hotel_type}})</h5>
+                            <p class="text-muted text-center mb-3">
+                                <i class="fas fa-map-marker-alt me-1"></i>{{ hotel_data.hotel.location|title }}
+                            </p>
+                            
+                            <p class="card-text">{{ hotel_data.hotel.description|truncatewords:20 }}</p>
+                            
+                            <div class="d-flex justify-content-between mt-3">
+                                <div>
+                                    <i class="fas fa-star text-warning me-1"></i>
+                                    <span>{{ hotel_data.hotel.rating|default:"N/A" }}/5</span>
+                                </div>
+                                <div>
+                                    <i class="fas fa-door-open text-primary me-1"></i>
+                                    <span>{{ hotel_data.available_rooms_count }} rooms</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="card-footer bg-white border-0 text-center pb-3">
+                            <a href="#" 
+                               class="btn btn-primary view-rooms-btn" 
+                               data-hotel-id="{{ hotel_data.hotel.id }}"
+                               onclick="showDatePopup(this); return false;">
+                                <i class="fas fa-door-open me-2"></i>View Rooms
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="col-12">
+                    <div class="alert alert-info text-center">
+                        <i class="fas fa-info-circle me-2"></i>
+                        No hotels match your search criteria. Please try different filters.
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Assume modal for image gallery or date popup exists -->
+<script>
+    function openModal(img) {
+        // Placeholder for image modal logic
+        console.log("Open modal for image:", img.src);
+    }
+
+    function showDatePopup(btn) {
+        // Placeholder for date popup logic
+        console.log("Show date popup for hotel:", btn.dataset.hotelId);
+    }
+</script>
+
+<!-- Image Modal -->
+<div class="modal fade" id="imageModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content">
+      <button type="button" class="btn-close position-absolute top-0 end-0 m-2" data-bs-dismiss="modal" aria-label="Close"></button>
+      <img alt="Expanded View" class="img-fluid" id="modalImage">
+    </div>
+  </div>
+</div>
+
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // Initialize date inputs
+    const checkInInput = document.getElementById('check-in');
+    const checkInDisplay = document.getElementById('check-in-display');
+    const checkOutInput = document.getElementById('check-out');
+    const checkOutDisplay = document.getElementById('check-out-display');
+    const locationSelect = document.getElementById('location');
+
+    // Initialize display values from context
+    checkInDisplay.value = '{{ formatted_check_in|default:"" }}';
+    checkOutDisplay.value = '{{ formatted_check_out|default:"" }}';
+
+    // Format date as YYYY-MM-DD
+    function formatDateToLocalYYYYMMDD(date) {
+        try {
+            return date.getFullYear() + '-' +
+                   String(date.getMonth() + 1).padStart(2, '0') + '-' +
+                   String(date.getDate()).padStart(2, '0');
+        } catch (e) {
+            console.error('Error formatting date:', e);
+            return '';
+        }
+    }
+
+    // Flatpickr initialization
+    const checkInPicker = flatpickr('#check-in-display', {
+        minDate: today,
+        dateFormat: 'd F Y',
+        defaultDate: checkInInput.value ? new Date(checkInInput.value) : null,
+        onChange: function(selectedDates) {
+            if (selectedDates.length > 0) {
+                const selectedDate = selectedDates[0];
+                checkInInput.value = formatDateToLocalYYYYMMDD(selectedDate);
+                updateCheckoutMinDate();
+                validateDates();
+                submitCombinedForm();
+            }
+        },
+        onReady: function() {
+            if (!checkInInput.value) {
+                const defaultDate = new Date(today);
+                defaultDate.setDate(today.getDate() + 1);
+                checkInInput.value = formatDateToLocalYYYYMMDD(defaultDate);
+                this.setDate(defaultDate);
+            }
+        }
+    });
+
+    const checkOutPicker = flatpickr('#check-out-display', {
+        minDate: checkInInput.value ? new Date(new Date(checkInInput.value).setDate(new Date(checkInInput.value).getDate() + 1)) : new Date(today.setDate(today.getDate() + 1)),
+        dateFormat: 'd F Y',
+        defaultDate: checkOutInput.value ? new Date(checkOutInput.value) : null,
+        onChange: function(selectedDates) {
+            if (selectedDates.length > 0) {
+                const selectedDate = selectedDates[0];
+                checkOutInput.value = formatDateToLocalYYYYMMDD(selectedDate);
+                validateDates();
+                submitCombinedForm();
+            }
+        },
+        onReady: function() {
+            if (!checkOutInput.value) {
+                const defaultDate = new Date(checkInInput.value || today);
+                defaultDate.setDate(defaultDate.getDate() + 7);
+                checkOutInput.value = formatDateToLocalYYYYMMDD(defaultDate);
+                this.setDate(defaultDate);
+            }
+        }
+    });
+
+    function updateCheckoutMinDate() {
+        try {
+            if (checkInInput.value) {
+                const checkInDate = new Date(checkInInput.value);
+                const minCheckOutDate = new Date(checkInDate);
+                minCheckOutDate.setDate(checkInDate.getDate() + 1);
+                checkOutPicker.set('minDate', minCheckOutDate);
+
+                const currentCheckOut = checkOutInput.value ? new Date(checkOutInput.value) : null;
+                if (currentCheckOut && currentCheckOut <= checkInDate) {
+                    checkOutInput.value = formatDateToLocalYYYYMMDD(minCheckOutDate);
+                    checkOutDisplay.value = minCheckOutDate.toLocaleDateString('en-GB', {
+                        day: 'numeric',
+                        month: 'long',
+                        year: 'numeric'
+                    });
+                    checkOutPicker.setDate(minCheckOutDate);
+                }
+            }
+        } catch (e) {
+            console.error('Error updating checkout min date:', e);
+        }
+    }
+
+    function validateDates() {
+        const errorElement = document.getElementById('dateError');
+        errorElement.style.display = 'none';
+        errorElement.textContent = '';
+
+        try {
+            const checkInDate = checkInInput.value ? new Date(checkInInput.value) : null;
+            if (checkInDate) {
+                checkInDate.setHours(0, 0, 0, 0);
+                if (checkInDate < today) {
+                    errorElement.textContent = 'Check-in date cannot be in the past';
+                    errorElement.style.display = 'block';
+                    checkInDisplay.focus();
+                    return false;
+                }
+            } else {
+                errorElement.textContent = 'Please select a check-in date';
+                errorElement.style.display = 'block';
+                checkInDisplay.focus();
+                return false;
+            }
+
+            const checkOutDate = checkOutInput.value ? new Date(checkOutInput.value) : null;
+            if (checkOutDate && checkInDate) {
+                checkOutDate.setHours(0, 0, 0, 0);
+                if (checkOutDate <= checkInDate) {
+                    errorElement.textContent = 'Check-out date must be after check-in date';
+                    errorElement.style.display = 'block';
+                    checkOutDisplay.focus();
+                    return false;
+                }
+            } else {
+                errorElement.textContent = 'Please select a check-out date';
+                errorElement.style.display = 'block';
+                checkOutDisplay.focus();
+                return false;
+            }
+
+            return true;
+        } catch (e) {
+            console.error('Error validating dates:', e);
+            errorElement.textContent = 'Invalid date format';
+            errorElement.style.display = 'block';
+            return false;
+        }
+    }
+
+    // Price Range Slider functionality
+    const minRange = document.getElementById('min_range');
+    const maxRange = document.getElementById('max_range');
+    const minPrice = document.getElementById('min_price');
+    const maxPrice = document.getElementById('max_price');
+
+    // Initialize values
+    minRange.value = minPrice.value || 0;
+    maxRange.value = maxPrice.value || 10000;
+
+    // Update price inputs when sliders change
+    minRange.addEventListener('input', function() {
+        minPrice.value = this.value;
+        if (parseInt(minPrice.value) > parseInt(maxPrice.value)) {
+            maxPrice.value = minPrice.value;
+            maxRange.value = minPrice.value;
+        }
+        submitCombinedForm();
+    });
+
+    maxRange.addEventListener('input', function() {
+        maxPrice.value = this.value;
+        if (parseInt(maxPrice.value) < parseInt(minPrice.value)) {
+            minPrice.value = maxPrice.value;
+            minRange.value = maxPrice.value;
+        }
+        submitCombinedForm();
+    });
+
+    // Update sliders when price inputs change
+    minPrice.addEventListener('change', function() {
+        minRange.value = this.value;
+        if (parseInt(minPrice.value) > parseInt(maxPrice.value)) {
+            maxPrice.value = minPrice.value;
+            maxRange.value = minPrice.value;
+        }
+        submitCombinedForm();
+    });
+
+    maxPrice.addEventListener('change', function() {
+        maxRange.value = this.value;
+        if (parseInt(maxPrice.value) < parseInt(minPrice.value)) {
+            minPrice.value = maxPrice.value;
+            minRange.value = maxPrice.value;
+        }
+        submitCombinedForm();
+    });
+
+    // Amenities click handler
+    const amenityTags = document.querySelectorAll('.amenity-tag');
+    amenityTags.forEach(tag => {
+        tag.addEventListener('click', function() {
+            this.classList.toggle('active');
+            const amenityName = this.getAttribute('data-amenity');
+            const inputField = document.getElementById(`${amenityName}_input`);
+            inputField.value = this.classList.contains('active') ? '1' : '0';
+            submitCombinedForm();
+        });
+    });
+
+    // Function to combine search and filter forms and submit
+    function submitCombinedForm() {
+        try {
+            const searchForm = document.getElementById('searchForm');
+            const filterData = new FormData();
+
+            // Add search form data
+            new FormData(searchForm).forEach((value, key) => {
+                filterData.append(key, value);
+            });
+
+            // Add filter data
+            filterData.append('min_price', minPrice.value);
+            filterData.append('max_price', maxPrice.value);
+            filterData.append('ac', document.getElementById('ac_input').value);
+            filterData.append('fan', document.getElementById('fan_input').value);
+            filterData.append('wifi', document.getElementById('wifi_input').value);
+            filterData.append('parking', document.getElementById('parking_input').value);
+            filterData.append('heater', document.getElementById('heater_input').value);
+            filterData.append('food_facility', document.getElementById('food_facility_input').value);
+
+            // Convert FormData to URLSearchParams
+            const params = new URLSearchParams();
+            filterData.forEach((value, key) => {
+                if (value) { // Only append non-empty values
+                    params.append(key, value);
+                }
+            });
+
+            // Submit the form
+            window.location.search = params.toString();
+        } catch (e) {
+            console.error('Error submitting combined form:', e);
+        }
+    }
+
+    // Navigation to hotel rooms with all filter parameters without showing popup
+window.showDatePopup = function(button) {
+  try {
+      if (!validateDates()) {
+          return;
+      }
+
+      const hotelId = button.getAttribute('data-hotel-id');
+
+      // Collect all filter parameters
+      const params = new URLSearchParams();
+      params.append('cin', checkInInput.value);
+      params.append('cout', checkOutInput.value);
+      params.append('capacity', document.getElementById('capacity').value || '1');
+      params.append('search_location', locationSelect.value || '');
+      params.append('min_price', minPrice.value || '0');
+      params.append('max_price', maxPrice.value || '10000');
+      params.append('ac', document.getElementById('ac_input').value);
+      params.append('fan', document.getElementById('fan_input').value);
+      params.append('wifi', document.getElementById('wifi_input').value);
+      params.append('parking', document.getElementById('parking_input').value);
+      params.append('heater', document.getElementById('heater_input').value);
+      params.append('food_facility', document.getElementById('food_facility_input').value);
+
+      const url = `/hotel/hotel/hotel/${hotelId}/rooms/?${params.toString()}`;
+      console.log('Navigating to:', url);
+      window.location.href = url;
+
+  } catch (e) {
+      console.error('Error in showDatePopup:', e);
+      Swal.fire({
+          title: 'Error',
+          text: 'Unable to proceed. Please try again.',
+          icon: 'error',
+          confirmButtonText: 'OK'
+      });
+  }
+};
+
+    // Image modal functionality
+    window.openModal = function(img) {
+        try {
+            const modalImage = document.getElementById('modalImage');
+            modalImage.src = img.src;
+            const modal = new bootstrap.Modal(document.getElementById('imageModal'));
+            modal.show();
+        } catch (e) {
+            console.error('Error opening modal:', e);
+        }
+    };
+
+    // Initialize checkout min date
+    try {
+        updateCheckoutMinDate();
+    } catch (e) {
+        console.error('Error initializing checkout min date:', e);
+    }
+
+    // Ensure location filter is applied on page load
+    if (locationSelect.value) {
+        submitCombinedForm();
+    }
+});
+</script>
+
+{% endblock %}

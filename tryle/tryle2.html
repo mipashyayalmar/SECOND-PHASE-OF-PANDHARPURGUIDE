@@ -1,0 +1,63 @@
+<section class="hotel-card">
+    <h2 class="fw-semibold mb-3">Available Rooms</h2>
+    {% if rooms %}
+        <div class="rooms-list">
+            {% for room in rooms %}
+                <div class="room-item">
+                    <h3>Room {{ room.id }}</h3>
+                    <p>Price: ${{ room.price }}</p>
+                    <p>Capacity: {{ room.capacity }} guests</p>
+                    <div class="amenities">
+                        {% if room.comfortable_bed %}
+                        <div class="facility-box"><i class="fas fa-bed"></i> Comfortable Bed</div>
+                        {% endif %}
+                        {% if room.private_bathroom %}
+                        <div class="facility-box"><i class="fas fa-bath"></i> Private Bathroom</div>
+                        {% endif %}
+                        {% comment %} {% if room.wifi %}
+                        <div class="facility-box"><i class="fas fa-wifi"></i> Wi-Fi</div>
+                        {% endif %} {% endcomment %}
+                        {% comment %} {% if room.ac %}
+                        <div class="facility-box"><i class="fas fa-snowflake"></i> AC</div>
+                        {% endif %} {% endcomment %}
+                        {% if room.fan %}
+                        <div class="facility-box"><i class="fas fa-fan"></i> Fan</div>
+                        {% endif %}
+                        {% if room.heater %}
+                        <div class="facility-box"><i class="fas fa-fire"></i> Heater</div>
+                        {% endif %}
+                        {% if room.cleanliness %}
+                        <div class="facility-box"><i class="fas fa-broom"></i> Cleanliness (Regular)</div>
+                        {% endif %}
+                        {% if room.safety_security %}
+                        <div class="facility-box"><i class="fas fa-lock"></i> Safety & Security</div>
+                        {% endif %}
+                        {% if room.entertainment_options %}
+                        <div class="facility-box"><i class="fas fa-tv"></i> Entertainment Options</div>
+                        {% endif %}
+                        {% if room.laundry_facility %}
+                        <div class="facility-box"><i class="fas fa-tshirt"></i> Laundry Facility</div>
+                        {% endif %}
+                        {% if room.outdoor_balcony %}
+                        <div class="facility-box"><i class="fas fa-umbrella-beach"></i> Outdoor Balcony</div>
+                        {% endif %}
+                        {% if room.parking %}
+                        <div class="facility-box"><i class="fas fa-parking"></i> Parking Area</div>
+                        {% endif %}
+                        {% if room.food_facility %}
+                        <div class="facility-box"><i class="fas fa-utensils"></i> Food Facility</div>
+                        {% endif %}
+                        {% if room.convenient_location %}
+                        <div class="facility-box"><i class="fas fa-map-marker-alt"></i> Convenient Location</div>
+                        {% endif %}
+                        {% if room.concierge_service %}
+                        <div class="facility-box"><i class="fas fa-concierge-bell"></i> Concierge Service</div>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p>No rooms available for the selected criteria.</p>
+    {% endif %}
+</section>

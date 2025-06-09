@@ -1,0 +1,243 @@
+{% extends 'base/main_base.html' %}
+
+
+{% block second_nav %}
+{% load static %}
+  <header id="header" class="header d-flex align-items-center sticky-top">
+      <div class="container-fluid container-xl position-relative d-flex align-items-center">
+        <a href="{% url 'myapp:home' %}" class="logo d-flex align-items-center me-auto">
+          <h1 class="sitename"><img src="{% static 'assets/img/logo.png' %}" alt="">   PandharpurGuide</h1>
+        </a>
+        
+    
+        <nav id="navmenu" class="navmenu">
+          <ul>
+            <li><a href="{% url 'myapp:home' %}#hero" class="active">Home</a></li>
+{% comment %}             
+            <li class="dropdown">
+              <a href="{% url 'myapp:home' %}#about">
+                <span>About</span> 
+                <i class="bi bi-chevron-down toggle-dropdown"></i>
+              </a>
+              <ul>
+                <li><a href="">Team</a></li>
+                <li><a href="#blog-posts">PostsDetail</a></li>
+                {% if user.is_active and user.is_superuser and user.is_verified or user.is_admin %}
+
+
+                <li class="dropdown">
+                  <a href="#">
+                    <span>Log-Auths</span> 
+                    <i class="bi bi-chevron-down toggle-dropdown"></i>
+                  </a>
+                  <ul>
+                    <li><a href="{% url 'admin:index' %}">Admin-profile <i class="fas fa-user-circle"></i></a></li>
+                </ul>
+                
+                </li>
+                    
+                {% endif %}
+
+                {% if user.is_active and user.is_staff and user.is_superuser and user.is_verified and user.is_authority_to_manage_hotel and user.is_authenticated %}
+
+
+                <li class="dropdown">
+                  <a href="#">
+                    <span>Log-Auths</span> 
+                    <i class="bi bi-chevron-down toggle-dropdown"></i>
+                  </a>
+                  <ul>
+                    <li><a href="{% url 'admin:index' %}">Admin-profile <i class="fas fa-user-circle"></i></a></li>
+                    <li><a href="{% url 'user:staff_profile' %}">Admin-profile <i class="fas fa-user-circle"></i></a></li>
+                </ul>
+                
+                </li>
+                    
+                {% endif %}
+
+                {% if not user.is_authenticated %}
+
+
+                
+                <li class="dropdown">
+                  <a href="#">
+                    <span>Log-Auths</span> 
+                    <i class="bi bi-chevron-down toggle-dropdown"></i>
+                  </a>
+                  <ul>
+                    <li><a href="{% url 'user:staff_signin' %}">Log in Staff <i class="fas fa-user-circle"></i></a></li>
+                    <li><a href="{% url 'user:maintainer_signin' %}">Log in Maintainer <i class="fas fa-user-circle"></i></a></li>
+                    <li><a href="{% url 'admin:index' %}">Log in Admin <i class="fas fa-user-circle"></i></a></li> <!-- Updated to match admin URL -->
+                </ul>
+                
+                </li>
+                {% endif %}
+              </ul>
+            </li> {% endcomment %}
+        
+            <li class="dropdown">
+              <a href="">
+                <span>Accommodations</span> 
+                <i class="bi bi-chevron-down toggle-dropdown"></i>
+              </a>
+              <ul>
+                <li><a class="dropdown-item" href="{% url 'homepage' %}?hotel_type=hotel_restaurant&t={{ now|date:'U' }}">Hotel</a></li>
+                 <li><a class="dropdown-item" href="{% url 'homepage' %}?hotel_type=dormitory&t={{ now|date:'U' }}">Dormitory</a></li>
+                <li><a class="dropdown-item" href="{% url 'homepage' %}?hotel_type=math_dharmashala&t={{ now|date:'U' }}">Math / Dharmshala</a></li>
+                <li><a class="dropdown-item" href="{% url 'homepage' %}?hotel_type=other&t={{ now|date:'U' }}">Other</a></li>
+                <li class="dropdown">
+                  <a href="">
+                    <span>More Temples</span> 
+                    <i class="bi bi-chevron-down toggle-dropdown"></i>
+                  </a>
+                  <ul>
+                    <li><a href="#">Kaikadi Temple</a></li>
+                    <li><a href="#">Padmavati Temple</a></li>
+                    <li><a href="#">Other Shrines</a></li>
+                  </ul>
+                </li>
+              </ul>
+            </li>
+        
+            <li class="dropdown">
+              <a href="">
+                <span>Restaurant</span> 
+                <i class="bi bi-chevron-down toggle-dropdown"></i>
+              </a>
+              <ul>
+                <li><a href="#">AC Restaurant</a></li>
+                <li><a href="#">Dining Hall</a></li>
+                <li><a href="#">Thali System</a></li>
+                <li><a href="#">Mess</a></li>
+              </ul>
+            </li>
+        
+            <li class="dropdown">
+              <a href="">
+                <span>Puja</span> 
+                <i class="bi bi-chevron-down toggle-dropdown"></i>
+              </a>
+              <ul>
+                <li><a href="#">Vithal Mandir Puja</a></li>
+                <li><a href="#">Pundhal derog Puja</a></li>
+                <li><a href="#">Dnyaneswar Mauli Puja</a></li>
+                <li><a href="#">Tukaram Maharaj Puja</a></li>
+                <li><a href="#">Mahadev Puja</a></li>
+                <li><a href="#">Vishupad Puja</a></li>
+                <li><a href="#">Chandrabhaga Puja</a></li>
+                <li><a href="#">Satyanarayan Puja</a></li>
+                <li><a href="#">Dashkriya Vidhi</a></li>
+              </ul>
+            </li>
+        
+            <li class="dropdown">
+              <a href="">
+                <span>Visit Places</span> 
+                <i class="bi bi-chevron-down toggle-dropdown"></i>
+              </a>
+              <ul>
+                <li><a href="#">God Shree Vitthal Rukmini Mandir</a></li>
+                <li><a href="#">Sant Dnyaneswar Maharaj Mandir</a></li>
+                <li><a href="#">Sant Tukaram Maharaj Mandir</a></li>
+                <li><a href="#">Sant Muktabai Mandir</a></li>
+                <li><a href="#">Sant Nivrutinath Maharaj Mandir</a></li>
+                <li><a href="#">Sant Sopan Maharaj Mandir</a></li>
+                <li><a href="#">Sant Eknath Maharaj Mandir</a></li>
+                <li><a href="#">Sant Namdev Maharaj Mandir</a></li>
+                <li><a href="#">Sant Gajanan Maharaj Mandir</a></li>
+                <li><a href="#">Sant Kaikadi Maharaj Math</a></li>
+                <li><a href="#">Gopal Krushna Mandir</a></li>
+                <li><a href="#">Tulsi Vrundavan</a></li>
+              </ul>
+            </li>
+        
+            <li class="dropdown">
+              <a href="">
+                <span>Shopping</span> 
+                <i class="bi bi-chevron-down toggle-dropdown"></i>
+              </a>
+              <ul>
+                <li><a href="#">Masala Agarbatti / Udabatti</a></li>
+                <li><a href="#">Pedha</a></li>
+                <li><a href="#">Prasad</a></li>
+                <li><a href="#">Chiwada</a></li>
+                <li><a href="#">Shengdana Chatani</a></li>
+                <li><a href="#">Statues</a></li>
+                <li><a href="#">Photo Frames</a></li>
+                <li><a href="#">Stone Murtis</a></li>
+              </ul>
+            </li>
+        
+          </ul>
+          <i class="mobile-nav-toggle d-xl-none bi bi-list"></i>
+        </nav>
+
+        
+        {% if user.is_authenticated %}
+    {% if user.is_active and not user.is_staff and not user.is_superuser and not user.is_verified and not user.is_authority_to_manage_hotel and not user.is_admin %}
+    <a href="{% url 'user:user_profile' %}" class="btn-getstarted">
+      {% if social_data.picture %}
+          <img src="{{ social_data.picture }}" alt="Profile" class="round-img-heading">
+      {% elif user.profile_image %}
+          <img src="{{ user.profile_image.url }}" alt="Profile" class="round-img-heading">
+      {% else %}
+          <img src="https://img.freepik.com/premium-vector/avatar-profile-icon-flat-style-male-user-profile-vector-illustration-isolated-background-man-profile-sign-business-concept_157943-38764.jpg" alt="Profile" class="round-img-heading">
+      {% endif %}
+      user
+  </a>
+  <style>
+    .round-img-heading {
+      width: 18px;         /* or 40px depending on preference */
+      height: 18px;
+      border-radius: 50%;
+      object-fit: cover;
+      margin-left: 8px;    /* optional: space between icon/text and image */
+      vertical-align: middle;
+  }
+  
+  </style>
+    {% elif user.is_active and user.is_staff and user.is_superuser and user.is_verified and user.is_authority_to_manage_hotel and user.is_admin %}
+        <a href="{% url 'admin:index' %}" class="btn-getstarted" >
+            <i class="fas fa-user-circle"></i> Admin
+        </a>
+    {% elif user.is_active and user.is_staff and user.is_superuser and user.is_verified and user.is_authority_to_manage_hotel %}
+        <a href="{% url 'user:maintainer_profile' %}" class="btn-getstarted" >
+            <i class="fas fa-user-circle"></i> sup-maintainera
+        </a>
+    {% elif not user.is_authority_to_manage_hotel and user.is_maintainer and user.is_active and not user.is_verified and user.is_staff %}
+        <a href="{% url 'user:maintainer_profile' %}" class="btn-getstarted" style="color: red; position: relative; display: inline-block;" title="this manager not authority to manage hotel permission to admin">
+            <span style="position: absolute; top: 36%; left: 0px; height: 10px; width: 10px; background-color: rgb(27, 181, 55); border-radius: 50%; z-index: 1;"></span>
+            <i class="fas fa-user-circle"></i> maintainer 
+        </a>
+    {% elif not user.is_verified and user.is_active and user.is_superuser and not user.is_maintainer %}
+        <a href="{% url 'user:maintainer_profile' %}" class="btn-getstarted" style="color: red; position: relative; display: inline-block;" title="Account not verified">
+            <span style="position: absolute; top: 36%; left: 0px; height: 10px; width: 10px; background-color: #000000; border-radius: 50%; z-index: 1;"></span>
+            <i class="fas fa-user-circle"></i> Sup-STAFF
+        </a>
+    {% elif not user.is_verified and user.is_active and user.is_staff and not user.is_superuser and not user.is_maintainer %}
+        <a href="{% url 'user:maintainer_profile' %}" class="btn-getstarted" style="color: red; position: relative; display: inline-block;" title="Account not verified">
+            <span style="position: absolute; top: 36%; left: 0px; height: 10px; width: 10px; background-color: #000000; border-radius: 50%; z-index: 1;"></span>
+            <i class="fas fa-user-circle"></i> STAFF 
+        </a>
+    {% elif user.maintainer_profile and user.is_maintainer %}
+        <a href="{% url 'user:maintainer_profile' %}" class="btn-getstarted" >
+            <i class="fas fa-user-circle"></i> maintainer
+        </a>
+    {% elif user.is_staff and user.is_active and not user.is_maintainer %}
+        <a href="{% url 'user:staff_profile' %}" class="btn-getstarted" >
+            <i class="fas fa-user-circle"></i> staff
+        </a>
+    {% else %}
+        <a href="{% url 'user:user_profile' %}" class="btn-getstarted" >
+            <i class="fas fa-user-circle"></i> user
+        </a>
+    {% endif %}
+{% else %}
+    <a href="{% url 'user:signin' %}" class="btn-getstarted">
+        <i class="fas fa-user-circle"></i> Log In
+    </a>
+{% endif %}
+      </div>
+  </header>
+  
+  {% endblock %}

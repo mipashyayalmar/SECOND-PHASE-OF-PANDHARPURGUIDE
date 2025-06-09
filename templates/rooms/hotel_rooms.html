@@ -1,0 +1,1285 @@
+{% extends 'rooms/room_basic.html' %}
+{% block title %}Hotel{% endblock title %}
+{% load static %}
+{% block content %}
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+<link href="{% static 'css/hotel_rooms.css' %}" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" rel="stylesheet"/>
+
+
+    <div class="container">
+    <div class="header animate__animated animate__fadeIn">
+        <h2>{{ hotel.name|upper }}</h2>
+        <p>{{ hotel.location }}</p>
+    </div>
+
+ 
+  
+<style>
+
+    @media (min-width: 992px) {
+        .col-lg-4 {
+            flex: 0 0 auto;
+            width: 33.33333333%;
+        }
+    }
+            
+        @media (min-width: 992px) {
+            .col-lg-8 {
+                flex: 0 0 auto;
+                width: 66.666667%;
+                background-color: white;
+                padding: 24px;
+            }
+        }
+        /* Custom styles */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            color: #1a202c;
+            background-color: #fff;
+        }
+
+        a{
+            text-decoration: none;   
+        }
+
+        .container {
+            max-width: 1200px;
+        }
+
+        .breadcrumb-item a {
+            color: #3182ce;
+            text-decoration: none;
+        }
+        
+        .breadcrumb-item a:hover {
+            text-decoration: underline;
+        }
+
+        /* Custom scrollbar for horizontal scroll */
+        .scrollbar-hide::-webkit-scrollbar {
+            display: none;
+        }
+        .scrollbar-hide {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        /* Gallery section */
+        .gallery-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 1.5rem;
+        }
+
+        .main-image-container {
+            position: relative;
+            flex: 1 0 45%;
+            max-width: 600px;
+            min-width: 280px;
+            overflow: hidden;
+            border-radius: 8px;
+        }
+
+        .main-image-container img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: transform 0.3s ease;
+        }
+
+        .main-image-container img:hover {
+            transform: scale(1.03);
+        }
+
+        .photos-btn {
+            position: absolute;
+            bottom: 12px;
+            right: 12px;
+            background-color: white;
+            color: #2b6cb0;
+            font-size: 0.75rem;
+            font-weight: 600;
+            padding: 4px 12px;
+            border-radius: 9999px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border: none;
+            transition: background-color 0.2s ease;
+        }
+
+        .photos-btn:hover {
+            background-color: #ebf8ff;
+        }
+
+        .thumbnails-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            flex: 1 0 50%;
+        }
+
+        .thumbnail {
+            position: relative;
+            overflow: hidden;
+            border-radius: 8px;
+            height: 130px;
+        }
+
+        .thumbnail img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: transform 0.3s ease;
+        }
+
+        .thumbnail img:hover {
+            transform: scale(1.1);
+        }
+
+        .thumbnail-tag {
+            position: absolute;
+            bottom: 4px;
+            left: 4px;
+            font-size: 9px;
+            color: white;
+            background-color: rgba(0, 0, 0, 0.5);
+            border-radius: 4px;
+            padding: 0 4px;
+            pointer-events: none;
+        }
+
+        .favorite-btn {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background-color: rgba(45, 55, 72, 0.8);
+            color: white;
+            border-radius: 50%;
+            padding: 6px;
+            border: none;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+
+        .favorite-btn:hover {
+            transform: scale(1.1);
+        }
+
+        /* Full-screen image overlay */
+        .image-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .image-overlay.active {
+            opacity: 1;
+        }
+
+        .image-overlay img {
+            max-width: 90%;
+            max-height: 60%;
+            object-fit: contain;
+            border-radius: 10px;
+            transform: scale(0.9);
+            transition: transform 0.4s ease;
+        }
+
+        .image-overlay.active img {
+            transform: scale(1);
+        }
+
+        .close-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            color: white;
+            font-size: 30px;
+            cursor: pointer;
+            border: none;
+            background: transparent;
+            transition: transform 0.2s ease;
+        }
+
+        .close-btn:hover {
+            transform: scale(1.1);
+        }
+
+        /* Navigation tabs */
+        .custom-tabs {
+            background-color: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            padding: 12px 16px;
+            margin-bottom: 1.5rem;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .tabs-nav {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 24px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: #4a5568;
+        }
+
+        .tab-link {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            color: #4a5568;
+            text-decoration: none;
+            transition: all 0.2s ease;
+            padding-bottom: 4px;
+            border-bottom: 2px solid transparent;
+        }
+
+        .tab-link:hover {
+            color: #3182ce;
+            text-decoration: underline;
+        }
+
+        .tab-link.active {
+            color: #3182ce;
+            border-bottom: 2px solid #3182ce;
+        }
+
+        .deal-section {
+            display: flex;
+            align-items: center;
+            white-space: nowrap;
+        }
+
+        .price-text {
+            font-size: 10px;
+            color: #718096;
+        }
+
+        .price-amount {
+            color: #e53e3e;
+            font-weight: 600;
+            font-size: 1.5rem;
+            margin-left: 2px;
+        }
+
+        .deal-btn {
+            background-color: #3182ce;
+            color: white;
+            font-weight: 600;
+            font-size: 0.75rem;
+            padding: 8px 16px;
+            border-radius: 9999px;
+            margin-left: 16px;
+            border: none;
+            transition: background-color 0.2s ease;
+        }
+
+        .deal-btn:hover {
+            background-color: #2c5282;
+        }
+
+        /* Hotel content */
+        .hotel-card {
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            padding: 16px;
+            margin-bottom: 1.5rem;
+        }
+
+        .hotel-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            margin-bottom: 4px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .star-rating {
+            color: #dd6b20;
+            font-size: 1.125rem;
+        }
+
+        .hotel-address {
+            font-size: 0.75rem;
+            color: #718096;
+            margin-bottom: 8px;
+        }
+
+        .map-link {
+            color: #3182ce;
+            font-weight: 600;
+            text-decoration: none;
+        }
+
+        .map-link:hover {
+            text-decoration: underline;
+        }
+
+        .hotel-description {
+            font-size: 0.875rem;
+            line-height: 1.5;
+        }
+
+        /* Highlights section */
+        .highlights-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 32px;
+            font-size: 0.75rem;
+            color: #4a5568;
+        }
+
+        .highlight-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            width: 90px;
+            transition: transform 0.2s ease, background-color 0.3s ease;
+        }
+
+        .highlight-item:hover {
+            transform: scale(1.05);
+            background-color: #f0f7ff;
+            border-radius: 8px;
+            padding: 4px;
+        }
+
+        .highlight-icon {
+            color: #3182ce;
+            font-size: 1.125rem;
+        }
+
+        /* Facilities section */
+        .facilities-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 8px;
+            font-size: 0.875rem;
+            color: #4a5568;
+        }
+
+        .facility-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* Review and Map sections */
+        .review-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .review-score {
+            font-weight: 600;
+            font-size: 0.875rem;
+        }
+
+        .verified-reviews {
+            font-size: 0.75rem;
+            color: #718096;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .verified-icon {
+            color: #3182ce;
+        }
+
+        .reviews-link {
+            color: #3182ce;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-decoration: none;
+        }
+
+        .reviews-link:hover {
+            text-decoration: underline;
+        }
+
+        .review-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            margin-bottom: 8px;
+        }
+
+        .review-tag {
+            background-color: #e6fffa;
+            color: #047857;
+            font-size: 0.75rem;
+            padding: 2px 8px;
+            border-radius: 4px;
+        }
+
+        .map-image {
+            width: 100%;
+            border-radius: 6px;
+            margin-bottom: 8px;
+        }
+
+        .location-rating {
+            font-weight: 600;
+            font-size: 0.875rem;
+        }
+
+        .location-score-text {
+            font-size: 0.75rem;
+            color: #718096;
+            margin-bottom: 12px;
+        }
+
+        .parking-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: #4a5568;
+            font-size: 0.875rem;
+            margin-bottom: 4px;
+        }
+
+        .parking-left {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .free-tag {
+            color: #059669;
+            font-weight: 600;
+            font-size: 0.75rem;
+        }
+
+        .landmark-title {
+            font-size: 0.75rem;
+            color: #4a5568;
+            margin-bottom: 4px;
+            font-weight: 600;
+        }
+
+        .landmark-row {
+            display: flex;
+            justify-content: space-between;
+            color: #718096;
+            font-size: 0.75rem;
+            margin-bottom: 12px;
+        }
+
+        .nearby-link {
+            color: #3182ce;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-decoration: none;
+        }
+
+        .nearby-link:hover {
+            text-decoration: underline;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 991px) {
+            .main-content {
+                flex-direction: column;
+            }
+            
+            .sidebar {
+                width: 100%;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .main-image-container {
+                flex: 1 0 100%;
+            }
+            
+            .thumbnails-grid {
+                flex: 1 0 100%;
+            }
+            
+            .tabs-nav {
+                gap: 16px;
+                margin-bottom: 12px;
+            }
+            
+            .deal-section {
+                width: 100%;
+                justify-content: center;
+                margin-top: 10px;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .thumbnails-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .facilities-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+</style>
+    {% comment %} Hotel top view {% endcomment %}
+ <div class="container py-4">
+    <!-- Breadcrumb -->
+    <nav aria-label="Breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item">
+                <a href="{%url 'homepage' %}">Home</a>
+            </li>
+            <li class="breadcrumb-item">
+                <a href="{%url 'homepage' %}">Pandharpur Hotels <span class="text-muted">({{ total_hotels }})</span></a>
+            </li>
+            <li class="breadcrumb-item active fw-semibold text-dark">
+                {{ hotel.name }}, Pandharpur
+            </li>
+            <li class="ms-auto">
+                <a class="text-primary fw-semibold" href="{%url 'homepage' %}">
+                    See all {{ total_hotels }} properties in Pandharpur
+                </a>
+            </li>
+        </ol>
+    </nav>
+
+    <!-- Photos grid -->
+    <div class="gallery-container">
+        <div class="main-image-container">
+            <img id="main-image" alt="Exterior view of Hotel Royal Respite building with multiple floors and signage" class="main-image" src="{% if hotel.image_1 %}{{ hotel.image_1.url }}{% else %}https://149345965.v2.pressablecdn.com/wp-content/uploads/img-hotels-IADGV_006-Dusk-Exterior-home.jpg{% endif %}" />
+            <button class="photos-btn" type="button">
+                <i class="fas fa-camera"></i> See all photos
+            </button>
+        </div>
+        <div class="thumbnails-grid">
+            <div class="thumbnail">
+                <img alt="Room interior with bed, TV, and wooden paneling" src="{% if hotel.image_1 %}{{ hotel.image_1.url }}{% else %}https://149345965.v2.pressablecdn.com/wp-content/uploads/img-hotels-IADGV_006-Dusk-Exterior-home.jpg{% endif %}" data-index="1" />
+                <div class="thumbnail-tag">Room</div>
+            </div>
+            <div class="thumbnail">
+                <img alt="Common area hallway with ceiling lights and doors" src="{% if hotel.image_2 %}{{ hotel.image_2.url }}{% else %}https://149345965.v2.pressablecdn.com/wp-content/uploads/img-hotels-IADGV_006-Dusk-Exterior-home.jpg{% endif %}" data-index="2" />
+                <div class="thumbnail-tag">Common Area</div>
+            </div>
+            <div class="thumbnail">
+                <img alt="Hallway with doors and tiled floor" src="{% if hotel.image_3 %}{{ hotel.image_3.url }}{% else %}https://149345965.v2.pressablecdn.com/wp-content/uploads/img-hotels-IADGV_006-Dusk-Exterior-home.jpg{% endif %}" data-index="3" />
+                <button aria-label="Add to favorites" class="favorite-btn" type="button">
+                    <i class="fas fa-heart"></i>
+                </button>
+            </div>
+            <div class="thumbnail">
+                <img alt="Lobby area with sofas and ceiling lights" src="{% if hotel.image_4 %}{{ hotel.image_4.url }}{% else %}https://149345965.v2.pressablecdn.com/wp-content/uploads/img-hotels-IADGV_006-Dusk-Exterior-home.jpg{% endif %}" data-index="4" />
+            </div>
+            <div class="thumbnail">
+                <img alt="Lobby seating area with sofas and plants near glass doors" src="{% if hotel.image_5 %}{{ hotel.image_5.url }}{% else %}https://149345965.v2.pressablecdn.com/wp-content/uploads/img-hotels-IADGV_006-Dusk-Exterior-home.jpg{% endif %}" data-index="5" />
+            </div>
+            <div class="thumbnail">
+                <img alt="Lobby sofa and table with plants on tiled floor" src="{% if hotel.image_6 %}{{ hotel.image_6.url }}{% else %}https://149345965.v2.pressablecdn.com/wp-content/uploads/img-hotels-IADGV_006-Dusk-Exterior-home.jpg{% endif %}" data-index="6" />
+            </div>
+        </div>
+    </div>
+
+    <!-- Full-screen image overlay -->
+    <div class="image-overlay" id="image-overlay">
+        <button class="close-btn" id="close-btn">&times;</button>
+        <img id="overlay-image" src="" alt="Full-size image"/>
+    </div>
+
+    <!-- Navigation tabs and deal button -->
+    <div class="custom-tabs">
+        <nav class="tabs-nav">
+            <a class="tab-link active" id="overview-tab" href="#">
+                <i class="fas fa-info-circle"></i> Overview
+            </a>
+            <a class="tab-link" id="rooms-tab" href="#">
+                <i class="fas fa-bed"></i> Rooms
+            </a>
+            <a class="tab-link" id="trip-tab" href="#">
+                <i class="fas fa-map-signs"></i> Trip recommendations
+            </a>
+            <a class="tab-link" id="facilities-tab" href="#">
+                <i class="fas fa-concierge-bell"></i> Facilities
+            </a>
+            <a class="tab-link" id="reviews-tab" href="#">
+                <i class="fas fa-star"></i> Reviews
+            </a>
+            <a class="tab-link" id="location-tab" href="#">
+                <i class="fas fa-map-marker-alt"></i> Location
+            </a>
+            <a class="tab-link" id="policies-tab" href="#">
+                <i class="fas fa-file-alt"></i> Policies
+            </a>
+        </nav>
+        <div class="deal-section">
+            <span class="price-text">from</span>
+            <span class="price-amount"><span class="currency">Rs.</span> {{ cheapest_room.discounted_price }}</span>
+            <button class="deal-btn" type="button">
+                <a href="#room-section" style="color:white">VIEW THIS DEAL</a>
+            </button>
+        </div>
+    </div>
+
+    <!-- Main content area -->
+    <div class="row main-content">
+        <!-- Left content -->
+        <div class="col-lg-8 mb-4">
+            <!-- Hotel title and description -->
+            <section class="hotel-card">
+                <h1 class="hotel-title">
+                   {{ hotel.name|title}}, Pandharpur
+                    <span class="star-rating">★★★</span>
+                </h1>
+                <p class="hotel-address">
+                    Pune - Pandharpur Rd, Isbavi, Royal Inn, Pandharpur, Pandharpur, Pandharpur, India, 413304 -
+                    <a class="map-link" href="#">SEE MAP</a>
+                </p>
+                <p class="hotel-description">
+                    {{ hotel.description_map }}
+                </p>
+            </section>
+
+<!-- Common Facilities Section -->
+    {% if available_facilities %}
+    <section class="hotel-card mb-4">
+        <h3 class="fw-semibold mb-3">Available Facilities</h3>
+        <div class="highlights-grid">
+            <!-- General Hotel Facilities -->
+            <div class="highlight-item">
+                <i class="fas fa-door-open highlight-icon"></i>
+                <span class="text-center">Check-in [24-hour]</span>
+            </div>
+            <div class="highlight-item">
+                <i class="fas fa-broom highlight-icon"></i>
+                <span class="text-center">Daily Housekeeping</span>
+            </div>
+            <!-- Room-Specific Facilities (Listed Once) -->
+            {% if available_facilities.wifi %}
+            <div class="highlight-item">
+                <i class="fas fa-wifi highlight-icon"></i>
+                <span class="text-center">Free Wi-Fi</span>
+            </div>
+            {% endif %}
+            {% if available_facilities.ac %}
+            <div class="highlight-item">
+                <i class="fas fa-snowflake highlight-icon"></i>
+                <span class="text-center">Air Conditioning</span>
+            </div>
+            {% endif %}
+            {% if available_facilities.parking %}
+            <div class="highlight-item">
+                <i class="fas fa-car highlight-icon"></i>
+                <span class="text-center">Car Park</span>
+            </div>
+            {% endif %}
+            {% if available_facilities.convenient_location %}
+            <div class="highlight-item">
+                <i class="fas fa-location-arrow highlight-icon"></i>
+                <span class="text-center">Convenient Location</span>
+            </div>
+            {% endif %}
+            {% if available_facilities.food_facility %}
+            <div class="highlight-item">
+                <i class="fas fa-utensils highlight-icon"></i>
+                <span class="text-center">Food Facility</span>
+            </div>
+            {% endif %}
+            {% if available_facilities.comfortable_bed %}
+            <div class="highlight-item">
+                <i class="fas fa-bed highlight-icon"></i>
+                <span class="text-center">Comfortable Bed</span>
+            </div>
+            {% endif %}
+            {% if available_facilities.private_bathroom %}
+            <div class="highlight-item">
+                <i class="fas fa-bath highlight-icon"></i>
+                <span class="text-center">Private Bathroom</span>
+            </div>
+            {% endif %}
+            {% if available_facilities.fan %}
+            <div class="highlight-item">
+                <i class="fas fa-fan highlight-icon"></i>
+                <span class="text-center">Fan</span>
+            </div>
+            {% endif %}
+            {% if available_facilities.heater %}
+            <div class="highlight-item">
+                <i class="fas fa-thermometer-half highlight-icon"></i>
+                <span class="text-center">Heater</span>
+            </div>
+            {% endif %}
+            {% if available_facilities.cleanliness %}
+            <div class="highlight-item">
+                <i class="fas fa-sparkles highlight-icon"></i>
+                <span class="text-center">Cleanliness</span>
+            </div>
+            {% endif %}
+            {% if available_facilities.safety_security %}
+            <div class="highlight-item">
+                <i class="fas fa-shield-alt highlight-icon"></i>
+                <span class="text-center">Safety & Security</span>
+            </div>
+            {% endif %}
+            {% if available_facilities.entertainment_options %}
+            <div class="highlight-item">
+                <i class="fas fa-tv highlight-icon"></i>
+                <span class="text-center">Entertainment Options</span>
+            </div>
+            {% endif %}
+            {% if available_facilities.laundry_facility %}
+            <div class="highlight-item">
+                <i class="fas fa-tshirt highlight-icon"></i>
+                <span class="text-center">Laundry Facility</span>
+            </div>
+            {% endif %}
+            {% if available_facilities.outdoor_balcony %}
+            <div class="highlight-item">
+                <i class="fas fa-door-closed highlight-icon"></i>
+                <span class="text-center">Outdoor Balcony</span>
+            </div>
+            {% endif %}
+            {% if available_facilities.concierge_service %}
+            <div class="highlight-item">
+                <i class="fas fa-concierge-bell highlight-icon"></i>
+                <span class="text-center">Concierge Service</span>
+            </div>
+            {% endif %}
+        </div>
+    </section>
+    {% endif %}
+
+<!-- Facilities -->
+   {% if available_facilities %}
+<section class="hotel-card">
+    <h2 class="fw-semibold mb-3">Facilities</h2>
+    <div class="facilities-grid">
+        {% if available_facilities.wifi %}
+        <div class="facility-item">
+            <i class="fas fa-check"></i> Free Wi-Fi
+        </div>
+        {% endif %}
+        {% if available_facilities.ac %}
+        <div class="facility-item">
+            <i class="fas fa-check"></i> Air Conditioning
+        </div>
+        {% endif %}
+        {% if available_facilities.parking %}
+        <div class="facility-item">
+            <i class="fas fa-check"></i> Car Park
+        </div>
+        {% endif %}
+        {% if available_facilities.convenient_location %}
+        <div class="facility-item">
+            <i class="fas fa-check"></i> Convenient Location
+        </div>
+        {% endif %}
+        {% if available_facilities.food_facility %}
+        <div class="facility-item">
+            <i class="fas fa-check"></i> Food Facility
+        </div>
+        {% endif %}
+        {% if available_facilities.comfortable_bed %}
+        <div class="facility-item">
+            <i class="fas fa-check"></i> Comfortable Bed
+        </div>
+        {% endif %}
+        {% if available_facilities.private_bathroom %}
+        <div class="facility-item">
+            <i class="fas fa-check"></i> Private Bathroom
+        </div>
+        {% endif %}
+        {% if available_facilities.fan %}
+        <div class="facility-item">
+            <i class="fas fa-check"></i> Fan
+        </div>
+        {% endif %}
+        {% if available_facilities.heater %}
+        <div class="facility-item">
+            <i class="fas fa-check"></i> Heater
+        </div>
+        {% endif %}
+        {% if available_facilities.cleanliness %}
+        <div class="facility-item">
+            <i class="fas fa-check"></i> Cleanliness
+        </div>
+        {% endif %}
+        {% if available_facilities.safety_security %}
+        <div class="facility-item">
+            <i class="fas fa-check"></i> Safety & Security
+        </div>
+        {% endif %}
+        {% if available_facilities.entertainment_options %}
+        <div class="facility-item">
+            <i class="fas fa-check"></i> Entertainment Options
+        </div>
+        {% endif %}
+        {% if available_facilities.laundry_facility %}
+        <div class="facility-item">
+            <i class="fas fa-check"></i> Laundry Facility
+        </div>
+        {% endif %}
+        {% if available_facilities.outdoor_balcony %}
+        <div class="facility-item">
+            <i class="fas fa-check"></i> Outdoor Balcony
+        </div>
+        {% endif %}
+        {% if available_facilities.concierge_service %}
+        <div class="facility-item">
+            <i class="fas fa-check"></i> Concierge Service
+        </div>
+        {% endif %}
+    </div>
+</section>
+{% else %}
+<p>No rooms available for the selected criteria.</p>
+{% endif %}
+
+        </div>
+
+        <!-- Right sidebar -->
+        <div class="col-lg-4 sidebar">
+            <!-- Review score box -->
+            <section class="hotel-card">
+                <div class="review-header">
+                    <div>
+                        <p class="review-score">5.6 Review score</p>
+                        <p class="verified-reviews">
+                            <i class="fas fa-check-circle verified-icon"></i> 13 reviews
+                        </p>
+                    </div>
+                    <a class="reviews-link" href="#">Read all reviews</a>
+                </div>
+                <div class="review-tags">
+                    <span class="review-tag">Service 6.6</span>
+                    <span class="review-tag">Cleanliness 6.3</span>
+                    <span class="review-tag">Value for money 6.0</span>
+                    <span class="review-tag">Location 5.4</span>
+                    <i class="fas fa-info-circle text-muted"></i>
+                </div>
+            </section>
+
+            <!-- Map and location score -->
+            <section class="hotel-card">
+                <div class="mb-2">
+
+                     {% if hotel.embedded_map_link %}
+                            {% if 'iframe' in hotel.embedded_map_link %}
+                                {% with src=hotel.embedded_map_link|slice:'13:-1'|cut:'"' %}
+                                    <iframe src="{{ src }}"class="map-image" style="border:0;" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+                                {% endwith %}
+                            {% else %}
+                                <iframe src="{{ hotel.embedded_map_link }}"class="map-image" style="border:0;" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+                            {% endif %}
+                        {% endif %}
+                    
+                </div>
+                <p class="location-score-text">Location rating score</p>
+                <div class="parking-row">
+                    <div class="parking-left">
+                        <i class="fas fa-parking"></i>
+                        <span>Parking</span>
+                    </div>
+                    <span class="free-tag">FREE</span>
+                </div>
+                <div class="landmark-title">Closest landmarks</div>
+                <div class="landmark-row">
+                    <span>xyz</span>
+                    <span>0.8 km</span>
+                </div>
+                <a class="nearby-link" href="#">SEE NEARBY PLACES</a>
+            </section>
+        </div>
+    </div>
+</div>
+{% comment %} end Hotel top view {% endcomment %}
+
+    <!-- Bootstrap JS Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Thumbnail click to update main image with animation
+            const thumbnails = document.querySelectorAll('.thumbnail img');
+            const mainImage = document.getElementById('main-image');
+            const overlay = document.getElementById('image-overlay');
+            const overlayImage = document.getElementById('overlay-image');
+            const closeBtn = document.getElementById('close-btn');
+
+            thumbnails.forEach(thumbnail => {
+                thumbnail.addEventListener('click', () => {
+                    // Add transition class
+                    mainImage.style.opacity = '0';
+                    
+                    // After a short delay, update the image and fade it back in
+                    setTimeout(() => {
+                        mainImage.src = thumbnail.src;
+                        mainImage.alt = thumbnail.alt;
+                        mainImage.style.opacity = '1';
+                    }, 200);
+                });
+            });
+
+            // Main image click to show full-size overlay with animation
+            mainImage.addEventListener('click', () => {
+                overlayImage.src = mainImage.src;
+                overlayImage.alt = mainImage.alt;
+                overlay.style.display = 'flex';
+                
+                // Trigger animation after a tiny delay to ensure display:flex is applied
+                setTimeout(() => {
+                    overlay.classList.add('active');
+                }, 10);
+            });
+
+            // Close overlay when clicking the close button
+            closeBtn.addEventListener('click', () => {
+                overlay.classList.remove('active');
+                
+                // After animation completes, hide the overlay
+                setTimeout(() => {
+                    overlay.style.display = 'none';
+                }, 300);
+            });
+
+            // Close overlay when clicking outside the image
+            overlay.addEventListener('click', (e) => {
+                if (e.target === overlay) {
+                    overlay.classList.remove('active');
+                    
+                    // After animation completes, hide the overlay
+                    setTimeout(() => {
+                        overlay.style.display = 'none';
+                    }, 300);
+                }
+            });
+
+            // Tab interactivity
+            const tabs = document.querySelectorAll('.tab-link');
+            tabs.forEach(tab => {
+                tab.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    tabs.forEach(t => {
+                        t.classList.remove('active');
+                    });
+                    tab.classList.add('active');
+                });
+            });
+        });
+    </script>
+
+    <div class="flex-container"id="room-section">
+        <!-- Filter Sidebar -->
+        <div class="sidebar animate__animated animate__fadeInLeft">
+            <form id="filterForm" action="{% url 'view_hotel_rooms' hotel_id=hotel.id %}" method="GET" onsubmit="return validateDates()">
+                <h5><i class="fas fa-filter"></i> Filter Rooms</h5>
+                <input type="hidden" name="search_location" value="{{ hotel.id }}">
+                <div>
+                    <label for="check-in-display">Check In</label>
+                    <input id="check-in-display" type="text" placeholder="Select check-in date" readonly required>
+                    <input type="hidden" id="check-in" name="cin" value="{{ check_in }}">
+                </div>
+                <div>
+                    <label for="check-out-display">Check Out</label>
+                    <input id="check-out-display" type="text" placeholder="Select check-out date" readonly required>
+                    <input type="hidden" id="check-out" name="cout" value="{{ check_out }}">
+                </div>
+                <div>
+                    <label for="capacity">Guests</label>
+                    <input id="capacity" min="1" name="capacity" placeholder="Number of guests" value="{{ capacity|default:'1' }}" type="number" required>
+                </div>
+                <div>
+                    <label>Price Range</label>
+                    <div style="display: flex; gap: 10px;">
+                        <input type="number" name="min_price" id="min_price" placeholder="Min" value="{{ min_price }}">
+                        <input type="number" name="max_price" id="max_price" placeholder="Max" value="{{ max_price }}">
+                    </div>
+                    <input type="range" min="0" max="10000" value="{{ min_price|default:'0' }}" id="min_range">
+                    <input type="range" min="0" max="10000" value="{{ max_price|default:'10000' }}" id="max_range">
+                </div>
+                <div>
+                    <label>Amenities</label>
+                    <div class="amenity-option">
+                        <input class="amenity-filter" data-amenity="ac" id="ac" name="ac" type="checkbox" {% if active_amenities.ac == '1' %}checked{% endif %} value="1">
+                        <label for="ac"><i class="fas fa-snowflake"></i> Air Conditioning</label>
+                    </div>
+                    <div class="amenity-option">
+                        <input class="amenity-filter" data-amenity="fan" id="fan" name="fan" type="checkbox" {% if active_amenities.fan == '1' %}checked{% endif %} value="1">
+                        <label for="fan"><i class="fas fa-wind"></i> Fan</label>
+                    </div>
+                    <div class="amenity-option">
+                        <input class="amenity-filter" data-amenity="wifi" id="wifi" name="wifi" type="checkbox" {% if active_amenities.wifi == '1' %}checked{% endif %} value="1">
+                        <label for="wifi"><i class="fas fa-wifi"></i> Wi-Fi</label>
+                    </div>
+                    <div class="amenity-option">
+                        <input class="amenity-filter" data-amenity="parking" id="parking" name="parking" type="checkbox" {% if active_amenities.parking == '1' %}checked{% endif %} value="1">
+                        <label for="parking"><i class="fas fa-parking"></i> Parking</label>
+                    </div>
+                    <div class="amenity-option">
+                        <input class="amenity-filter" data-amenity="heater" id="heater" name="heater" type="checkbox" {% if active_amenities.heater == '1' %}checked{% endif %} value="1">
+                        <label for="heater"><i class="fas fa-fire"></i> Heater</label>
+                    </div>
+                    <div class="amenity-option">
+                        <input class="amenity-filter" data-amenity="food_facility" id="food_facility" name="food_facility" type="checkbox" {% if active_amenities.food_facility == '1' %}checked{% endif %} value="1">
+                        <label for="food_facility"><i class="fas fa-utensils"></i> Food Facility</label>
+                    </div>
+                    <p style="font-size: 0.8rem; color: #666; margin-top: 10px;">Select amenities to filter (changes apply immediately)</p>
+                </div>
+                <div id="dateError" class="error"></div>
+            </form>
+        </div>
+
+        <!-- Room Listings -->
+        <div class="main-content">
+            <div class="room-grid">
+                {% for room in rooms %}
+                <div class="room-card animate__animated animate__fadeInUp">
+                    {% if room.image1 %}
+                    <img src="{{ room.image1.url }}" alt="Room Image">
+                    {% else %}
+                    <img src="{% static 'assets/img/no-img.png' %}" alt="Room Placeholder">
+                    {% endif %}
+                    <div class="content">
+                        <h5>{{ room.heading|title|default:room.room_number }}</h5>
+                        <p>{{ room.description|truncatewords:20 }}</p>
+                        <ul>
+                            <li><strong>Room Type:</strong> {{ room.get_room_type_display|title }}</li>
+                            <li><strong>Capacity:</strong> {{ room.capacity }} person(s)</li>
+                            <li><strong>Price:</strong> Rp{{ room.price }} per night</li>
+                            <li><strong>Amenities:</strong>
+                                <span class="amenity-tag">{{ room.ac|yesno:"AC,No AC" }}</span>
+                                <span class="amenity-tag">{{ room.wifi|yesno:"WiFi,No WiFi" }}</span>
+                                <span class="amenity-tag">{{ room.food_facility|yesno:"Food,No Food" }}</span>
+                            </li>
+                        </ul>
+                    </div>
+                    <a href="{% url 'bookroompage' %}?roomid={{ room.id }}&cin={{ check_in|urlencode }}&cout={{ check_out|urlencode }}">View Details</a>
+                </div>
+                {% empty %}
+                <div class="no-rooms animate__animated animate__fadeIn">
+                    No rooms available for the selected criteria. Please adjust the check-in/check-out dates, guest count, or filters.
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const checkInInput = document.getElementById('check-in');
+        const checkInDisplay = document.getElementById('check-in-display');
+        const checkOutInput = document.getElementById('check-out');
+        const checkOutDisplay = document.getElementById('check-out-display');
+        const capacityInput = document.getElementById('capacity');
+        const minPriceInput = document.getElementById('min_price');
+        const maxPriceInput = document.getElementById('max_price');
+        const minRange = document.getElementById('min_range');
+        const maxRange = document.getElementById('max_range');
+
+        checkInDisplay.value = '{{ formatted_check_in|default:"" }}';
+        checkOutDisplay.value = '{{ formatted_check_out|default:"" }}';
+        minRange.value = '{{ min_price|default:"0" }}';
+        maxRange.value = '{{ max_price|default:"10000" }}';
+
+        function formatDateToLocalYYYYMMDD(date) {
+            return date.getFullYear() + '-' +
+                   String(date.getMonth() + 1).padStart(2, '0') + '-' +
+                   String(date.getDate()).padStart(2, '0');
+        }
+
+        const checkInPicker = flatpickr('#check-in-display', {
+            minDate: today,
+            dateFormat: 'd F Y',
+            defaultDate: checkInInput.value ? new Date(checkInInput.value) : null,
+            onChange: function(selectedDates) {
+                if (selectedDates.length > 0) {
+                    const selectedDate = selectedDates[0];
+                    checkInInput.value = formatDateToLocalYYYYMMDD(selectedDate);
+                    updateCheckoutMinDate();
+                    showDatePopup();
+                    validateDates();
+                    debounceSubmit();
+                }
+            }
+        });
+
+        const checkOutPicker = flatpickr('#check-out-display', {
+            minDate: checkInInput.value ? new Date(new Date(checkInInput.value).setDate(new Date(checkInInput.value).getDate() + 1)) : new Date(today.setDate(today.getDate() + 1)),
+            dateFormat: 'd F Y',
+            defaultDate: checkOutInput.value ? new Date(checkOutInput.value) : null,
+            onChange: function(selectedDates) {
+                if (selectedDates.length > 0) {
+                    const selectedDate = selectedDates[0];
+                    checkOutInput.value = formatDateToLocalYYYYMMDD(selectedDate);
+                    showDatePopup();
+                    validateDates();
+                    debounceSubmit();
+                }
+            }
+        });
+
+        function updateCheckoutMinDate() {
+            if (checkInInput.value) {
+                const checkInDate = new Date(checkInInput.value);
+                const minCheckOutDate = new Date(checkInDate);
+                minCheckOutDate.setDate(checkInDate.getDate() + 1);
+                checkOutPicker.set('minDate', minCheckOutDate);
+
+                const currentCheckOut = checkOutInput.value ? new Date(checkOutInput.value) : null;
+                if (currentCheckOut && currentCheckOut <= checkInDate) {
+                    checkOutInput.value = formatDateToLocalYYYYMMDD(minCheckOutDate);
+                    checkOutDisplay.value = minCheckOutDate.toLocaleDateString('en-GB', {
+                        day: 'numeric',
+                        month: 'long',
+                        year: 'numeric'
+                    });
+                    checkOutPicker.setDate(minCheckOutDate);
+                }
+            }
+        }
+
+        function showDatePopup() {
+            Swal.fire({
+                title: 'Dates Selected',
+                html: `Check-in: ${checkInDisplay.value}<br>Check-out: ${checkOutDisplay.value}`,
+                icon: 'info',
+                confirmButtonText: 'OK'
+            });
+        }
+
+        function validateDates() {
+            const errorElement = document.getElementById('dateError');
+            errorElement.style.display = 'none';
+            errorElement.textContent = '';
+
+            const checkInDate = checkInInput.value ? new Date(checkInInput.value) : null;
+            if (checkInDate) {
+                checkInDate.setHours(0, 0, 0, 0);
+                if (checkInDate < today) {
+                    errorElement.textContent = 'Check-in date cannot be in the past';
+                    errorElement.style.display = 'block';
+                    checkInDisplay.focus();
+                    return false;
+                }
+            }
+
+            const checkOutDate = checkOutInput.value ? new Date(checkOutInput.value) : null;
+            if (checkOutDate && checkInDate) {
+                checkOutDate.setHours(0, 0, 0, 0);
+                if (checkOutDate <= checkInDate) {
+                    errorElement.textContent = 'Check-out date must be after check-in date';
+                    errorElement.style.display = 'block';
+                    checkOutDisplay.focus();
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        const updatePriceRange = () => {
+            const minVal = parseInt(minPriceInput.value) || 0;
+            const maxVal = parseInt(maxPriceInput.value) || 10000;
+            if (minVal > maxVal) {
+                maxPriceInput.value = minVal;
+                maxRange.value = minVal;
+            }
+            if (maxVal < minVal) {
+                minPriceInput.value = maxVal;
+                minRange.value = maxVal;
+            }
+        };
+
+        minRange.addEventListener('input', () => {
+            minPriceInput.value = minRange.value;
+            updatePriceRange();
+            debounceSubmit();
+        });
+
+        maxRange.addEventListener('input', () => {
+            maxPriceInput.value = maxRange.value;
+            updatePriceRange();
+            debounceSubmit();
+        });
+
+        minPriceInput.addEventListener('change', () => {
+            minRange.value = minPriceInput.value;
+            updatePriceRange();
+            debounceSubmit();
+        });
+
+        maxPriceInput.addEventListener('change', () => {
+            maxRange.value = maxPriceInput.value;
+            updatePriceRange();
+            debounceSubmit();
+        });
+
+        capacityInput.addEventListener('change', debounceSubmit);
+
+        const amenityCheckboxes = document.querySelectorAll('.amenity-filter');
+        amenityCheckboxes.forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                this.value = this.checked ? '1' : '0';
+                this.parentElement.classList.add('animate__animated', 'animate__pulse');
+                setTimeout(() => {
+                    this.parentElement.classList.remove('animate__animated', 'animate__pulse');
+                }, 1000);
+                Swal.fire({
+                    title: 'Filter Applied',
+                    text: `Amenity ${this.checked ? 'added' : 'removed'}: ${this.dataset.amenity}`,
+                    icon: 'success',
+                    timer: 1500,
+                    showConfirmButton: false
+                });
+                debounceSubmit();
+            });
+        });
+
+        let submitTimeout;
+        function debounceSubmit() {
+            clearTimeout(submitTimeout);
+            submitTimeout = setTimeout(() => {
+                if (validateDates()) {
+                    document.getElementById('filterForm').submit();
+                }
+            }, 1000);
+        }
+
+        updateCheckoutMinDate();
+    });
+</script>
+
+
+{% endblock content %}

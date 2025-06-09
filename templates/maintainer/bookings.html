@@ -1,0 +1,987 @@
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+<style>
+    :root {
+        --primary: #1E3A8A;
+        --secondary: #3B82F6;
+        --accent: #10B981;
+        --check-out: #10B981;
+        --background: #f9fbfc;
+        --card-bg: #ffffff;
+        --shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Container Styling */
+    .booking-container {
+        width: 100%;
+        margin: 0 auto;
+        padding: 25px;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    .booking-card {
+        background-color: var(--card-bg);
+        border-radius: 12px;
+        box-shadow: var(--shadow);
+        padding: 25px;
+        margin-bottom: 25px;
+    }
+
+    .booking-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 25px;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .booking-title {
+        font-size: 1.75rem;
+        font-weight: 600;
+        color: #264653;
+    }
+
+    .booking-date {
+        color: #495057;
+        font-size: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+
+    /* Filter and Legend Styling */
+    .filter-section, .legend {
+        background-color: #fff;
+        border-radius: 10px;
+        padding: 20px;
+        margin-bottom: 20px;
+        box-shadow: var(--shadow);
+    }
+
+    .quick-filters, .date-range-filters, .legend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        align-items: center;
+    }
+
+    .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .legend-color {
+        width: 20px;
+        height: 20px;
+        border-radius: 4px;
+    }
+
+    .quick-filter-btn {
+        padding: 6px 18px;
+        border-radius: 6px;
+        background-color: #fff;
+        border: 1px solid #e9ecef;
+        color: #495057;
+        transition: all 0.2s;
+    }
+
+    .quick-filter-btn:hover {
+        background-color: #e9ecef;
+    }
+
+    .quick-filter-btn.active {
+        background-color: var(--primary);
+        color: white;
+        border-color: var(--primary);
+    }
+
+    .filter-form {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+        gap: 15px;
+    }
+
+    .form-group {
+        margin-bottom: 0;
+    }
+
+    .form-control, .form-select {
+        border-radius: 6px;
+        padding: 8px;
+        border: 1px solid #ced4da;
+    }
+
+    .filter-actions {
+        display: flex;
+        gap: 12px;
+        align-items: flex-end;
+        margin-bottom: 20px;
+    }
+
+    .btn {
+        padding: 10px 20px;
+        border-radius: 6px;
+        font-weight: 500;
+        transition: all 0.2s;
+    }
+
+    .btn-primary {
+        background-color: var(--primary);
+        border-color: var(--primary);
+    }
+
+    .btn-success {
+        background-color: var(--accent);
+        border-color: var(--accent);
+    }
+
+    .btn-secondary {
+        background-color: #6c757d;
+        border-color: #6c757d;
+    }
+
+    .btn-warning {
+        background-color: #f4a261;
+        border-color: #f4a261;
+    }
+
+    /* Calendar Styling */
+    #calendarContainer, #bookingCalendar {
+        background-color: #fff;
+        border-radius: 10px;
+        box-shadow: var(--shadow);
+        padding: 20px;
+        transition: all 0.3s ease;
+    }
+
+    .calendar-fullscreen {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 1000;
+        background: var(--card-bg);
+        padding: 20px;
+    }
+
+    .fc .fc-toolbar {
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .fc .fc-toolbar-title {
+        color: #264653;
+        font-weight: 600;
+    }
+
+    .fc-daygrid-day.selected-range {
+        background-color: rgba(16, 185, 129, 0.1);
+    }
+
+    .fc-daygrid-day.selected-range-start {
+        background: linear-gradient(135deg, rgba(16, 185, 129, 0.2) 50%, transparent 50%);
+    }
+
+    .fc-daygrid-day.selected-range-end {
+        background: linear-gradient(-45deg, rgba(16, 185, 129, 0.2) 50%, transparent 50%);
+    }
+
+    .fc-daygrid-day.selected-range-middle {
+        background-color: rgba(16, 185, 129, 0.2);
+    }
+
+    .fc-event-booking {
+        border-left: 4px solid var(--secondary);
+        background-color: var(--secondary);
+        color: white;
+        border-radius: 6px;
+        padding: 2px 5px;
+    }
+
+    .fc-event-check-in, .fc-event-check-out {
+        border-left: 4px solid var(--accent);
+        background-color: var(--accent);
+        color: white;
+        border-radius: 6px;
+        padding: 2px 5px;
+    }
+
+    /* Popup Styling */
+    .booking-popup {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: linear-gradient(145deg, #ffffff, #f9fbfc);
+        padding: 25px;
+        border-radius: 12px;
+        box-shadow: var(--shadow);
+        z-index: 1001;
+        max-width: 90%;
+        width: 450px;
+        animation: fadeIn 0.3s ease-in-out;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translate(-50%, -55%); }
+        to { opacity: 1; transform: translate(-50%, -50%); }
+    }
+
+    .booking-popup .close-btn {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        cursor: pointer;
+        font-size: 1.8rem;
+        color: #777;
+        transition: color 0.2s;
+    }
+
+    .booking-popup .close-btn:hover {
+        color: #e63946;
+    }
+
+    .booking-line {
+        color: var(--accent);
+        font-weight: 600;
+        margin: 15px 0;
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+
+    .date-range-connector {
+        display: inline-flex;
+        align-items: center;
+        margin: 5px 0;
+        width: 100%;
+    }
+
+    .date-range-connector .date-box {
+        padding: 8px 12px;
+        background-color: var(--accent);
+        color: white;
+        border-radius: 6px;
+        margin: 0 8px;
+        font-size: 0.95rem;
+    }
+
+    .date-range-connector .connector-line {
+        flex-grow: 1;
+        height: 3px;
+        background: linear-gradient(to right, var(--accent), #48cae4);
+        margin: 0 8px;
+    }
+
+    .guest-info {
+        margin-top: 15px;
+        padding: 15px;
+        background-color: #fff;
+        border-radius: 8px;
+        border: 1px solid #e9ecef;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    }
+
+    .guest-info div {
+        margin-bottom: 8px;
+    }
+
+    .guest-info strong {
+        color: #264653;
+        font-weight: 600;
+        display: inline-block;
+        min-width: 120px;
+    }
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+        .booking-container {
+            padding: 15px;
+        }
+
+        .booking-title {
+            font-size: 1.5rem;
+        }
+
+        .filter-form {
+            grid-template-columns: 1fr;
+        }
+
+        .fc .fc-toolbar {
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .fc .fc-toolbar-title {
+            margin: 0.5rem 0;
+        }
+
+        .booking-popup {
+            width: 90%;
+            max-width: 350px;
+        }
+
+        .date-range-connector {
+            justify-content: center;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .booking-header {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .quick-filters, .date-range-filters, .legend {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .fc-daygrid-main {
+            display: none;
+        }
+
+        .fc-list-main {
+            display: block;
+        }
+
+        .booking-popup {
+            width: 95%;
+            padding: 15px;
+        }
+    }
+</style>
+
+<!-- bookings.html Content -->
+<div class="booking-container">
+    <div class="booking-card">
+        <div class="booking-header">
+            <h1 class="booking-title">
+                <i class="fas fa-calendar-alt mr-2" style="color: var(--secondary);"></i>Maintainer Bookings
+            </h1>
+            <div class="booking-date">
+                <i class="fas fa-clock mr-1"></i> Current Date: {{ current_date|date:"M d, Y" }}
+            </div>
+        </div>
+
+         <!-- Revenue Summary Cards -->
+        <div class="row mb-4">
+            <div class="col-md-4">
+                <div class="card border-primary">
+                    <div class="card-body">
+                        <h5 class="card-title">Total Revenue</h5>
+                        <p class="card-text h4">₹{{ total_revenue|floatformat:2 }}</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card border-success">
+                    <div class="card-body">
+                        <h5 class="card-title">Today's Revenue</h5>
+                        <p class="card-text h4">₹{{ today_revenue|floatformat:2 }}</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card border-info">
+                    <div class="card-body">
+                        <h5 class="card-title">Filtered Revenue</h5>
+                        <p class="card-text h4">₹{{ filtered_revenue|floatformat:2 }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+        <div class="filter-section">
+            <div class="quick-filters">
+                <span class="font-medium" style="color: #495057;">Quick Filters:</span>
+                <a href="?view_type=all" class="quick-filter-btn {% if view_type == 'all' %}active{% endif %}">All Bookings</a>
+                <a href="?view_type=active&day={{ current_date|date:'Y-m-d' }}" class="quick-filter-btn {% if view_type == 'active' %}active{% endif %}">Today's Active</a>
+                <a href="?view_type=check_in&day={{ current_date|date:'Y-m-d' }}" class="quick-filter-btn {% if view_type == 'check_in' %}active{% endif %}">Today's Check-ins</a>
+                <a href="?view_type=check_out&day={{ current_date|date:'Y-m-d' }}" class="quick-filter-btn {% if view_type == 'check_out' %}active{% endif %}">Today's Check-outs</a>
+                <a href="?status=past" class="quick-filter-btn {% if status == 'past' %}active{% endif %}">Past Bookings</a>
+                <a href="?status=current" class="quick-filter-btn {% if status == 'current' %}active{% endif %}">Current Bookings</a>
+                <a href="?status=future" class="quick-filter-btn {% if status == 'future' %}active{% endif %}">Future Bookings</a>
+            </div>
+            
+            <div class="date-range-filters">
+                <span class="font-medium" style="color: #495057;">Date Range:</span>
+                {% for label, date in date_ranges.items %}
+                <a href="?start_date={{ current_date|date:'Y-m-d' }}&end_date={{ date|date:'Y-m-d' }}" class="quick-filter-btn">{{ label|title }} ({{ date|date:"M d" }})</a>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="filter-section">
+            <form id="bookingFilterForm" method="get" class="filter-form">
+                <div class="form-group">
+                    <label for="view_type" class="form-label">View Type</label>
+                    <select name="view_type" id="view_type" class="form-control">
+                        <option value="all" {% if view_type == 'all' %}selected{% endif %}>All Bookings</option>
+                        <option value="active" {% if view_type == 'active' %}selected{% endif %}>Active Bookings</option>
+                        <option value="check_in" {% if view_type == 'check_in' %}selected{% endif %}>Check-ins</option>
+                        <option value="check_out" {% if view_type == 'check_out' %}selected{% endif %}>Check-outs</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="status" class="form-label">Status</label>
+                    <select name="status" id="status" class="form-control">
+                        <option value="" {% if not status %}selected{% endif %}>All Statuses</option>
+                        <option value="past" {% if status == 'past' %}selected{% endif %}>Past</option>
+                        <option value="current" {% if status == 'current' %}selected{% endif %}>Current</option>
+                        <option value="future" {% if status == 'future' %}selected{% endif %}>Future</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="day" class="form-label">Specific Date</label>
+                    <input type="date" class="form-control" id="day" name="day" value="{{ day }}">
+                </div>
+                
+                <div class="form-group">
+                    <label for="start_date" class="form-label">Date Range Start</label>
+                    <input type="date" class="form-control" id="start_date" name="start_date" value="{{ start_date }}">
+                </div>
+                
+                <div class="form-group">
+                    <label for="end_date" class="form-label">Date Range End</label>
+                    <input type="date" class="form-control" id="end_date" name="end_date" value="{{ end_date }}">
+                </div>
+                
+                <div class="form-group">
+                    <label for="month" class="form-label">Month</label>
+                    <select class="form-control" id="month" name="month">
+                        <option value="">All Months</option>
+                        {% for m in months %}
+                            <option value="{{ m }}" {% if m == month %}selected{% endif %}>{{ m }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="week" class="form-label">Week</label>
+                    <select class="form-control" id="week" name="week">
+                        <option value="">All Weeks</option>
+                        {% for w in weeks %}
+                            <option value="{{ w.0 }}" {% if w.0|stringformat:'s' == week %}selected{% endif %}>{{ w.1 }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="booking_date" class="form-label">Booking Made On</label>
+                    <input type="date" class="form-control" id="booking_date" name="booking_date" value="{{ booking_date }}">
+                </div>
+                
+                <div class="form-group">
+                    <label for="search_name" class="form-label">Search Guest/Hotel</label>
+                    <input type="text" class="form-control" id="search_name" name="search_name" placeholder="Name, username or hotel" value="{{ search_name }}">
+                </div>
+            </div>
+
+            <div class="filter-actions">
+                    <button type="submit" class="btn btn-primary"><i class="fas fa-filter mr-1"></i> Apply Filters</button>
+                    <button type="button" id="toggleCalendarBtn" class="btn btn-success"><i class="fas fa-calendar mr-1"></i> Show Calendar</button>
+                    <a href="{% url 'maintainer_all_bookings' %}" class="btn btn-secondary"><i class="fas fa-sync-alt mr-1"></i> Reset</a>
+                    <a href="{% url 'maintainer_panel' %}" class="btn btn-warning"><i class="fas fa-tachometer-alt mr-1"></i> Dashboard</a>
+                </div>
+                
+                
+            </form>
+
+        <!-- Calendar Section -->
+        <div id="calendarContainer" class="d-none mb-4">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h2 class="m-0" style="font-size: 1.5rem; font-weight: 600; color: #264653;">Booking Calendar</h2>
+                <button id="fullscreenToggleBtn" class="btn btn-primary btn-sm"><i class="fas fa-expand"></i> Full Screen</button>
+            </div>
+            <div class="legend">
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: #ffdddd;"></div>
+                    <span>Past Bookings</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: #dfffdf;"></div>
+                    <span>Current Bookings</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: #e6f2ff;"></div>
+                    <span>Future Bookings</span>
+                </div>
+                <div class="status-filter">
+                    <select id="calendarStatusFilter" class="form-select form-select-sm">
+                        <option value="all">All Statuses</option>
+                        <option value="past">Past Only</option>
+                        <option value="current">Current Only</option>
+                        <option value="future">Future Only</option>
+                    </select>
+                </div>
+            </div>
+            <div id="bookingCalendar"></div>
+        </div>
+
+        <div class="table-responsive">
+            <div id="bookingTableContainer">
+                {% include 'maintainer/booking_table.html' %}
+            </div>
+        </div>
+    </div>
+</div>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const calendarEl = document.getElementById('bookingCalendar');
+        let calendar;
+
+        // Helper function to get event color based on status
+        function getEventColor(status) {
+            switch(status) {
+                case 'past': return '#ffdddd';
+                case 'current': return '#dfffdf';
+                case 'future': return '#e6f2ff';
+                default: return '#e6f2ff';
+            }
+        }
+
+        // Initialize FullCalendar
+        function initializeCalendar() {
+            if (!calendarEl) return;
+
+            calendar = new FullCalendar.Calendar(calendarEl, {
+                initialView: window.innerWidth <= 480 ? 'listWeek' : 'dayGridMonth',
+                initialDate: '{{ current_date|date:"Y-m-d" }}',
+                headerToolbar: {
+                    left: 'prev,next today',
+                    center: 'title',
+                    right: 'dayGridMonth,timeGridWeek,timeGridDay,listWeek'
+                },
+                eventDisplay: 'block',
+                events: [
+                    {% for booking in bookings %}
+                    {
+                        title: '{{ booking.room.hotel.name }}: Room {{ booking.room.room_number }} - {{ booking.guest.get_full_name|default:booking.guest.username }}',
+                        start: '{{ booking.check_in|date:"Y-m-d" }}',
+                        end: '{{ booking.check_out|date:"Y-m-d" }}',
+                        url: '{% url "user:user_profile_detail" username=booking.guest.username %}',
+                        extendedProps: {
+                            type: 'booking',
+                            status: '{{ booking.status }}',
+                            guest: '{{ booking.guest.get_full_name|default:booking.guest.username }}',
+                            room: '{% if booking.room.room_type %}{{ booking.room.room_type.name }}{% else %}N/A{% endif %} (Room {{ booking.room.room_number }})',
+                            hotel: '{{ booking.room.hotel.name }}',
+                            check_in: '{{ booking.check_in|date:"Y-m-d" }}',
+                            check_in_display: '{{ booking.check_in|date:"M d, Y" }}',
+                            check_out: '{{ booking.check_out|date:"Y-m-d" }}',
+                            check_out_display: '{{ booking.check_out|date:"M d, Y" }}',
+                            nights: '{{ booking.nights }}',
+                            base_amount: '{{ booking.base_price|floatformat:2 }}',
+                            gst_rate: '{{ booking.gst_rate|floatformat:2 }}',
+                            booking_date: '{{ booking.booking_time|date:"M d, Y h:i A" }}'
+                        },
+                        className: 'fc-event-booking',
+                        backgroundColor: getEventColor('{{ booking.status }}'),
+                        borderColor: '#3B82F6',
+                        textColor: '#333',
+                        allDay: true
+                    },
+                    {
+                        title: 'Check-in: {{ booking.room.hotel.name }} - Room {{ booking.room.room_number }}',
+                        start: '{{ booking.check_in|date:"Y-m-d" }}',
+                        url: '{% url "user:user_profile_detail" username=booking.guest.username %}',
+                        extendedProps: {
+                            type: 'check-in',
+                            status: '{{ booking.status }}',
+                            guest: '{{ booking.guest.get_full_name|default:booking.guest.username }}',
+                            room: '{% if booking.room.room_type %}{{ booking.room.room_type.name }}{% else %}N/A{% endif %} (Room {{ booking.room.room_number }})',
+                            hotel: '{{ booking.room.hotel.name }}',
+                            check_in: '{{ booking.check_in|date:"Y-m-d" }}',
+                            check_in_display: '{{ booking.check_in|date:"M d, Y" }}',
+                            check_out: '{{ booking.check_out|date:"Y-m-d" }}',
+                            check_out_display: '{{ booking.check_out|date:"M d, Y" }}',
+                            nights: '{{ booking.nights }}',
+                            base_amount: '{{ booking.base_price|floatformat:2 }}',
+                            gst_rate: '{{ booking.gst_rate|floatformat:2 }}',
+                            booking_date: '{{ booking.booking_time|date:"M d, Y h:i A" }}'
+                        },
+                        className: 'fc-event-check-in',
+                        backgroundColor: '#2a9d8f',
+                        borderColor: '#2a9d8f',
+                        textColor: '#fff',
+                        allDay: true
+                    },
+                    {
+                        title: 'Check-out: {{ booking.room.hotel.name }} - Room {{ booking.room.room_number }}',
+                        start: '{{ booking.check_out|date:"Y-m-d" }}',
+                        url: '{% url "user:user_profile_detail" username=booking.guest.username %}',
+                        extendedProps: {
+                            type: 'check-out',
+                            status: '{{ booking.status }}',
+                            guest: '{{ booking.guest.get_full_name|default:booking.guest.username }}',
+                            room: '{% if booking.room.room_type %}{{ booking.room.room_type.name }}{% else %}N/A{% endif %} (Room {{ booking.room.room_number }})',
+                            hotel: '{{ booking.room.hotel.name }}',
+                            check_in: '{{ booking.check_in|date:"Y-m-d" }}',
+                            check_in_display: '{{ booking.check_in|date:"M d, Y" }}',
+                            check_out: '{{ booking.check_out|date:"Y-m-d" }}',
+                            check_out_display: '{{ booking.check_out|date:"M d, Y" }}',
+                            nights: '{{ booking.nights }}',
+                            base_amount: '{{ booking.base_price|floatformat:2 }}',
+                            gst_rate: '{{ booking.gst_rate|floatformat:2 }}',
+                            booking_date: '{{ booking.booking_time|date:"M d, Y h:i A" }}'
+                        },
+                        className: 'fc-event-check-out',
+                        backgroundColor: '#e76f51',
+                        borderColor: '#e76f51',
+                        textColor: '#fff',
+                        allDay: true
+                    }{% if not forloop.last %},{% endif %}
+                    {% endfor %}
+                ],
+                datesSet: function(info) {
+                    const dayEls = document.querySelectorAll('.fc-daygrid-day');
+                    dayEls.forEach(el => {
+                        const dateStr = el.getAttribute('data-date');
+                        if (!dateStr) return;
+                        const date = new Date(dateStr);
+                        el.classList.remove('selected-range', 'selected-range-start', 'selected-range-end', 'selected-range-middle');
+                        {% for booking in bookings %}
+                        const startDate_{{ forloop.counter }} = new Date('{{ booking.check_in|date:"Y-m-d" }}');
+                        const endDate_{{ forloop.counter }} = new Date('{{ booking.check_out|date:"Y-m-d" }}');
+                        if (date >= startDate_{{ forloop.counter }} && date < endDate_{{ forloop.counter }}) {
+                            if (dateStr === '{{ booking.check_in|date:"Y-m-d" }}') {
+                                el.classList.add('selected-range-start');
+                            } else if (dateStr === '{{ booking.check_out|date:"Y-m-d" }}') {
+                                el.classList.add('selected-range-end');
+                            } else {
+                                el.classList.add('selected-range-middle');
+                            }
+                        }
+                        {% endfor %}
+                    });
+                },
+                eventDidMount: function(info) {
+                    const baseAmount = parseFloat(info.event.extendedProps.base_amount);
+                    const gstRate = parseFloat(info.event.extendedProps.gst_rate) || 12.00;
+                    const gstAmount = baseAmount * (gstRate / 100);
+                    const totalWithGst = baseAmount + gstAmount;
+                    const tooltipContent = `
+                        <div class="p-3">
+                            <strong>${info.event.title}</strong><br>
+                            <small>Status: ${info.event.extendedProps.status}</small><br>
+                            <small>Type: ${info.event.extendedProps.type}</small><br>
+                            <small>Guest: <a href="${info.event.url}" style="color: var(--secondary);">${info.event.extendedProps.guest}</a></small><br>
+                            <small>Hotel: ${info.event.extendedProps.hotel}</small><br>
+                            <small>Room: ${info.event.extendedProps.room}</small><br>
+                            <small>Check-in: ${info.event.extendedProps.check_in_display}</small><br>
+                            <small>Check-out: ${info.event.extendedProps.check_out_display}</small><br>
+                            <small>Nights: ${info.event.extendedProps.nights}</small><br>
+                            <small>Base Amount: ₹${baseAmount.toFixed(2)}</small><br>
+                            <small>GST (${gstRate.toFixed(2)}%): ₹${gstAmount.toFixed(2)}</small><br>
+                            <small>Total with GST: ₹${totalWithGst.toFixed(2)}</small>
+                        </div>
+                    `;
+                    $(info.el).tooltip({
+                        title: tooltipContent,
+                        placement: 'top',
+                        trigger: 'hover',
+                        html: true,
+                        container: 'body'
+                    });
+                },
+                dateClick: function(info) {
+                    const clickedDate = new Date(info.dateStr);
+                    let isInRange = false;
+                    let selectedBooking = null;
+                    {% for booking in bookings %}
+                    const startDate_{{ forloop.counter }} = new Date('{{ booking.check_in|date:"Y-m-d" }}');
+                    const endDate_{{ forloop.counter }} = new Date('{{ booking.check_out|date:"Y-m-d" }}');
+                    if (clickedDate >= startDate_{{ forloop.counter }} && clickedDate < endDate_{{ forloop.counter }}) {
+                        isInRange = true;
+                        selectedBooking = {
+                            extendedProps: {
+                                guest: '{{ booking.guest.get_full_name|default:booking.guest.username }}',
+                                room: '{% if booking.room.room_type %}{{ booking.room.room_type.name }}{% else %}N/A{% endif %} (Room {{ booking.room.room_number }})',
+                                hotel: '{{ booking.room.hotel.name }}',
+                                check_in_display: '{{ booking.check_in|date:"M d, Y" }}',
+                                check_out_display: '{{ booking.check_out|date:"M d, Y" }}',
+                                nights: '{{ booking.nights }}',
+                                base_amount: '{{ booking.base_price|floatformat:2 }}',
+                                gst_rate: '{{ booking.gst_rate|floatformat:2 }}',
+                                booking_date: '{{ booking.booking_time|date:"M d, Y h:i A" }}'
+                            }
+                        };
+                    }
+                    {% endfor %}
+                    if (isInRange && selectedBooking) {
+                        showBookingPopup(selectedBooking);
+                    } else {
+                        document.getElementById('day').value = info.dateStr;
+                        document.getElementById('view_type').value = 'active';
+                        document.getElementById('bookingFilterForm').submit();
+                    }
+                },
+                eventClick: function(info) {
+                    const eventDate = new Date(info.event.start);
+                    let isInRange = false;
+                    {% for booking in bookings %}
+                    const startDate_{{ forloop.counter }} = new Date('{{ booking.check_in|date:"Y-m-d" }}');
+                    const endDate_{{ forloop.counter }} = new Date('{{ booking.check_out|date:"Y-m-d" }}');
+                    if (eventDate >= startDate_{{ forloop.counter }} && eventDate < endDate_{{ forloop.counter }}) {
+                        isInRange = true;
+                    }
+                    {% endfor %}
+                    if (isInRange) {
+                        showBookingPopup(info);
+                        info.jsEvent.preventDefault();
+                    } else {
+                        window.location.href = info.event.url;
+                    }
+                }
+            });
+            calendar.render();
+        }
+
+        // Show booking popup
+        function showBookingPopup(info) {
+            const existingPopup = document.querySelector('.booking-popup');
+            if (existingPopup) existingPopup.remove();
+
+            const booking = info.event ? info.event : info;
+            const checkInDate = booking.extendedProps.check_in_display;
+            const checkOutDate = booking.extendedProps.check_out_display;
+            const checkInDay = checkInDate.split(',')[0].split(' ')[1];
+            const checkOutDay = checkOutDate.split(',')[0].split(' ')[1];
+            const checkInMonth = checkInDate.split(',')[0].split(' ')[0];
+            const checkOutMonth = checkOutDate.split(',')[0].split(' ')[0];
+            const baseAmount = parseFloat(booking.extendedProps.base_amount);
+            const gstRate = parseFloat(booking.extendedProps.gst_rate) || 12.00;
+            const gstAmount = baseAmount * (gstRate / 100);
+            const totalWithGst = baseAmount + gstAmount;
+
+            const popup = document.createElement('div');
+            popup.className = 'booking-popup';
+            popup.innerHTML = `
+                <span class="close-btn">×</span>
+                <h3>Booking Details</h3>
+                <div class="booking-line">
+                    <div class="date-range-connector">
+                        <div class="date-box">${checkInMonth} ${checkInDay}</div>
+                        <div class="connector-line"></div>
+                        <div class="date-box">${checkOutMonth} ${checkOutDay}</div>
+                    </div>
+                </div>
+                <div class="guest-info">
+                    <div><strong>Guest:</strong> ${booking.extendedProps.guest}</div>
+                    <div><strong>Room:</strong> ${booking.extendedProps.room}</div>
+                    <div><strong>Hotel:</strong> ${booking.extendedProps.hotel}</div>
+                    <div><strong>Check-in:</strong> ${checkInDate}</div>
+                    <div><strong>Check-out:</strong> ${checkOutDate}</div>
+                    <div><strong>Nights:</strong> ${booking.extendedProps.nights}</div>
+                    <div><strong>Booking Date:</strong> ${booking.extendedProps.booking_date}</div>
+                    <div><strong>Base Amount:</strong> ₹${baseAmount.toFixed(2)} (₹${(baseAmount / booking.extendedProps.nights).toFixed(2)} × ${booking.extendedProps.nights} nights)</div>
+                    <div><strong>GST (${gstRate.toFixed(2)}%):</strong> ₹${gstAmount.toFixed(2)}</div>
+                    <div><strong>Total with GST:</strong> ₹${totalWithGst.toFixed(2)}</div>
+                </div>
+                <div class="text-center mt-3">
+                    <button class="btn btn-success">
+                        <i class="fas fa-comment-alt mr-2"></i>Contact Guest
+                    </button>
+                </div>
+            `;
+            document.body.appendChild(popup);
+
+            popup.querySelector('.close-btn').addEventListener('click', () => {
+                popup.remove();
+            });
+
+            document.addEventListener('click', function outsideClickListener(event) {
+                if (!popup.contains(event.target) && !event.target.closest('.fc-event') && !event.target.closest('.fc-daygrid-day')) {
+                    popup.remove();
+                    document.removeEventListener('click', outsideClickListener);
+                }
+            });
+        }
+
+        // Toggle calendar visibility
+        const toggleCalendarBtn = document.getElementById('toggleCalendarBtn');
+        const calendarContainer = document.getElementById('calendar-toggle');
+        if (toggleCalendarBtn) {
+            toggleCalendarBtn.addEventListener('click', function() {
+                calendarContainer.classList.toggle('d-none');
+                if (!calendarContainer.classList.contains('d-none') && !calendar) {
+                    initializeCalendar();
+                }
+                toggleCalendarBtn.innerHTML = calendarContainer.classList.contains('d-none')
+                    ? '<i class="fas fa-calendar mr-1"></i> Show Calendar'
+                    : '<i class="fas fa-calendar mr-1"></i> Hide Calendar';
+            });
+        }
+
+        // Toggle fullscreen mode
+        const fullscreenToggleBtn = document.getElementById('fullscreenToggleBtn');
+        if (fullscreenToggleBtn) {
+            fullscreenToggleBtn.addEventListener('click', function() {
+                calendarContainer.classList.toggle('calendar-fullscreen');
+                fullscreenToggleBtn.innerHTML = calendarContainer.classList.contains('calendar-fullscreen')
+                    ? '<i class="fas fa-compress"></i> Exit Fullscreen'
+                    : '<i class="fas fa-expand"></i> Fullscreen';
+                if (calendar) {
+                    calendar.updateSize();
+                }
+            });
+        }
+
+        // Status filter
+        const statusFilter = document.getElementById('calendarStatusFilter');
+        if (statusFilter) {
+            statusFilter.addEventListener('change', function() {
+                const filterValue = this.value;
+                calendar.getEvents().forEach(event => {
+                    const status = event.extendedProps.status;
+                    if (filterValue === 'all' || status === filterValue) {
+                        event.setProp('display', 'auto');
+                    } else {
+                        event.setProp('display', 'none');
+                    }
+                });
+            }
+        );
+
+        // Form submission handler
+        const form = document.getElementById('bookingFilterForm');
+        if (form) {
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const formData = new FormData(form);
+                const queryString = new URLSearchParams(formData).toString();
+
+                // Update table
+                fetch(window.location.pathname + '?' + new URLSearchParams(formData), {
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                })
+                .then(response => response.text())
+                .then(html => {
+                    document.getElementById('bookingTableContainer').innerHTML = html;
+                })
+                // Update table
+                if (!calendarContainer.classList.contains('d-none')) {
+                    fetch(window.location.pathname + '?' + new URLSearchParams(formData) + '&action=calendar', {
+                        headers: { 'X-RequestedWith': 'XMLHttpRequest' }
+                    })
+                    .then(response => response.text())
+                    .then(html => {
+                        calendarEl.innerHTML = html;
+                        if (calendar) {
+                            calendar.destroy();
+                        }
+                        initializeCalendar();
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('An error occurred while updating the calendar');
+                    });
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('An error occurred while fetching bookings');
+                });
+            });
+        }
+
+        // Form form field event listeners
+        const viewTypeSelect = document.getElementById('view_type');
+        if (viewTypeSelect) {
+            viewTypeSelect.addEventListener('change', function() {
+                if (['active', 'check_in', 'check_out'].includes(this.value)) {
+                    document.getElementById('start_date').value = '';
+                    document.getElementById('end_date').value = '';
+                    document.getElementById('month').value = '';
+                    document.getElementById('booking_date').value = '';
+                    if (!document.getElementById('day').value) {
+                        document.getElementById('day').value = '{{ current_date|date:"Y-m-d" }}';
+                    }
+                } else {
+ if (this.value === 'all') {
+                    document.getElementById('day').value = '';
+                }
+            }
+        });
+
+        const bookingStatusSelect = document.getElementById('booking_status');
+        if (bookingStatusSelect) {
+            bookingStatusSelect.addEventListener('change', function() {
+                if (this.value) {
+                    document.getElementById('view_type').value = 'all';
+                }
+            });
+        }
+
+        // Initialize calendar
+        if (calendarContainer) {
+            initializeCalendar();
+        }
+    });
+</script>
+
+<style>
+    /* Event styles */
+.fc-event-booking {
+    border-left: 4px solid #3B82F6;
+    background-color: transparent;
+    color: #333;
+    border-radius: 6px;
+    padding: 2px 5px;
+    font-size: 0.9rem;
+    margin-bottom: 2px;
+}
+
+.fc-event-check-in {
+    border-left: 4px solid #2a9d8f;
+    background-color: #2a9d8f;
+    color: white;
+    border-radius: 6px;
+    padding: 2px 5px;
+    font-size: 0.85rem;
+}
+
+.fc-event-check-out {
+    border-left: 4px solid #e76f51;
+    background-color: #e76f51;
+    color: white;
+    border-radius: 6px;
+    padding: 2px 5px;
+    font-size: 0.85rem;
+}
+
+/* Multi-day event styling */
+.fc-daygrid-event {
+    white-space: normal;
+    line-height: 1.2;
+}
+
+/* Event dot for single-day events */
+.fc-daygrid-event-dot {
+    border-color: #3B82F6;
+}
+
+/* Ensure space for multiple events */
+.fc-daygrid-day-events {
+    min-height: 50px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .fc-event-booking, .fc-event-check-in, .fc-event-check-out {
+        font-size: 0.8rem;
+        padding: 1px 3px;
+    }
+}
+</style>

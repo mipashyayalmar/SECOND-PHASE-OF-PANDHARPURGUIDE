@@ -1,0 +1,189 @@
+{% extends 'base/base.html' %}
+{% load static %}
+{% block title %}{{ image.heading }} - Blog Details - Pandharpur Guide{% endblock %}
+
+{% block content %}
+{% load highlight_tags %}
+
+<main class="main">
+    <!-- Page Title -->
+    <div class="page-title light-background">
+        <div class="container d-lg-flex justify-content-between align-items-center">
+            <h1 class="mb-2 mb-lg-0">Blog Details</h1>
+            <nav class="breadcrumbs">
+                <ol>
+                    <li><a href="{% url 'myapp:home' %}">Home</a></li>
+                    <li class="current">Blog Details</li>
+                </ol>
+            </nav>
+        </div>
+    </div><!-- End Page Title -->
+
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-8">
+                <!-- Blog Details Section -->
+                <section id="blog-details" class="blog-details section">
+                    <div class="container">
+                        <article class="article">
+                            <div class="post-img">
+                                <img src="{{ image.image.url }}" alt="{{ image.heading }}" class="img-fluid">
+                            </div>
+
+                            <h2 class="title">{{ image.heading }}</h2>
+
+                            <div class="meta-top">
+                                <ul>
+                                    <li class="d-flex align-items-center"><i class="bi bi-person"></i> John Doe</li>
+                                    <li class="d-flex align-items-center"><i class="bi bi-clock"></i> <time datetime="{{ image.created_at|date:'Y-m-d H:i:s' }}">{{ image.created_at|date:'M d, Y' }}</time></li>
+                                    <li class="d-flex align-items-center"><i class="bi bi-chat-dots"></i> {{ image.comments.count }} Comments</li>
+                                </ul>
+                            </div><!-- End meta top -->
+
+                            <div class="content">
+                                <p>{{ image.description }}</p>
+                            </div><!-- End post content -->
+
+                            <div class="meta-bottom">
+                                <i class="bi bi-folder"></i>
+                                <ul class="cats">
+                                    <li><a href="#">Business</a></li>
+                                </ul>
+
+                                <i class="bi bi-tags"></i>
+                                <ul class="tags">
+                                    <li><a href="#">Creative</a></li>
+                                    <li><a href="#">Tips</a></li>
+                                    <li><a href="#">Marketing</a></li>
+                                </ul>
+                            </div><!-- End meta bottom -->
+                        </article>
+                    </div>
+                </section><!-- /Blog Details Section -->
+
+                <!-- Blog Comments Section -->
+                <section id="blog-comments" class="blog-comments section">
+                    <div class="container">
+                        <h4 class="comments-count">{{ image.comments.count }} Comments</h4>
+
+                        {% for comment in comments %}
+                            <div id="comment-{{ comment.id }}" class="comment">
+                                <div class="d-flex">
+                                    <div class="comment-img"><img src="https://via.placeholder.com/50" alt="{{ comment.name }}"></div>
+                                    <div>
+                                        <h5>
+                                            <a href="#">{{ comment.name }}</a>
+                                            <a href="#" class="reply" onclick="setReply({{ comment.id }})"><i class="bi bi-reply-fill"></i> Reply</a>
+                                        </h5>
+                                        <time datetime="{{ comment.created_at|date:'Y-m-d' }}">{{ comment.created_at|date:'M d, Y' }}</time>
+                                        <p>{{ comment.comment }}</p>
+                                    </div>
+                                </div>
+
+                                {% for reply in comment.replies.all %}
+                                    <div id="comment-reply-{{ reply.id }}" class="comment comment-reply">
+                                        <div class="d-flex">
+                                            <div class="comment-img"><img src="https://via.placeholder.com/50" alt="{{ reply.name }}"></div>
+                                            <div>
+                                                <h5>
+                                                    <a href="#">{{ reply.name }}</a>
+                                                    <a href="#" class="reply" onclick="setReply({{ reply.id }})"><i class="bi bi-reply-fill"></i> Reply</a>
+                                                </h5>
+                                                <time datetime="{{ reply.created_at|date:'Y-m-d' }}">{{ reply.created_at|date:'M d, Y' }}</time>
+                                                <p>{{ reply.comment }}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        {% empty %}
+                            <p>No comments yet. Be the first to comment!</p>
+                        {% endfor %}
+                    </div>
+                </section><!-- /Blog Comments Section -->
+
+                <!-- Comment Form Section -->
+                <section id="comment-form" class="comment-form section">
+                    <div class="container">
+                        <form action="" method="post">
+                            {% csrf_token %}
+                            <h4>Post Comment</h4>
+                            <p>Your email address will not be published. Required fields are marked * </p>
+                            <div class="row">
+                                <div class="col-md-6 form-group">
+                                    <input name="name" type="text" class="form-control" placeholder="Your Name*" required>
+                                </div>
+                                <div class="col-md-6 form-group">
+                                    <input name="email" type="email" class="form-control" placeholder="Your Email*" required>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col form-group">
+                                    <input name="website" type="url" class="form-control" placeholder="Your Website">
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col form-group">
+                                    <textarea name="comment" class="form-control" placeholder="Your Comment*" required></textarea>
+                                </div>
+                            </div>
+                            <input type="hidden" name="parent_id" id="parent_id" value="">
+                            <div class="text-center">
+                                <button type="submit" class="btn btn-primary">Post Comment</button>
+                            </div>
+                        </form>
+                    </div>
+                </section><!-- /Comment Form Section -->
+            </div>
+
+            <div class="col-lg-4 sidebar">
+                <div class="widgets-container">
+                    <div class="search-widget widget-item">
+                        <h3 class="widget-title">Search</h3>
+                        <form action="{% url 'myapp:home' %}" method="get">
+                            <input type="text" name="q" placeholder="Search...">
+                            <button type="submit" title="Search"><i class="bi bi-search"></i></button>
+                        </form>
+                    </div>
+
+                    <div class="categories-widget widget-item">
+                        <h3 class="widget-title">Categories</h3>
+                        <ul class="mt-3">
+                            <li><a href="#">Pandharpur <span>(25)</span></a></li>
+                                <li><a href="#">Visiting <span>(12)</span></a></li>
+                                <li><a href="#">Travel <span>(5)</span></a></li>
+                                <li><a href="#">Rooms <span>(22)</span></a></li>
+                                <li><a href="#">Puja <span>(8)</span></a></li>
+                                <li><a href="#">Education <span>(14)</span></a></li>
+                        </ul>
+                    </div>
+
+                    <div class="tags-widget widget-item">
+                        <h3 class="widget-title">Tags</h3>
+                        <ul>
+                            <li><a href="#">App</a></li>
+                            <li><a href="#">IT</a></li>
+                            <li><a href="#">Business</a></li>
+                            <li><a href="#">Parking</a></li>
+                            <li><a href="#">Design</a></li>
+                            <li><a href="#">Office</a></li>
+                            <li><a href="#">Creative</a></li>
+                            <li><a href="#">Studio</a></li>
+                            <li><a href="#">Smart</a></li>
+                            <li><a href="#">Tips</a></li>
+                            <li><a href="#">Marketing</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function setReply(commentId) {
+            document.getElementById('parent_id').value = commentId;
+        }
+    </script>
+</main>
+
+{% endblock %}

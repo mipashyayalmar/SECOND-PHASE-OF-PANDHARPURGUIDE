@@ -1,0 +1,579 @@
+{% extends 'base/main_base.html' %}
+{% block title %}User-Profile-Edit{% endblock %}
+{% block content %}
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    {% load static %}
+    <link rel="stylesheet" href="{%static 'profile/profile.css'%}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.8/css/intlTelInput.min.css">
+    
+    <style>
+        .container {
+            max-width: 1170px;
+            padding: 20px;
+        }
+        /* Custom styles for phone input */
+        .phone-input-container {
+            position: relative;
+            width: 100%;
+        }
+        .phone-input-container .iti {
+            width: 100%;
+        }
+        .phone-input-container .iti__selected-flag {
+            padding: 0 6px 0 8px;
+            border-radius: 4px 0 0 4px;
+        }
+        .phone-input-container input {
+            padding-left: 52px;
+            width: 100%;
+        }
+        /* Error popup styles */
+        .phone-error-popup {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #fff;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 5px 25px rgba(0,0,0,0.2);
+            z-index: 1000;
+            max-width: 350px;
+            width: 90%;
+            text-align: center;
+            display: none;
+        }
+        .phone-error-popup h3 {
+            color: #e74c3c;
+            margin-top: 0;
+        }
+        .phone-error-popup p {
+            margin-bottom: 20px;
+            color: #555;
+        }
+        .phone-error-popup button {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.3s;
+        }
+        .phone-error-popup button:hover {
+            background: #c0392b;
+        }
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 999;
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="header">
+        <h1>Check And Update Information</h1>
+        <div class="breadcrumb">
+            <a href="#button">Home</a>
+            <span class="separator">•</span>
+            <span>Check And Update Information</span>
+        </div>
+    </div>   
+    
+    <div class="container">
+        <div class="main-content">
+            <div class="profile-section">
+                {% if social_data.picture %}
+                <img src="{{ social_data.picture }}" alt="Profile" class="round-img">
+                {% elif user.profile_image %}
+                    <img src="{{ user.profile_image.url }}" alt="Profile" class="round-img" onclick="openImage(this)">
+                {% else %}
+                    <img src="https://img.freepik.com/premium-vector/avatar-profile-icon-flat-style-male-user-profile-vector-illustration-isolated-background-man-profile-sign-business-concept_157943-38764.jpg" 
+                         alt="Default Profile" class="round-img">
+                {% endif %}
+                
+                <h2>Welcome, {{ social_data.full_name }}</h2>
+
+                <!-- Messages -->
+                {% if messages %}
+                  <div class="popup-container" id="popupContainer">
+                    {% for message in messages %}
+                    <div class="popup alert-{{ message.tags }}" role="alert">
+                      <button class="cancel-btn" aria-label="Cancel">×</button>
+                      <div class="popup-content">
+                        <p>{{ message }}</p>
+                        <div class="popup-buttons">
+                          <button class="btn close-btn">Close</button>
+                        </div>
+                      </div>
+                    </div>
+                    {% endfor %}
+                  </div>
+                {% endif %}
+                
+                <!-- Phone Error Popup -->
+                <div class="overlay" id="phoneErrorOverlay"></div>
+                <div class="phone-error-popup" id="phoneErrorPopup">
+                    <h3>Invalid Phone Number</h3>
+                    <p id="phoneErrorMessage">Please enter a valid Indian phone number with country code (+91).</p>
+                    <button onclick="closePhoneError()">OK</button>
+                </div>
+
+                <!-- Profile Form -->
+                <form method="post" enctype="multipart/form-data" class="profile-form" id="profileForm">
+                    {% csrf_token %}
+                    <div class="profile-details">
+                        <!-- Account Information -->
+                        <div class="detail-card">
+                            <div class="detail-header">
+                                <h3>Account Information</h3>
+                            </div>
+                            <div class="detail-content">
+                                <div class="detail-row">
+                                    <span class="detail-label">Username</span>
+                                    <span class="detail-value">{{ user.username }}</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span class="detail-label">Verified</span>
+                                    <span class="detail-value status-indicator{% if social_data.email %} verified {% elif user.is_verified %}verified{% else %}not-verified{% endif %}">
+                                        {% if social_data.email %} yes {% else %} {{ user.is_verified|yesno:'Yes,No' }}{% endif %}
+                                    </span>
+                                </div>
+                                <div class="detail-row">
+                                    <span class="detail-label">Membership</span>
+                                    <span class="detail-value status-indicator {% if user.paid_member %}premium{% else %}standard{% endif %}">
+                                        {{ user.paid_member|yesno:"Premium,Standard" }}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Personal Information -->
+                        <div class="detail-card">
+                            <div class="detail-header">
+                                <h3>Personal Information</h3>
+                            </div>
+                            <div class="detail-content edit-section">
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="id_name"><span style="color: red;">*</span>Name</label>
+                                        <input type="text" name="name" id="id_name" value="{% if social_data.email %}{{ social_data.full_name}}{% else %} {{ user.name }} {% endif %}" placeholder="Enter Your Name" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="id_phone"><span style="color: red;">*</span>Phone Number</label>
+                                        <div class="phone-input-container">
+                                            <input type="tel" name="phone" id="id_phone" value="{{ user.phone }}" 
+                                                   placeholder="Enter Your Mobile Number" required>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="id_email">Email</label>
+                                        <input 
+                                            type="email" 
+                                            name="email" 
+                                            id="id_email" 
+                                            value="{% if social_data.email %}{{ social_data.email }}{% elif user.is_authenticated %}{{ user.email }}{% else %}Not provided{% endif %}" 
+                                            placeholder="Enter Your Email" 
+                                            {% if social_data.email %}readonly{% endif %}
+                                            required
+                                        >
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Verification Documents -->
+                        <div class="detail-card">
+                            <div class="detail-header">
+                                <h3>Verification Documents</h3>
+                            </div>
+                            <div class="detail-content edit-section">
+                                <div class="form-row">
+                                    <!-- Aadhar Front-Side -->
+                                    <div class="form-group dropzone" id="dropzone_aadhar_image">
+                                        <label for="id_aadhar_image"><span style="color: red;">*</span> Aadhar Front-Side Image</label>
+                                        <input type="file" name="aadhar_image" id="id_aadhar_image" accept="image/*" style="display:none;">
+                                        <div class="document-preview">
+                                            <img src="{% if user.aadhar_image %}{{ user.aadhar_image.url }}{% else %}https://ajaxuploader.com/document/topics/images/drag-drop-file-upload.png{% endif %}" 
+                                                 alt="Aadhar Image" class="document-thumbnail preview-image" onclick="openImage(this)">
+                                            <div class="document-overlay">
+                                                <a href="{% if user.aadhar_image %}{{ user.aadhar_image.url }}{% else %}javascript:void(0);{% endif %}" download><span class="view-icon">⬇</span></a>
+                                            </div>
+                                        </div>
+                                    </div>
+                            
+                                    <!-- Aadhar Back-Side -->
+                                    <div class="form-group dropzone" id="dropzone_profile_image">
+                                        <label for="id_profile_image"><span style="color: red;">*</span> Aadhar Back-Side Image</label>
+                                        <input type="file" name="profile_image" id="id_profile_image" accept="image/*" style="display:none;">
+                                        <div class="document-preview">
+                                            <img src="{% if user.profile_image %}{{ user.profile_image.url }}{% else %}https://ajaxuploader.com/document/topics/images/drag-drop-file-upload.png{% endif %}" 
+                                                 alt="Profile Image" class="document-thumbnail preview-image" onclick="openImage(this)">
+                                            <div class="document-overlay">
+                                                <a href="{% if user.profile_image %}{{ user.profile_image.url }}{% else %}javascript:void(0);{% endif %}" download><span class="view-icon">⬇</span></a>
+                                            </div>
+                                        </div>
+                                    </div>
+                            
+                                    <!-- Pancard -->
+                                    <div class="form-group dropzone" id="dropzone_pancard_image">
+                                        <label for="id_pancard_image"><span style="color: red;">*</span> Pancard Image</label>
+                                        <input type="file" name="pancard_image" id="id_pancard_image" accept="image/*" style="display:none;">
+                                        <div class="document-preview">
+                                            <img src="{% if user.pancard_image %}{{ user.pancard_image.url }}{% else %}https://ajaxuploader.com/document/topics/images/drag-drop-file-upload.png{% endif %}" 
+                                                 alt="Pancard Image" class="document-thumbnail preview-image" onclick="openImage(this)">
+                                            <div class="document-overlay">
+                                                <a href="{% if user.pancard_image %}{{ user.pancard_image.url }}{% else %}javascript:void(0);{% endif %}" download><span class="view-icon">⬇</span></a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Drag-and-drop & Custom validation script -->
+                            <script>
+                            document.querySelectorAll('.dropzone').forEach(dropzone => {
+                                const input = dropzone.querySelector('input[type="file"]');
+                                const previewImage = dropzone.querySelector('.preview-image');
+                            
+                                dropzone.addEventListener('click', () => input.click());
+                            
+                                input.addEventListener('change', () => {
+                                    if (input.files && input.files[0]) {
+                                        showPreview(input.files[0], previewImage);
+                                    }
+                                });
+                            
+                                dropzone.addEventListener('dragover', (e) => {
+                                    e.preventDefault();
+                                    dropzone.classList.add('dragover');
+                                });
+                            
+                                dropzone.addEventListener('dragleave', () => {
+                                    dropzone.classList.remove('dragover');
+                                });
+                            
+                                dropzone.addEventListener('drop', (e) => {
+                                    e.preventDefault();
+                                    dropzone.classList.remove('dragover');
+                            
+                                    if (e.dataTransfer.files.length) {
+                                        input.files = e.dataTransfer.files;
+                                        showPreview(e.dataTransfer.files[0], previewImage);
+                                        input.dispatchEvent(new Event('change'));
+                                    }
+                                });
+                            
+                                function showPreview(file, previewElement) {
+                                    const reader = new FileReader();
+                                    reader.onload = function (e) {
+                                        previewElement.src = e.target.result;
+                                    }
+                                    reader.readAsDataURL(file);
+                                }
+                            });
+                            
+                            // Custom Form Validation
+                            document.querySelector('form').addEventListener('submit', function (e) {
+                                let valid = true;
+                                const aadharInput = document.getElementById('id_aadhar_image');
+                                const profileInput = document.getElementById('id_profile_image');
+                                const pancardInput = document.getElementById('id_pancard_image');
+                            
+                                // Check if file exists or already uploaded
+                                if (!aadharInput.files.length && !('{{ user.aadhar_image }}')) {
+                                    valid = false;
+                                    alert('Please upload Aadhar Front-Side Image.');
+                                }
+                                else if (!profileInput.files.length && !('{{ user.profile_image }}')) {
+                                    valid = false;
+                                    alert('Please upload Aadhar Back-Side Image.');
+                                }
+                                else if (!pancardInput.files.length && !('{{ user.pancard_image }}')) {
+                                    valid = false;
+                                    alert('Please upload Pancard Image.');
+                                }
+                            
+                                if (!valid) {
+                                    e.preventDefault(); // stop form submit
+                                }
+                            });
+                            </script>
+                            
+                       
+                            
+                        </div>
+                    </div>
+                    <center>
+                     <button class="button-92" type="submit" class="save-btn"role="button" id="button"> <i class="fas fa-user-circle"></i> Save Changes</button>
+                    </center>
+
+
+
+                    <style>
+                        body {
+                            background-color: #1a1a1a;
+                            color: #ffffff;
+                            font-family: Arial, sans-serif;
+                            margin: 0;
+                            padding: 0;
+                        }
+                        .wrapper {
+                            max-width: 600px;
+                            margin: 50px auto;
+                            padding: 20px;
+                            background-color: #2a2a2a;
+                            border-radius: 8px;
+                        }
+                        .btn {
+                            padding: 10px 20px;
+                            margin: 5px;
+                            border: none;
+                            cursor: pointer;
+                            border-radius: 4px;
+                        }
+                        .btn-primary {
+                            background-color: #007bff;
+                            color: white;
+                        }
+                        .btn-secondary {
+                            background-color: #6c757d;
+                            color: white;
+                        }
+                        #save-profile-popup {
+                            display: none;
+                            position: fixed;
+                            top: 50%;
+                            left: 50%;
+                            transform: translate(-50%, -50%);
+                            background: #2a2a2a;
+                            padding: 20px;
+                            border: 1px solid #444;
+                            box-shadow: 0 0 10px rgba(0,0,0,0.5);
+                            z-index: 1000;
+                            text-align: center;
+                            border-radius: 8px;
+                            width: 342px;
+                        }
+                        body:has(#save-profile-popup[style*="display: block"])::after {
+                            content: '';
+                            position: fixed;
+                            top: 0;
+                            left: 0;
+                            width: 100%;
+                            height: 100%;
+                            background: rgba(0,0,0,0.7);
+                            z-index: 999;
+                        }
+                        .popup-content {
+                            font-size: 18px;
+                            color: #00b7ff;
+                            margin-bottom: 10px;
+                            position: relative;
+                        }
+                        .popup-img {
+                            max-width: 200px;
+                            margin: 10px 0;
+                        }
+                        .close-btn {
+                            position: absolute;
+                            top: 2px;
+                            right: -5px;
+                            background: #ff4444;
+                            color: white;
+                            border: none;
+                            border-radius: 50%;
+                            width: 24px;
+                            height: 24px;
+                            cursor: pointer;
+                            font-size: 16px;
+                            line-height: 24px;
+                            text-align: center;
+                        }
+                        .notification {
+                            position: fixed;
+                            top: 20px;
+                            right: 20px;
+                            background: #28a745;
+                            color: white;
+                            padding: 10px 20px;
+                            border-radius: 4px;
+                            display: none;
+                            z-index: 1001;
+                        }
+                    </style>
+                
+                    <script src="{% static 'user/js/jquery-3.3.1.min.js' %}"></script>
+                    <div id="save-profile-popup">
+                        <div class="popup-content">
+                            Please save your profile before leaving.
+                            <button class="close-btn" onclick="document.getElementById('save-profile-popup').style.display='none'">X</button>
+                        </div>
+                        <img src="{% static 'assets/img/save_gif.gif' %}" alt="Save profile" class="popup-img">
+                        <div>
+                            <button class="btn btn-secondary" onclick="document.getElementById('save-profile-popup').style.display='none'">Cancel</button>
+                        </div>
+                    </div>
+                
+                    <div id="notification" class="notification">
+                        Profile save status updated
+                    </div>
+                
+                    <script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
+                    <script>
+                        document.addEventListener('DOMContentLoaded', function() {
+                            // Initialize profile saved state
+                            if (!localStorage.getItem('profileSaved')) {
+                                localStorage.setItem('profileSaved', 'false');
+                            }
+                
+                            // Enable browser back/forward buttons with history state
+                            history.pushState(null, null, location.href);
+                
+                            // Show notification
+                            function showNotification(message) {
+                                const notification = document.getElementById('notification');
+                                notification.textContent = message;
+                                notification.style.display = 'block';
+                                setTimeout(() => {
+                                    notification.style.display = 'none';
+                                }, 3000);
+                            }
+                
+                            // Handle back/forward button usage
+                            window.onpopstate = function(event) {
+                                if (localStorage.getItem('profileSaved') === 'false') {
+                                    history.pushState(null, null, location.href);
+                                    showSaveProfilePopup();
+                                }
+                            };
+                
+                            // Show "Please save your profile" popup
+                            function showSaveProfilePopup() {
+                                const popup = document.getElementById('save-profile-popup');
+                                popup.style.display = 'block';
+                            }
+                
+                            // Handle form submission
+                            document.getElementById('profile-form').addEventListener('submit', function(e) {
+                                e.preventDefault();
+                                localStorage.setItem('profileSaved', 'true');
+                                showNotification('Profile saved successfully');
+                            });
+                
+                            // Prevent navigation via links unless profile is saved
+                            const signoutLink = document.getElementById('signout-link');
+                            signoutLink.addEventListener('click', function(e) {
+                                if (localStorage.getItem('profileSaved') === 'false') {
+                                    e.preventDefault();
+                                    showSaveProfilePopup();
+                                }
+                            });
+                
+                            // Handle browser navigation (e.g., tab close, refresh)
+                            window.addEventListener('beforeunload', function(e) {
+                                if (localStorage.getItem('profileSaved') === 'false') {
+                                    e.preventDefault();
+                                    showSaveProfilePopup();
+                                    e.returnValue = 'Please save your profile before leaving.';
+                                }
+                            });
+                        });
+                    </script>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <a href="#" class="whatsapp-btn">
+        <i class="fab fa-whatsapp fa-2x"></i>
+    </a>
+
+   
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.8/js/intlTelInput.min.js"></script>
+    <script>
+        // Initialize phone input with intl-tel-input
+        const phoneInput = document.querySelector("#id_phone");
+        const iti = window.intlTelInput(phoneInput, {
+            initialCountry: "in",
+            separateDialCode: true,
+            utilsScript: "https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.8/js/utils.js",
+        });
+
+        // Function to validate phone number
+        function validatePhoneNumber() {
+            const phoneNumber = phoneInput.value.trim();
+            const countryData = iti.getSelectedCountryData();
+            
+            // Check if the number is valid for the selected country
+            if (!iti.isValidNumber()) {
+                showPhoneError("Please enter a valid phone number for " + countryData.name);
+                return false;
+            }
+            
+            // Specific validation for India
+            if (countryData.iso2 === "in") {
+                const fullNumber = iti.getNumber();
+                if (!fullNumber.startsWith("+91")) {
+                    showPhoneError("Indian numbers must start with +91 country code");
+                    return false;
+                }
+                
+                const nationalNumber = phoneNumber.replace(/^\+91/, '').replace(/\D/g, '');
+                if (nationalNumber.length !== 10) {
+                    showPhoneError("Indian phone numbers must be 10 digits (excluding country code)");
+                    return false;
+                }
+            }
+            
+            return true;
+        }
+
+        // Function to show phone error popup
+        function showPhoneError(message) {
+            document.getElementById("phoneErrorMessage").textContent = message;
+            document.getElementById("phoneErrorPopup").style.display = "block";
+            document.getElementById("phoneErrorOverlay").style.display = "block";
+        }
+
+        // Function to close phone error popup
+        function closePhoneError() {
+            document.getElementById("phoneErrorPopup").style.display = "none";
+            document.getElementById("phoneErrorOverlay").style.display = "none";
+            phoneInput.focus();
+        }
+
+        // Form submission handler
+        document.getElementById("profileForm").addEventListener("submit", function(e) {
+            if (!validatePhoneNumber()) {
+                e.preventDefault();
+            } else {
+                // Format the phone number properly before submission
+                const fullNumber = iti.getNumber();
+                phoneInput.value = fullNumber;
+            }
+        });
+
+        // Close popup when clicking overlay
+        document.getElementById("phoneErrorOverlay").addEventListener("click", closePhoneError);
+    </script>
+</body>
+</html>
+{% endblock %}

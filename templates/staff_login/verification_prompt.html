@@ -1,0 +1,140 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verification Required</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #e4e8f0 100%);
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .container {
+            max-width: 500px;
+            width: 90%;
+            padding: 30px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            text-align: center;
+            position: relative;
+        }
+        
+        .header {
+            margin-bottom: 25px;
+        }
+        
+        h2 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+        
+        .message {
+            color: #566573;
+            margin-bottom: 20px;
+            line-height: 1.6;
+        }
+        
+        .email {
+            background: #f8f9fa;
+            padding: 12px;
+            border-radius: 6px;
+            color: #34495e;
+            font-weight: 500;
+            margin-bottom: 25px;
+            border-left: 4px solid #3498db;
+        }
+        
+        .btn {
+            background: #3498db;
+            color: white;
+            padding: 12px 24px;
+            text-decoration: none;
+            border-radius: 6px;
+            display: inline-block;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            margin: 5px;
+        }
+        
+        .btn:hover {
+            background: #2980b9;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        .btn.secondary {
+            background: #ecf0f1;
+            color: #2c3e50;
+        }
+        
+        .btn.secondary:hover {
+            background: #dde4e6;
+        }
+        
+        .footer {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #ecf0f1;
+            font-size: 14px;
+            color: #7f8c8d;
+        }
+        
+        .company-info {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-top: 15px;
+        }
+        
+        .company-info div {
+            padding: 8px 15px;
+            background: #f8f9fa;
+            border-radius: 20px;
+            font-size: 13px;
+        }
+        
+        .alert-icon {
+            font-size: 48px;
+            color: #3498db;
+            margin-bottom: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="alert-icon">⚠️</div>
+            <h2>Verification Required</h2>
+        </div>
+        
+        <p class="message">{{ message }}</p>
+        
+        <p class="email">your mail : {{ email }}</p>
+        
+        <div>
+            <a href="{% url 'user:staff_signup' %}" class="btn">Resend Login Woth New Email</a>
+            <a href="/" class="btn secondary">Back to Home</a>
+        </div>
+        
+        <div class="footer">
+            <p>Need help? Contact the site maintainer</p>
+            <div class="company-info">
+                <div><strong>Company:</strong> LiteCode Software PVT Ltd</div>
+                <div><strong>Contact:</strong> +91 9172353945</div>
+            </div>
+            <p style="margin-top: 15px; font-size: 13px;">We are a leading tech company dedicated to providing innovative solutions</p>
+        </div>
+    </div>
+</body>
+</html>

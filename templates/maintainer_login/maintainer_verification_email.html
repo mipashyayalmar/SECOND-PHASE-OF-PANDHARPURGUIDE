@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verify Your PandharpurGuide Maintainer Account</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Arial', sans-serif;
+            background-color: #f4f4f4;
+            color: #333333;
+        }
+        .container {
+            max-width: 600px;
+            margin: 20px auto;
+            background-color: #ffffff;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .header {
+            background-color: #2c3e50;
+            padding: 20px;
+            text-align: center;
+            color: #ffffff;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+        .content {
+            padding: 30px;
+            line-height: 1.6;
+        }
+        .content p {
+            margin: 0 0 15px;
+        }
+        .button {
+            display: inline-block;
+            padding: 12px 24px;
+            background-color: #3498db;
+            color: #ffffff;
+            text-decoration: none;
+            border-radius: 4px;
+            margin: 15px 0;
+            font-weight: bold;
+        }
+        .button:hover {
+            background-color: #2980b9;
+        }
+        .username {
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        .footer {
+            background-color: #f8f8f8;
+            padding: 20px;
+            text-align: center;
+            font-size: 14px;
+            color: #666666;
+        }
+        .footer p {
+            margin: 0;
+        }
+        @media only screen and (max-width: 600px) {
+            .container {
+                margin: 10px;
+            }
+            .content {
+                padding: 20px;
+            }
+            .header h1 {
+                font-size: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Welcome to PandharpurGuide!</h1>
+        </div>
+        <div class="content">
+            <p>Dear {{ name }},</p>
+            <p>Thank you for registering as a maintainer with PandharpurGuide. We're excited to have you on board!</p>
+            <p>Your username: <span class="username">{{ username }}</span></p>
+            <p>Please verify your account by clicking the button below:</p>
+            <a href="{{ verification_url }}" class="button">Verify Your Account</a>
+            <p>If the button doesn't work, you can copy and paste this link into your browser:</p>
+            <p><a href="{{ verification_url }}">{{ verification_url }}</a></p>
+            <p>If you didn't create this account, please ignore this email.</p>
+            <p>Best regards,</p>
+            <p>The PandharpurGuide Team</p>
+        </div>
+        <div class="footer">
+            <p>&copy; {{ 'now'|date:'Y' }} PandharpurGuide. All rights reserved.</p>
+            <p>{{ protocol }}://{{ domain }}</p>
+        </div>
+    </div>
+</body>
+</html>

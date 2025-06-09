@@ -1,0 +1,220 @@
+
+{% extends 'base/base.html' %}
+{% load static %}
+{% block title %}User-SignIn{% endblock %}
+{% block content %}
+{% load socialaccount%}
+<!DOCTYPE html>
+<html>
+	<head>
+		{% load static %}
+		<meta charset="utf-8">
+		<title>Signup Here</title>
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+		<!-- STYLE CSS -->
+		<link rel="stylesheet" href="{% static 'user/css/style.css' %}">
+		<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+	</head>
+
+	<body>
+		<div class="wrapper">
+			
+			<div class="inner">
+				<div class="image-holder">
+					<center>
+						<img src="{% static 'imgs/sign/signup-icon.png' %}"style="width: 200px;padding-top:12px;"alt="">
+					</center>
+                <img src="{% static 'imgs/sign/sign-up.avif' %}" alt="">
+            </div>
+
+				<form action="{% url 'user:signup' %}" method="POST" id="signup-form">
+					
+					<h3>User Sign Up</h3>
+					<div class="google">
+						<a href="{% provider_login_url 'google' %}">
+							<img src="{% static 'imgs/google/google-img.png' %}" style="width: 15px;margin: 5px;"alt="">
+						  <span>Sign up with <img src="{% static 'imgs/google/google_name.png' %}" style="width: 61px;"alt=""></span>
+						</a>
+					</div>
+					
+					{% csrf_token %}
+					{% if message %}
+					<div id="popupOverlay" class="popup-overlay"></div>
+					
+					<div class="popup alert-{{ message.tags }} p-6 rounded-xl" role="alert">
+						<button id="cancelBtn" class="cancel-btn" aria-label="Cancel">×</button>
+						<div class="popup-content text-center">
+							<p class="text-lg font-medium mb-4">{{ message }}</p>
+							<div class="popup-buttons flex justify-center">
+								<button id="closeBtn" class="btn close-btn bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition">Close</button>
+							</div>
+						</div>
+					</div>
+					{% endif %}
+					
+					<div class="form-holder active">
+						<input type="email" class="form-control" name="username" placeholder="Email" required="required">
+					</div>
+					<div class="form-holder">
+						<input type="text" class="form-control" name="name" placeholder="Name" required="required">
+					</div>
+					<div class="form-holder">
+						<input type="text" class="form-control" name="phone" placeholder="Phone Number" required="required">
+					</div>
+
+					<!-- Password input with toggle -->
+					<div class="form-holder" style="position: relative;">
+						<input type="password" placeholder="Password" name="password" class="form-control" id="password" required>
+						<span toggle="#password" class="fa fa-fw fa-eye-slash field-icon" id="togglePassword" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); cursor: pointer;"></span>
+					</div>
+
+					<div class="form-holder">
+						<input type="checkbox" id="terms-checkbox" checked> I agree to all statements in <a href="#">Terms & Conditions</a>
+							<span class="checkmark"></span>
+					</div>
+
+					<!-- Checkbox for Terms and Conditions -->
+					<div class="checkbox">
+						<label>
+							
+							
+						<p>Already have an account? <a href="{% url 'user:signin' %}">Login</a></p>
+
+						</label>
+					</div>
+
+					<!-- Signup button -->
+					<div class="form-login">
+						<a href="/">
+							<i class="fa fa-home home-icon" aria-hidden="true"></i>
+						</a>&nbsp;&nbsp;&nbsp;
+						<button type="submit" id="signup-button">Sign up</button>
+					</div>
+				</form>
+			</div>
+		</div>
+
+		<style>
+			/* Main Form Styling */
+			#signin-form {
+			  max-width: 400px;
+			  margin: 0 auto;
+			  padding: 30px;
+			  border-radius: 10px;
+			  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+			  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+			}
+		  
+			#signin-form h3 {
+			  text-align: center;
+			  color: #333;
+			  font-size: 24px;
+			  margin-bottom: 25px;
+			  font-weight: 600;
+			}
+		  
+			/* Google Sign-In Button Styling */
+			.google {
+			  text-align: center;
+			  margin-bottom: 20px;
+			}
+		  
+			.google a {
+			  display: inline-flex;
+			  align-items: center;
+			  justify-content: center;
+			  background-color: #fff;
+			  color: #5f6368;
+			  border: 1px solid #dadce0;
+			  padding: 10px 16px;
+			  border-radius: 23.5px;
+			  font-size: 16px;
+			  font-weight: 500;
+			  text-decoration: none;
+			  transition: background-color 0.3s, box-shadow 0.3s;
+			}
+		  
+			.google a:hover {
+			  background-color: #f7f8f8;
+			  box-shadow: 0 1px 3px rgba(60, 64, 67, 0.3);
+			}
+		  
+			.google i {
+			  color: #4285F4;
+			  font-size: 18px;
+			  margin-right: 10px;
+			}
+		  
+			.google span {
+			  vertical-align: middle;
+			}
+
+			@media (min-width: 810px) {
+				form {
+					padding-top: 40px;
+				}
+			}
+		  </style>
+		{% comment %} trim the username like "mipashya@gmail.com "debug it  {% endcomment %}
+
+		<script>
+			// Add this JavaScript to trim spaces from the input
+			document.addEventListener('DOMContentLoaded', function() {
+				const usernameInput = document.querySelector('input[name="username"]');
+				
+				usernameInput.addEventListener('input', function(e) {
+					// Remove leading and trailing spaces as the user types
+					this.value = this.value.trim();
+				});
+				
+				// Or if you're handling form submission
+				const form = document.querySelector('form'); // Assuming this is in a form
+				if (form) {
+					form.addEventListener('submit', function(e) {
+						usernameInput.value = usernameInput.value.trim();
+						// Rest of your form submission logic
+					});
+				}
+			});
+			</script>
+
+
+		
+		
+		<!-- Password Toggle Script -->
+		<script>
+			const togglePassword = document.querySelector('#togglePassword');
+			const password = document.querySelector('#password');
+
+			togglePassword.addEventListener('click', function () {
+				// Toggle the type attribute of the password field
+				const type = password.getAttribute('type') === 'password' ? 'text' : 'password';
+				password.setAttribute('type', type);
+
+				// Toggle between eye and eye-slash icons
+				this.classList.toggle('fa-eye');
+				this.classList.toggle('fa-eye-slash');
+			});
+		</script>
+
+		<!-- Validation Script for Terms & Conditions -->
+		<script>
+			const checkbox = document.getElementById('terms-checkbox');
+			const signupButton = document.getElementById('signup-button');
+
+			// Prevent form submission if checkbox is not checked
+			document.getElementById('signup-form').addEventListener('submit', function (e) {
+				if (!checkbox.checked) {
+					e.preventDefault(); // Prevent form from submitting
+					alert('Please agree to the Terms and Conditions before signing up.');
+				}
+			});
+		</script>
+
+		<script src="{% static 'user/js/jquery-3.3.1.min.js' %}"></script>
+		<script src="{% static 'user/js/main.js' %}"></script>
+	</body>
+</html>
+
+{% endblock %}

@@ -1,0 +1,32 @@
+{% comment %} {% extends 'base/base.html' %}
+{% load static %}
+{% block title %}Manage Images{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Manage Image URLs</h2>
+
+    <div class="row">
+        <div class="col-md-6">
+            <form method="POST">
+                {% csrf_token %}
+                {{ form.as_p }}
+                <button type="submit" class="btn btn-primary">Add / Update Image</button>
+            </form>
+        </div>
+        <div class="col-md-6">
+            <h3>Existing Images</h3>
+            <ul class="list-group">
+                {% for image in images %}
+                <li class="list-group-item">
+                    <strong>Number:</strong> {{ image.number }}<br>
+                    <strong>Description:</strong> {{ image.description }}<br>
+                    <strong>Online URL:</strong> <a href="{{ image.online_url }}" target="_blank">{{ image.online_url }}</a><br>
+                    <strong>Offline URL:</strong> {{ image.offline_url }}
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock content %} {% endcomment %}

@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		{% load static %}
+		<meta charset="utf-8">
+		<title>Signup Here</title>
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+		<!-- STYLE CSS -->
+		<link rel="stylesheet" href="{% static 'user/css/style.css' %}">
+		<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+	</head>
+
+	<body>
+		<div class="wrapper">
+			<div class="inner">
+				<div class="image-holder">
+					<img src="{% static 'imgs/seond.png'%}" alt="">
+					<img src="{% static 'imgs/first.jpg'%}" alt="">
+				</div>
+
+				<form action="{% url 'user:signup' %}" method="POST" id="signup-form">
+					<h3>Sign Up</h3>
+					{% csrf_token %}
+					{% if message %} 
+					<p class="hint-text text-danger">{{message}}</p>
+					{% endif %}
+					
+					<div class="form-holder active">
+						<input type="email" class="form-control" name="username" placeholder="Email" required="required">
+					</div>
+					<div class="form-holder">
+						<input type="text" class="form-control" name="name" placeholder="Name" required="required">
+					</div>
+					<div class="form-holder">
+						<input type="text" class="form-control" name="phone" placeholder="Phone Number" required="required">
+					</div>
+
+					<!-- Password input with toggle -->
+					<div class="form-holder" style="position: relative;">
+						<input type="password" placeholder="Password" name="password" class="form-control" id="password" required>
+						<span toggle="#password" class="fa fa-fw fa-eye-slash field-icon" id="togglePassword" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); cursor: pointer;"></span>
+					</div>
+
+					<!-- Checkbox for Terms and Conditions -->
+					<div class="checkbox">
+						<label>
+							<input type="checkbox" id="terms-checkbox"> I agree to all statements in <a href="#">Terms & Conditions</a>
+							<span class="checkmark"></span>
+						</label>
+					</div>
+
+					<!-- Signup button -->
+					<div class="form-login">
+						<button type="submit" id="signup-button">Sign up</button>
+						<p>Already have an account? <a href="{% url 'user:signin' %}">Login</a></p>
+					</div>
+				</form>
+			</div>
+		</div>
+
+		<!-- Password Toggle Script -->
+		<script>
+			const togglePassword = document.querySelector('#togglePassword');
+			const password = document.querySelector('#password');
+
+			togglePassword.addEventListener('click', function () {
+				// Toggle the type attribute of the password field
+				const type = password.getAttribute('type') === 'password' ? 'text' : 'password';
+				password.setAttribute('type', type);
+
+				// Toggle between eye and eye-slash icons
+				this.classList.toggle('fa-eye');
+				this.classList.toggle('fa-eye-slash');
+			});
+		</script>
+
+		<!-- Validation Script for Terms & Conditions -->
+		<script>
+			const checkbox = document.getElementById('terms-checkbox');
+			const signupButton = document.getElementById('signup-button');
+
+			// Prevent form submission if checkbox is not checked
+			document.getElementById('signup-form').addEventListener('submit', function (e) {
+				if (!checkbox.checked) {
+					e.preventDefault(); // Prevent form from submitting
+					alert('Please agree to the Terms and Conditions before signing up.');
+				}
+			});
+		</script>
+
+		<script src="{% static 'user/js/jquery-3.3.1.min.js' %}"></script>
+		<script src="{% static 'user/js/main.js' %}"></script>
+	</body>
+</html>

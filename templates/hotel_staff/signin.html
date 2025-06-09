@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    {% load static %}
+    
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login Here</title>
+
+    <!-- STYLE CSS -->
+    <link rel="stylesheet" href="{% static 'user/css/style.css' %}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+
+<body>
+    <div class="wrapper">
+        <div class="inner">
+            <div class="image-holder">
+                <img src="{% static 'imgs/seond.png'%}" alt="">
+                <img src="{% static 'imgs/first.jpg'%}" alt="">
+            </div>
+            
+            <form action="{% url 'user:signin' %}" method="POST" id="signin-form">
+                <h3>User Sign In</h3>
+                {% csrf_token %}
+                {% if message %} 
+                    <p class="hint-text text-center" style="color: #FF0000">{{ message }}</p>
+                {% endif %}
+                <div class="form-holder">
+                    <input type="email" class="form-control" name="username" placeholder="Email" required>
+                </div>
+                <div class="form-holder" style="position: relative;">
+                    <input type="password" placeholder="Password" name="password" class="form-control" id="password" required>
+                    <span toggle="#password" class="fa fa-fw fa-eye-slash field-icon" id="togglePassword" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); cursor: pointer;"></span>
+                </div>
+                
+                <!-- Checkbox for Terms and Conditions -->
+                <div class="checkbox">
+                    <label>
+                        <input type="checkbox" id="terms-checkbox"> I agree to all statements in <a href="#">Terms & Conditions</a>
+                        <span class="checkmark"></span>
+                    </label>
+                </div>
+                <div class="form-login">
+                    <button type="submit" id="signin-button">Sign In</button>
+                </div>
+<br><br><br>
+                <div class="forgot-pass">
+					<p>Don't have an account? <a href="{% url 'user:signup' %}">Sign up</a>
+					</p><br>
+                    Forgot Password? <a href="{% url 'user:password-reset' %}">Click Here</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <style>
+       
+    </style>
+    <script src="{% static 'user/js/jquery-3.3.1.min.js' %}"></script>
+    <script>
+        const togglePassword = document.querySelector('#togglePassword');
+        const password = document.querySelector('#password');
+        const checkbox = document.getElementById('terms-checkbox');
+        const signinButton = document.getElementById('signin-button');
+
+        // Toggle password visibility
+        togglePassword.addEventListener('click', function () {
+            const type = password.getAttribute('type') === 'password' ? 'text' : 'password';
+            password.setAttribute('type', type);
+            this.classList.toggle('fa-eye');
+            this.classList.toggle('fa-eye-slash');
+        });
+
+        // Handle checkbox click to change button color and state
+        checkbox.addEventListener('click', function () {
+            // Toggle the enabled class based on checkbox state
+            if (this.checked) {
+                signinButton.classList.add('enabled');
+                signinButton.disabled = false;
+            } else {
+                signinButton.classList.remove('enabled');
+                signinButton.disabled = true;
+            }
+        });
+
+        // Prevent form submission and show custom alert with image when unchecked
+        document.getElementById('signin-form').addEventListener('submit', function (e) {
+            if (!checkbox.checked) {
+                e.preventDefault();
+
+                // Create custom alert container if it doesn't exist
+                let alertBox = document.getElementById('custom-alert');
+                if (!alertBox) {
+                    alertBox = document.createElement('div');
+                    alertBox.id = 'custom-alert';
+                    alertBox.style.cssText = `
+                        position: fixed;
+                        top: 50%;
+                        left: 50%;
+                        transform: translate(-50%, -50%);
+                        background: white;
+                        padding: 20px;
+                        border: 1px solid #ccc;
+                        box-shadow: 0 0 10px rgba(0,0,0,0.3);
+                        z-index: 1000;
+                        text-align: center;
+                    `;
+                    document.body.appendChild(alertBox);
+                }
+
+                // Set the content with image and message
+                alertBox.innerHTML = `
+                    <p>You must agree to the Terms and Conditions before signing in.</p>
+                    <img src="https://t3.ftcdn.net/jpg/01/99/52/22/360_F_199522246_N0hLlmnfe8Gn6TlMhSlNSt4wjxStr6o4.jpg" 
+                         alt="Terms reminder" 
+                         style="max-width: 200px; margin: 10px 0;">
+                    <br>
+                    <button onclick="this.parentElement.style.display='none'">OK</button>
+                `;
+
+                // Show the alert
+                alertBox.style.display = 'block';
+            }
+            // If checkbox is checked, form will submit normally
+        });
+    </script>
+    <script src="{% static 'user/js/jquery-3.3.1.min.js' %}">
+      
+    </script>
+    <style>
+        #signin-button {
+            background-color: grey; /* Initial grey color when unchecked */
+            cursor: not-allowed;
+            transition: background-color 0.3s ease;
+        }
+
+        #signin-button.enabled {
+            background-color: #007bff; /* Blue when checked */
+            cursor: pointer;
+        }
+
+        #custom-alert {
+            display: none;
+        }
+
+        body:has(#custom-alert[style*="display: block"])::after {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 999;
+        }
+    </style>
+    <script src="{% static 'user/js/jquery-3.3.1.min.js' %}"></script>
+		<script src="{% static 'user/js/main.js' %}"></script>
+</body>
+</html>

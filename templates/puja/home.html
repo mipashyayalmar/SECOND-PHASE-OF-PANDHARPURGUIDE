@@ -1,0 +1,375 @@
+{% extends 'base/base.html' %}
+{% load static %}
+{% block title %}Home - Pandharpur Guide{% endblock %}
+{% block content %}
+{% load highlight_tags %}
+
+
+
+<main class="main">
+
+
+    <!-- Hero Section -->
+    <section id="hero" class="hero section dark-background">
+
+
+      <div id="hero-carousel" class="carousel slide carousel-fade" data-bs-ride="carousel" data-bs-interval="5000">
+        {% for image in images %}
+        <div class="carousel-item {% if forloop.first %}active{% endif %}">
+            <img src="{{ image.image.url }}" alt="{{ image.heading }}">
+          <div class="carousel-container">
+            <h2> {{ image.heading|title }}<br></h2>
+            <p>{{ image.description|capfirst }}</p>
+            <a href="{% url 'myapp:blog_detail' image.id %}" class="btn-get-started">Get Started</a>
+          </div>
+        </div><!-- End Carousel Item -->
+        {% endfor %}
+
+        <a class="carousel-control-prev" href="#hero-carousel" role="button" data-bs-slide="prev">
+          <span class="carousel-control-prev-icon bi bi-chevron-left" aria-hidden="true"></span>
+        </a>
+
+        <a class="carousel-control-next" href="#hero-carousel" role="button" data-bs-slide="next">
+          <span class="carousel-control-next-icon bi bi-chevron-right" aria-hidden="true"></span>
+        </a>
+
+        <ol class="carousel-indicators"></ol>
+
+      </div>
+
+    </section><!-- /Hero Section -->
+    
+
+
+
+   <!-- About Section -->
+    <section id="about" class="about section">
+
+      <!-- Section Title -->
+      <div class="container section-title" data-aos="fade-up">
+        <h2>About</h2>
+        <p>About Us<br></p>
+      </div><!-- End Section Title -->
+
+      <div class="container">
+
+        <div class="row gy-4">
+
+          <div class="col-lg-6 content" data-aos="fade-up" data-aos-delay="100">
+            <p>
+                Pandharpur Guide is your trusted companion for exploring the spiritual town of pandharpur. Devotees and pilgrims visiting Vitthal-Rukmini Mandir,We help tourists by providing verified details about hotels, lodges, and restaurants along with their current staying availability.Includes updated information on major temples, darshan timings, daily puja schedules, and festival-specific rituals. </p>
+            </p>
+            <ul>
+              <li><i class="bi bi-check2-circle"></i> <span>Highlights of famous items and local specialties in Pandharpur.</span></li>
+              <li><i class="bi bi-check2-circle"></i> <span>Details of nearby tourist spots and attractions.</span></li>
+              <li><i class="bi bi-check2-circle"></i> <span>Info on hotels, lodges, and restaurants with stay availability.</span></li>
+              <li><i class="bi bi-check2-circle"></i> <span>Temple guidance with darshan and puja timings.</span></li>
+            </ul>
+          </div>
+
+          <div class="col-lg-6" data-aos="fade-up" data-aos-delay="200">
+            <p> Our platform also highlights nearby tourist attractions, local famous items, and cultural specialties. We aim to give complete guidance about temples, including darshan schedules and puja timings, to make your spiritual journey smooth and fulfilling. </p>
+            <a href="about.html" class="read-more"><span>Read More</span><i class="bi bi-arrow-right"></i></a>
+          </div>
+
+        </div>
+
+      </div>
+
+    </section><!-- /About Section -->
+
+
+   
+    {% comment %} <style>
+        .post-item { margin-bottom: 20px; }
+        .no-results { color: red; font-style: italic; text-align: center; }
+        article { margin-bottom: 30px; }
+    </style> {% endcomment %}
+
+    <main class="main">
+        <div class="page-title light-background">
+            <div class="container d-lg-flex justify-content-between align-items-center">
+                <h1 class="mb-2 mb-lg-0">PostsDetail</h1>
+                <nav class="breadcrumbs"></nav>
+            </div>
+        </div>
+
+        <div class="container">
+            <div class="row">
+                <div class="col-lg-8">
+                    <section id="blog-posts" class="blog-posts section">
+                        <div class="container">
+                            <div class="row gy-4">
+                                {% if images %}
+                                    {% for image in images %}
+                                        <div class="col-lg-12">
+                                            <article>
+                                                <div class="post-img">
+                                                    <img src="{{ image.image.url }}" alt="{{ image.heading }}" class="img-fluid">
+                                                </div>
+                                                <h2 class="title">
+                                                    <a href="#top" onclick="scrollToTop(event)">
+                                                        {{ forloop.counter }}. {{ image.heading|highlight:search_query }}
+                                                    </a>
+                                                </h2>
+                                                <div class="meta-top">
+                                                    <ul>
+                                                        <li class="d-flex align-items-center"><i class="bi bi-person"></i> <a href="{% url 'myapp:blog_detail' image.id %}">PandharpurGuide</a></li>
+                                                        <li class="d-flex align-items-center"><i class="bi bi-clock"></i> <a href="{% url 'myapp:blog_detail' image.id %}"><time datetime="{{ image.created_at|date:'Y-m-d H:i:s' }}">{{ image.created_at|date:'M d, Y' }}</time></a></li>
+                                                        <li class="d-flex align-items-center"><i class="bi bi-chat-dots"></i> <a href="{% url 'myapp:blog_detail' image.id %}">{{ image.comments.count }} Comments</a></li>
+                                                    </ul>
+                                                </div>
+                                                <div class="content">
+                                                    <p>{{ image.description|highlight:search_query }}</p>
+                                                    <div class="read-more">
+                                                        <a href="{% url 'myapp:blog_detail' image.id %}">Read More</a>
+                                                    </div>
+                                                </div>
+                                            </article>
+                                        </div>
+                                    {% endfor %}
+                                {% else %}
+                                    <div class="col-lg-12">
+                                        <p class="no-results">Unable to find this</p>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </section>
+
+                    <section id="blog-pagination" class="blog-pagination section">
+                        <div class="container">
+                            <div class="d-flex justify-content-center">
+                                <ul>
+                                    <li><a href="#"><i class="bi bi-chevron-left"></i></a></li>
+                                    <li><a href="#">1</a></li>
+                                    <li><a href="#" class="active">2</a></li>
+                                    <li><a href="#">3</a></li>
+                                    <li><a href="#">4</a></li>
+                                    <li>...</li>
+                                    <li><a href="#">10</a></li>
+                                    <li><a href="#"><i class="bi bi-chevron-right"></i></a></li>
+                                </ul>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+
+                <div class="col-lg-4 sidebar">
+                    <div class="widgets-container">
+                        <div class="search-widget widget-item">
+                            <h3 class="widget-title">Search</h3>
+                            
+                            <form action="" method="get" id="search-form">
+                                <input type="text" name="q" value="{{ search_query }}" placeholder="Search...">
+                                <a href="{% url 'myapp:home' %}#blog-posts"> <button type="submit" title="Search"><i class="bi bi-search"></i></button> </a>
+                            </form>
+                        </div>
+
+                        <div class="categories-widget widget-item">
+                            <h3 class="widget-title">Categories</h3>
+                            <ul class="mt-3">
+                                <li><a href="#">Pandharpur <span>(25)</span></a></li>
+                                <li><a href="#">Visiting <span>(12)</span></a></li>
+                                <li><a href="#">Travel <span>(5)</span></a></li>
+                                <li><a href="#">Rooms <span>(22)</span></a></li>
+                                <li><a href="#">Puja <span>(8)</span></a></li>
+                                <li><a href="#">Education <span>(14)</span></a></li>
+                            </ul>
+                        </div>
+
+                        <div class="recent-posts-widget widget-item">
+                            <h3 class="widget-title">Recent Posts</h3>
+                            {% if images %}
+                                {% for image in images %}
+                                    <div class="post-item">
+                                        <img src="{{ image.image.url }}" alt="{{ image.heading }}" class="flex-shrink-0">
+                                        <div>
+                                            <h4>
+                                                <a href="{% url 'myapp:blog_detail' image.id %}">
+                                                    {{ forloop.counter }}. {{ image.heading|highlight:search_query }}
+                                                </a>
+                                            </h4>
+                                            <time datetime="{{ image.created_at|date:'Y-m-d H:i:s' }}">
+                                                {{ image.created_at|date:'M d, Y' }}
+                                            </time>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            {% else %}
+                                <p class="no-results">Unable to find this</p>
+                            {% endif %}
+                        </div>
+
+                        <div class="tags-widget widget-item">
+                            <h3 class="widget-title">Tags</h3>
+                            <ul>
+                                <li><a href="#">App</a></li>
+                                <li><a href="#">IT</a></li>
+                                <li><a href="#">Business</a></li>
+                                <li><a href="#">Mac</a></li>
+                                <li><a href="#">Design</a></li>
+                                <li><a href="#">Office</a></li>
+                                <li><a href="#">Creative</a></li>
+                                <li><a href="#">Studio</a></li>
+                                <li><a href="#">Smart</a></li>
+                                <li><a href="#">Tips</a></li>
+                                <li><a href="#">Marketing</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- HTML for below-page -->
+            
+        </div>
+
+        <script>
+            function scrollToTop(event) {
+                event.preventDefault();
+                window.scrollTo({
+                    top: 0,
+                    behavior: 'smooth'
+                });
+            }
+
+            document.getElementById('search-form').addEventListener('submit', function(event) {
+                setTimeout(function() {
+                    const blogPostsSection = document.getElementById('blog-posts');
+                    if (blogPostsSection) {
+                        blogPostsSection.scrollIntoView({ behavior: 'smooth' });
+                    }
+                }, 100);
+            });
+        </script>
+
+
+
+        
+  </main>
+
+    <!-- /Services Section -->
+
+    <!-- Portfolio Section -->
+    <section id="portfolio" class="portfolio section">
+
+      <!-- Section Title -->
+      <div class="container section-title" data-aos="fade-up">
+        <h2>Portfolio</h2>
+        <p>Necessitatibus eius consequatur</p>
+      </div><!-- End Section Title -->
+
+      <div class="container">
+
+        <div class="isotope-layout" data-default-filter="*" data-layout="masonry" data-sort="original-order">
+
+          <ul class="portfolio-filters isotope-filters" data-aos="fade-up" data-aos-delay="100">
+            <li data-filter="*" class="filter-active">All</li>
+            <li data-filter=".filter-app">App</li>
+            <li data-filter=".filter-product">Card</li>
+            <li data-filter=".filter-branding">Web</li>
+          </ul><!-- End Portfolio Filters -->
+
+          <div class="row gy-4 isotope-container" data-aos="fade-up" data-aos-delay="200">
+
+            <div class="col-lg-4 col-md-6 portfolio-item isotope-item filter-app">
+              <img src="{% static 'assets/img/masonry-portfolio/masonry-portfolio-1.jpg'%}" class="img-fluid" alt="">
+              <div class="portfolio-info">
+                <h4>App 1</h4>
+                <p>Lorem ipsum, dolor sit</p>
+                <a href="{% static 'assets/img/masonry-portfolio/masonry-portfolio-1.jpg'%}" title="App 1" data-gallery="portfolio-gallery-app" class="glightbox preview-link"><i class="bi bi-zoom-in"></i></a>
+                <a href="portfolio-details.html'%}" title="More Details" class="details-link"><i class="bi bi-link-45deg"></i></a>
+              </div>
+            </div><!-- End Portfolio Item -->
+
+            <div class="col-lg-4 col-md-6 portfolio-item isotope-item filter-product">
+              <img src="{% static 'assets/img/masonry-portfolio/masonry-portfolio-2.jpg'%}" class="img-fluid" alt="">
+              <div class="portfolio-info">
+                <h4>Product 1</h4>
+                <p>Lorem ipsum, dolor sit</p>
+                <a href="{% static 'assets/img/masonry-portfolio/masonry-portfolio-2.jpg'%}" title="Product 1" data-gallery="portfolio-gallery-product" class="glightbox preview-link"><i class="bi bi-zoom-in"></i></a>
+                <a href="portfolio-details.html'%}" title="More Details" class="details-link"><i class="bi bi-link-45deg"></i></a>
+              </div>
+            </div><!-- End Portfolio Item -->
+
+            <div class="col-lg-4 col-md-6 portfolio-item isotope-item filter-branding">
+              <img src="{% static 'assets/img/masonry-portfolio/masonry-portfolio-3.jpg'%}" class="img-fluid" alt="">
+              <div class="portfolio-info">
+                <h4>Branding 1</h4>
+                <p>Lorem ipsum, dolor sit</p>
+                <a href="{% static 'assets/img/masonry-portfolio/masonry-portfolio-3.jpg'%}" title="Branding 1" data-gallery="portfolio-gallery-branding" class="glightbox preview-link"><i class="bi bi-zoom-in"></i></a>
+                <a href="portfolio-details.html'%}" title="More Details" class="details-link"><i class="bi bi-link-45deg"></i></a>
+              </div>
+            </div><!-- End Portfolio Item -->
+
+            <div class="col-lg-4 col-md-6 portfolio-item isotope-item filter-app">
+              <img src="{% static 'assets/img/masonry-portfolio/masonry-portfolio-4.jpg'%}" class="img-fluid" alt="">
+              <div class="portfolio-info">
+                <h4>App 2</h4>
+                <p>Lorem ipsum, dolor sit</p>
+                <a href="{% static 'assets/img/masonry-portfolio/masonry-portfolio-4.jpg'%}" title="App 2" data-gallery="portfolio-gallery-app" class="glightbox preview-link"><i class="bi bi-zoom-in"></i></a>
+                <a href="portfolio-details.html'%}" title="More Details" class="details-link"><i class="bi bi-link-45deg"></i></a>
+              </div>
+            </div><!-- End Portfolio Item -->
+
+            <div class="col-lg-4 col-md-6 portfolio-item isotope-item filter-product">
+              <img src="{% static 'assets/img/masonry-portfolio/masonry-portfolio-5.jpg'%}" class="img-fluid" alt="">
+              <div class="portfolio-info">
+                <h4>Product 2</h4>
+                <p>Lorem ipsum, dolor sit</p>
+                <a href="{% static 'assets/img/masonry-portfolio/masonry-portfolio-5.jpg'%}" title="Product 2" data-gallery="portfolio-gallery-product" class="glightbox preview-link"><i class="bi bi-zoom-in"></i></a>
+                <a href="portfolio-details.html'%}" title="More Details" class="details-link"><i class="bi bi-link-45deg"></i></a>
+              </div>
+            </div><!-- End Portfolio Item -->
+
+            <div class="col-lg-4 col-md-6 portfolio-item isotope-item filter-branding">
+              <img src="{% static 'assets/img/masonry-portfolio/masonry-portfolio-6.jpg'%}" class="img-fluid" alt="">
+              <div class="portfolio-info">
+                <h4>Branding 2</h4>
+                <p>Lorem ipsum, dolor sit</p>
+                <a href="{% static 'assets/img/masonry-portfolio/masonry-portfolio-6.jpg'%}" title="Branding 2" data-gallery="portfolio-gallery-branding" class="glightbox preview-link"><i class="bi bi-zoom-in"></i></a>
+                <a href="portfolio-details.html'%}" title="More Details" class="details-link"><i class="bi bi-link-45deg"></i></a>
+              </div>
+            </div><!-- End Portfolio Item -->
+
+            <div class="col-lg-4 col-md-6 portfolio-item isotope-item filter-app">
+              <img src="{% static 'assets/img/masonry-portfolio/masonry-portfolio-7.jpg'%}" class="img-fluid" alt="">
+              <div class="portfolio-info">
+                <h4>App 3</h4>
+                <p>Lorem ipsum, dolor sit</p>
+                <a href="{% static 'assets/img/masonry-portfolio/masonry-portfolio-7.jpg'%}" title="App 3" data-gallery="portfolio-gallery-app" class="glightbox preview-link"><i class="bi bi-zoom-in"></i></a>
+                <a href="portfolio-details.html'%}" title="More Details" class="details-link"><i class="bi bi-link-45deg"></i></a>
+              </div>
+            </div><!-- End Portfolio Item -->
+
+            <div class="col-lg-4 col-md-6 portfolio-item isotope-item filter-product">
+              <img src="{% static 'assets/img/masonry-portfolio/masonry-portfolio-8.jpg'%}" class="img-fluid" alt="">
+              <div class="portfolio-info">
+                <h4>Product 3</h4>
+                <p>Lorem ipsum, dolor sit</p>
+                <a href="{% static 'assets/img/masonry-portfolio/masonry-portfolio-8.jpg'%}" title="Product 3" data-gallery="portfolio-gallery-product" class="glightbox preview-link"><i class="bi bi-zoom-in"></i></a>
+                <a href="portfolio-details.html'%}" title="More Details" class="details-link"><i class="bi bi-link-45deg"></i></a>
+              </div>
+            </div><!-- End Portfolio Item -->
+
+            <div class="col-lg-4 col-md-6 portfolio-item isotope-item filter-branding">
+              <img src="{% static 'assets/img/masonry-portfolio/masonry-portfolio-9.jpg'%}" class="img-fluid" alt="">
+              <div class="portfolio-info">
+                <h4>Branding 3</h4>
+                <p>Lorem ipsum, dolor sit</p>
+                <a href="{% static 'assets/img/masonry-portfolio/masonry-portfolio-9.jpg'%}" title="Branding 2" data-gallery="portfolio-gallery-branding" class="glightbox preview-link"><i class="bi bi-zoom-in"></i></a>
+                <a href="portfolio-details.html'%}" title="More Details" class="details-link"><i class="bi bi-link-45deg"></i></a>
+              </div>
+            </div><!-- End Portfolio Item -->
+
+          </div><!-- End Portfolio Container -->
+
+        </div>
+
+      </div>
+
+    </section><!-- /Portfolio Section -->
+
+  </main>
+
+{% endblock content %}

@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Forgot Password Modal</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        /* Login Form Container */
+        .login-container {
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .login-form h2 {
+            margin-bottom: 1.5rem;
+            text-align: center;
+            color: #333;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #555;
+            font-weight: 500;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 1rem;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #4CAF50;
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 0.75rem;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 1rem;
+            cursor: pointer;
+            margin-top: 1rem;
+        }
+
+        .submit-btn:hover {
+            background-color: #45a049;
+        }
+
+        .forgot-password {
+            text-align: center;
+            margin-top: 1rem;
+        }
+
+        .forgot-password a {
+            color: #2196F3;
+            text-decoration: none;
+            font-size: 0.9rem;
+        }
+
+        .forgot-password a:hover {
+            text-decoration: underline;
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+
+        .modal-content {
+            background-color: white;
+            margin: 10% auto;
+            padding: 2rem;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 500px;
+            position: relative;
+        }
+
+        .close {
+            position: absolute;
+            right: 1rem;
+            top: 1rem;
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #999;
+            cursor: pointer;
+        }
+
+        .close:hover {
+            color: #333;
+        }
+
+        .modal h3 {
+            margin-bottom: 1.5rem;
+            text-align: center;
+            color: #333;
+        }
+
+        .user-type-options {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .user-type-option {
+            display: flex;
+            align-items: center;
+            padding: 1rem;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .user-type-option:hover {
+            border-color: #4CAF50;
+            background-color: #f9f9f9;
+        }
+
+        .user-type-option.selected {
+            border-color: #4CAF50;
+            background-color: #e8f5e9;
+        }
+
+        .user-type-option input[type="radio"] {
+            margin-right: 1rem;
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+
+        .user-type-option label {
+            cursor: pointer;
+            font-size: 1.1rem;
+            color: #333;
+            width: 100%;
+        }
+
+        .proceed-btn {
+            width: 100%;
+            padding: 0.75rem;
+            background-color: #2196F3;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .proceed-btn:hover {
+            background-color: #1976D2;
+        }
+
+        .proceed-btn:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+
+        .error-message {
+            color: #f44336;
+            text-align: center;
+            margin-top: 1rem;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <!-- Login Form -->
+    <div class="login-container">
+        <form class="login-form" method="post">
+            <h2>Login</h2>
+            <div class="form-group">
+                <label for="username">Username</label>
+                <input type="text" id="username" name="username" required>
+            </div>
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" required>
+            </div>
+            <button type="submit" class="submit-btn">Login</button>
+            <div class="forgot-password">
+                <a href="#" onclick="openForgotPasswordModal()">Forgot Password?</a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Forgot Password Modal -->
+    <div id="forgotPasswordModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeForgotPasswordModal()">&times;</span>
+            <h3>Select Your Account Type</h3>
+            <form id="forgotPasswordForm">
+                <div class="user-type-options">
+                    <div class="user-type-option" onclick="selectUserType('user')">
+                        <input type="radio" id="user" name="userType" value="user">
+                        <label for="user">User</label>
+                    </div>
+                    <div class="user-type-option" onclick="selectUserType('staff')">
+                        <input type="radio" id="staff" name="userType" value="staff">
+                        <label for="staff">Staff</label>
+                    </div>
+                    <div class="user-type-option" onclick="selectUserType('maintainer')">
+                        <input type="radio" id="maintainer" name="userType" value="maintainer">
+                        <label for="maintainer">Maintainer</label>
+                    </div>
+                </div>
+                <button type="button" class="proceed-btn" onclick="proceedToPasswordReset()" disabled>
+                    Proceed to Password Reset
+                </button>
+                <div id="errorMessage" class="error-message"></div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Modal functions
+        function openForgotPasswordModal() {
+            document.getElementById('forgotPasswordModal').style.display = 'block';
+        }
+
+        function closeForgotPasswordModal() {
+            document.getElementById('forgotPasswordModal').style.display = 'none';
+            // Reset selection
+            document.querySelectorAll('.user-type-option').forEach(option => {
+                option.classList.remove('selected');
+            });
+            document.querySelectorAll('input[name="userType"]').forEach(radio => {
+                radio.checked = false;
+            });
+            document.querySelector('.proceed-btn').disabled = true;
+            document.getElementById('errorMessage').textContent = '';
+        }
+
+        // Select user type
+        function selectUserType(type) {
+            // Remove all selected classes
+            document.querySelectorAll('.user-type-option').forEach(option => {
+                option.classList.remove('selected');
+            });
+            
+            // Add selected class to current option
+            const selectedOption = document.querySelector(`#${type}`).closest('.user-type-option');
+            selectedOption.classList.add('selected');
+            
+            // Check the radio button
+            document.getElementById(type).checked = true;
+            
+            // Enable proceed button
+            document.querySelector('.proceed-btn').disabled = false;
+            
+            // Clear any error messages
+            document.getElementById('errorMessage').textContent = '';
+        }
+
+        // Proceed to password reset
+        function proceedToPasswordReset() {
+            const selectedType = document.querySelector('input[name="userType"]:checked');
+            
+            if (!selectedType) {
+                document.getElementById('errorMessage').textContent = 'Please select an account type';
+                return;
+            }
+
+            let resetUrl = '';
+            
+            switch(selectedType.value) {
+                case 'user':
+                    resetUrl = "{% url 'user:password-reset' %}";
+                    break;
+                case 'staff':
+                    resetUrl = "{% url 'user:staff_password_reset' %}";
+                    break;
+                case 'maintainer':
+                    resetUrl = "{% url 'user:maintainer_password_reset' %}";
+                    break;
+                default:
+                    document.getElementById('errorMessage').textContent = 'Invalid selection';
+                    return;
+            }
+
+            // Redirect to the appropriate password reset URL
+            window.location.href = resetUrl;
+        }
+
+        // Close modal when clicking outside of it
+        window.onclick = function(event) {
+            const modal = document.getElementById('forgotPasswordModal');
+            if (event.target == modal) {
+                closeForgotPasswordModal();
+            }
+        }
+    </script>
+</body>
+</html>

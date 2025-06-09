@@ -1,0 +1,357 @@
+<style>
+    .booking-popup {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: linear-gradient(145deg, #ffffff, #f9fbfc);
+        padding: 25px;
+        border-radius: 12px;
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+        z-index: 1001;
+        max-width: 90%;
+        width: 450px;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        animation: fadeIn 0.3s ease-in-out;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translate(-50%, -55%); }
+        to { opacity: 1; transform: translate(-50%, -50%); }
+    }
+
+    .booking-popup .close-btn {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        cursor: pointer;
+        font-size: 1.8rem;
+        color: #777;
+        transition: color 0.2s;
+    }
+
+    .booking-popup .close-btn:hover {
+        color: #e63946;
+    }
+
+    .booking-line {
+        color: #2a9d8f;
+        font-weight: 600;
+        margin: 15px 0;
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+
+    .date-range-connector {
+        display: inline-flex;
+        align-items: center;
+        margin: 5px 0;
+        width: 100%;
+    }
+
+    .date-range-connector .date-box {
+        padding: 8px 12px;
+        background-color: #2a9d8f;
+        color: white;
+        border-radius: 6px;
+        margin: 0 8px;
+        font-size: 0.95rem;
+    }
+
+    .date-range-connector .connector-line {
+        flex-grow: 1;
+        height: 3px;
+        background: linear-gradient(to right, #2a9d8f, #48cae4);
+        margin: 0 8px;
+    }
+
+    .guest-info {
+        margin-top: 15px;
+        padding: 15px;
+        background-color: #fff;
+        border-radius: 8px;
+        border: 1px solid #e9ecef;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    }
+
+    .guest-info div {
+        margin-bottom: 8px;
+    }
+
+    .guest-info strong {
+        color: #264653;
+        font-weight: 600;
+        display: inline-block;
+        min-width: 120px;
+    }
+
+    .btn-success {
+        background-color: #2a9d8f;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 6px;
+        font-weight: 500;
+        color: white;
+        transition: background-color 0.2s, transform 0.2s;
+    }
+
+    .btn-success:hover {
+        background-color: #28786e;
+        transform: translateY(-2px);
+    }
+
+    .table-responsive {
+        border-radius: 8px;
+        overflow: hidden;
+    }
+
+    .table {
+        margin-bottom: 0;
+    }
+
+    .table-hover tbody tr:hover {
+        background-color: #f1faee;
+    }
+
+    .table-light th {
+        background-color: #264653;
+        color: white;
+        font-weight: 600;
+        padding: 12px;
+    }
+
+    .table td {
+        padding: 12px;
+        vertical-align: middle;
+        color: #495057;
+    }
+
+    .text-primary {
+        color: #2a9d8f !important;
+    }
+
+    .badge {
+        padding: 6px 10px;
+        font-size: 0.9rem;
+    }
+
+    @media (max-width: 768px) {
+        .booking-popup {
+            width: 90%;
+            max-width: 350px;
+        }
+
+        .date-range-connector {
+            justify-content: center;
+        }
+
+        .guest-info strong {
+            min-width: 100px;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .booking-popup {
+            width: 95%;
+            padding: 15px;
+        }
+
+        .table td, .table th {
+            padding: 8px;
+            font-size: 0.85rem;
+        }
+    }
+</style>
+
+<div class="table-responsive">
+    <table class="table table-hover">
+        <thead class="table-light">
+            <tr>
+                <th>Booking ID</th>
+                <th>Guest</th>
+                <th>Room</th>
+                <th>Hotel</th>
+                <th>Check-in</th>
+                <th>Check-out</th>
+                <th>Nights</th>
+                <th>Base Amount</th>
+                <th>Booking Date</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for booking in bookings %}
+            <tr class="booking-{{ booking.status }}">
+                <td>{{ booking.id }}</td>
+                <td>
+                    <a href="{% url 'user:user_profile_detail' username=booking.guest.username %}" 
+                       class="text-primary text-decoration-none">
+                        {{ booking.guest.get_full_name|default:booking.guest.username }}
+                    </a>
+                </td>
+                <td>
+                    {% if booking.room.room_type %}
+                    <a href="{% url 'viewroom' booking.room.id %}" class="text-decoration-none">
+                        {{ booking.room.room_type.name }} (Room {{ booking.room.room_number }})
+                    </a>
+                    {% else %}
+                        N/A
+                    {% endif %}
+                </td>
+                <td>{{ booking.room.hotel.name }}</td>
+                <td>{{ booking.check_in|date:"M d, Y" }}</td>
+                <td>{{ booking.check_out|date:"M d, Y" }}</td>
+                <td>{{ booking.nights }}</td>
+                <td>₹{{ booking.base_price|floatformat:2 }}
+                    <br>(GST{{ booking.gst_rate|floatformat:2|escapejs }})</td>
+                <td>{{ booking.booking_time|date:"M d, Y H:i" }}</td>
+                <td>
+                    <span class="badge 
+                        {% if booking.status == 'past' %}bg-secondary
+                        {% elif booking.status == 'current' %}bg-success
+                        {% else %}bg-primary{% endif %}">
+                        {{ booking.status|title }}
+                    </span>
+                </td>
+                <td>
+                    <a href="#" class="text-primary text-decoration-none view-booking" 
+                       data-booking='{
+                           "guest": "{{ booking.guest.get_full_name|default:booking.guest.username|escapejs }}",
+                           "room": "{% if booking.room.room_type %}{{ booking.room.room_type.name|escapejs }} (Room {{ booking.room.room_number|escapejs }}){% else %}N/A{% endif %}",
+                           "hotel": "{{ booking.room.hotel.name|escapejs }}",
+                           "check_in": "{{ booking.check_in|date:'M d, Y'|escapejs }}",
+                           "check_out": "{{ booking.check_out|date:'M d, Y'|escapejs }}",
+                           "nights": "{{ booking.nights|escapejs }}",
+                           "base_amount": "{{ booking.base_price|floatformat:2|escapejs }}",
+                           "gst_rate": "{{ booking.gst_rate|floatformat:2|escapejs }}"
+                       }'>View</a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="11" class="text-center">No bookings found matching your criteria.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% if bookings.has_other_pages %}
+<nav aria-label="Page navigation">
+    <ul class="pagination justify-content-center">
+        {% if bookings.has_previous %}
+        <li class="page-item">
+            <a class="page-link" href="?page={{ bookings.previous_page_number }}{% for key,value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" aria-label="Previous">
+                <span aria-hidden="true">«</span>
+            </a>
+        </li>
+        {% else %}
+        <li class="page-item disabled">
+            <a class="page-link" href="#" tabindex="-1" aria-disabled="true">
+                <span aria-hidden="true">«</span>
+            </a>
+        </li>
+        {% endif %}
+        
+        {% for i in bookings.paginator.page_range %}
+        {% if bookings.number == i %}
+        <li class="page-item active" aria-current="page">
+            <a class="page-link" href="#">{{ i }}</a>
+        </li>
+        {% else %}
+        <li class="page-item">
+            <a class="page-link" href="?page={{ i }}{% for key,value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">{{ i }}</a>
+        </li>
+        {% endif %}
+        {% endfor %}
+        
+        {% if bookings.has_next %}
+        <li class="page-item">
+            <a class="page-link" href="?page={{ bookings.next_page_number }}{% for key,value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" aria-label="Next">
+                <span aria-hidden="true">»</span>
+            </a>
+        </li>
+        {% else %}
+        <li class="page-item disabled">
+            <a class="page-link" href="#" tabindex="-1" aria-disabled="true">
+                <span aria-hidden="true">»</span>
+            </a>
+        </li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        function showBookingPopup(bookingData) {
+            const existingPopup = document.querySelector('.booking-popup');
+            if (existingPopup) existingPopup.remove();
+
+            const checkInDate = bookingData.check_in;
+            const checkOutDate = bookingData.check_out;
+            const checkInDay = checkInDate.split(',')[0].split(' ')[1];
+            const checkOutDay = checkOutDate.split(',')[0].split(' ')[1];
+            const checkInMonth = checkInDate.split(',')[0].split(' ')[0];
+            const checkOutMonth = checkOutDate.split(',')[0].split(' ')[0];
+
+            // Calculate amounts using hotel-specific GST rate
+            const baseAmount = parseFloat(bookingData.base_amount);
+            const gstRate = parseFloat(bookingData.gst_rate) || 12.00; // Default to 12% if not provided
+            const gstAmount = baseAmount * (gstRate / 100);
+            const totalWithGst = baseAmount + gstAmount;
+
+            const popup = document.createElement('div');
+            popup.className = 'booking-popup';
+            popup.innerHTML = `
+                <span class="close-btn">×</span>
+                <h3>Booking Details</h3>
+                <div class="booking-line">
+                    <div class="date-range-connector">
+                        <div class="date-box">${checkInMonth} ${checkInDay}</div>
+                        <div class="connector-line"></div>
+                        <div class="date-box">${checkOutMonth} ${checkOutDay}</div>
+                    </div>
+                </div>
+                <div class="guest-info">
+                    <div><strong>Guest:</strong> ${bookingData.guest}</div>
+                    <div><strong>Room:</strong> ${bookingData.room}</div>
+                    <div><strong>Hotel:</strong> ${bookingData.hotel}</div>
+                    <div><strong>Check-in:</strong> ${checkInDate}</div>
+                    <div><strong>Check-out:</strong> ${checkOutDate}</div>
+                    <div><strong>Nights:</strong> ${bookingData.nights}</div>
+                    <div><strong>Base Amount:</strong> ₹${baseAmount.toFixed(2)} (₹${(baseAmount / bookingData.nights).toFixed(2)} × ${bookingData.nights} nights)</div>
+                    <div><strong>GST (${gstRate.toFixed(2)}%):</strong> ₹${gstAmount.toFixed(2)}</div>
+                    <div><strong>Total with GST:</strong> ₹${totalWithGst.toFixed(2)}</div>
+                </div>
+                <div class="text-center mt-3">
+                    <button class="btn btn-success">
+                        <i class="fas fa-comment-alt mr-2"></i>Connect with us
+                    </button>
+                </div>
+            `;
+            document.body.appendChild(popup);
+
+            popup.querySelector('.close-btn').addEventListener('click', () => {
+                popup.remove();
+            });
+
+            document.addEventListener('click', function outsideClickListener(event) {
+                if (!popup.contains(event.target) && !event.target.closest('.view-booking')) {
+                    popup.remove();
+                    document.removeEventListener('click', outsideClickListener);
+                }
+            });
+        }
+
+        document.querySelectorAll('.view-booking').forEach(link => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                const bookingData = JSON.parse(this.getAttribute('data-booking'));
+                showBookingPopup(bookingData);
+            });
+        });
+    });
+</script>

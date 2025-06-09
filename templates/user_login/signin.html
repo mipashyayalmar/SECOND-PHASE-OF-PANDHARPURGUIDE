@@ -1,0 +1,495 @@
+{% extends 'base/base.html' %}
+{% load static %}
+{% block title %}User-SignIn{% endblock %}
+
+{% load socialaccount%}
+{% block content %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    {% load static %}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login Here</title>
+    <link rel="stylesheet" href="{% static 'user/css/style.css' %}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+
+<body>
+    <div class="wrapper">
+        <div class="inner">
+            <div class="image-holder">
+                <img src="{% static 'imgs/sign/tablet-login.avif' %}" alt=""> 
+              <center>
+                <img src="{% static 'imgs/sign/computer-security.avif' %}"style="width: 200px;padding-top:12px;"alt="">
+              </center>
+            </div>
+
+            
+            
+            <form action="{% url 'user:signin' %}" method="POST" id="signin-form"style= "border:1px solid block black">
+                
+                <h3>User Sign In</h3>
+                <div class="google">
+                    <a href="{% provider_login_url 'google' %}">
+                        <img src="{% static 'imgs/google/google-img.png' %}" style="width: 15px;margin: 5px;"alt="">
+                      <span>Sign in with <img src="{% static 'imgs/google/google_name.png' %}" style="width: 61px;"alt=""></span>
+                    </a>
+                </div>
+
+                
+                  
+                {% csrf_token %}
+                <div class="popup-container">
+                    {% if message %}
+                    <div class="popup alert-{{ message.tags }}" role="alert">
+                        <button class="cancel-btn" aria-label="Cancel">×</button>
+                        <div class="popup-content">
+                            <p>{{ message }}</p>
+                            <div class="popup-buttons">
+                                <button class="btn close-btn">Close</button>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                  </div>
+                  
+                <div class="form-holder">
+                    <input type="email" class="form-control" name="username" placeholder="Email" required>
+                </div>
+                <div class="form-holder" style="position: relative;">
+                    <input type="password" placeholder="Password" name="password" class="form-control" id="password" required>
+                    <span toggle="#password" class="fa fa-fw fa-eye-slash field-icon" id="togglePassword" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); cursor: pointer;"></span>
+                  
+                </div>
+
+                <div class="form-holder form-holder " style="position: relative;">
+                    <label>
+                        <input type="checkbox" id="terms-checkbox" tabindex="0"> I agree to all statements in <a href="#">Terms & Conditions</a>
+                    </label>
+                </div>
+                
+                <br><br><br>
+                <div class="form-login">
+                    <button type="submit" id="signin-button">Sign In</button>
+                </div>
+                <br><br><br>
+                <div class="forgot-pass">
+                    <p>Don't have an account? <a href="{% url 'user:signup' %}">Sign up</a></p><br>
+                    Forgot Password? <a href="#" onclick="openForgotPasswordModal()">Click Here</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="forgotPasswordModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeForgotPasswordModal()">&times;</span>
+            <h3>Select Your Account Type</h3>
+            <form id="forgotPasswordForm"style="width:100%; ">
+                <div class="user-type-options">
+                    <div class="user-type-option" onclick="selectUserType('user')">
+                        <input type="radio" id="user" name="userType" value="user">
+                        <label for="user">User</label>
+                    </div>
+                    <div class="user-type-option" onclick="selectUserType('staff')">
+                        <input type="radio" id="staff" name="userType" value="staff">
+                        <label for="staff">Staff</label>
+                    </div>
+                    <div class="user-type-option" onclick="selectUserType('maintainer')">
+                        <input type="radio" id="maintainer" name="userType" value="maintainer">
+                        <label for="maintainer">Maintainer</label>
+                    </div>
+                </div>
+                <button type="button" class="proceed-btn" onclick="proceedToPasswordReset()" disabled>
+                    Proceed to Password Reset
+                </button>
+                <div id="errorMessage" class="error-message"></div>
+            </form>
+        </div>
+    </div>
+<style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+
+        .modal-content {
+            background-color: white;
+            margin: 10% auto;
+            padding: 2rem;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 500px;
+            position: relative;
+        }
+
+        .close {
+            position: absolute;
+            right: 1rem;
+            top: 1rem;
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #999;
+            cursor: pointer;
+        }
+
+        .close:hover {
+            color: #333;
+        }
+
+        .modal h3 {
+            margin-bottom: 1.5rem;
+            text-align: center;
+            color: #333;
+        }
+
+        .user-type-options {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .user-type-option {
+            display: flex;
+            align-items: center;
+            padding: 1rem;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .user-type-option:hover {
+            border-color: #4CAF50;
+            background-color: #f9f9f9;
+        }
+
+        .user-type-option.selected {
+            border-color: #4CAF50;
+            background-color: #e8f5e9;
+        }
+
+        .user-type-option input[type="radio"] {
+            margin-right: 1rem;
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+
+        .user-type-option label {
+            cursor: pointer;
+            font-size: 1.1rem;
+            color: #333;
+            width: 100%;
+        }
+
+        .proceed-btn {
+            width: 100%;
+            padding: 0.75rem;
+            background-color: #2196F3;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .proceed-btn:hover {
+            background-color: #1976D2;
+        }
+
+        .proceed-btn:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+
+        .error-message {
+            color: #f44336;
+            text-align: center;
+            margin-top: 1rem;
+            font-size: 0.9rem;
+        }
+    </style>
+      <script>
+        // Modal functions
+        function openForgotPasswordModal() {
+            document.getElementById('forgotPasswordModal').style.display = 'block';
+        }
+
+        function closeForgotPasswordModal() {
+            document.getElementById('forgotPasswordModal').style.display = 'none';
+            // Reset selection
+            document.querySelectorAll('.user-type-option').forEach(option => {
+                option.classList.remove('selected');
+            });
+            document.querySelectorAll('input[name="userType"]').forEach(radio => {
+                radio.checked = false;
+            });
+            document.querySelector('.proceed-btn').disabled = true;
+            document.getElementById('errorMessage').textContent = '';
+        }
+
+        // Select user type
+        function selectUserType(type) {
+            // Remove all selected classes
+            document.querySelectorAll('.user-type-option').forEach(option => {
+                option.classList.remove('selected');
+            });
+            
+            // Add selected class to current option
+            const selectedOption = document.querySelector(`#${type}`).closest('.user-type-option');
+            selectedOption.classList.add('selected');
+            
+            // Check the radio button
+            document.getElementById(type).checked = true;
+            
+            // Enable proceed button
+            document.querySelector('.proceed-btn').disabled = false;
+            
+            // Clear any error messages
+            document.getElementById('errorMessage').textContent = '';
+        }
+
+        // Proceed to password reset
+        function proceedToPasswordReset() {
+            const selectedType = document.querySelector('input[name="userType"]:checked');
+            
+            if (!selectedType) {
+                document.getElementById('errorMessage').textContent = 'Please select an account type';
+                return;
+            }
+
+            let resetUrl = '';
+            
+            switch(selectedType.value) {
+                case 'user':
+                    resetUrl = "{% url 'user:password-reset' %}";
+                    break;
+                case 'staff':
+                    resetUrl = "{% url 'user:staff_password_reset' %}";
+                    break;
+                case 'maintainer':
+                    resetUrl = "{% url 'user:maintainer_password_reset' %}";
+                    break;
+                default:
+                    document.getElementById('errorMessage').textContent = 'Invalid selection';
+                    return;
+            }
+
+            // Redirect to the appropriate password reset URL
+            window.location.href = resetUrl;
+        }
+
+        // Close modal when clicking outside of it
+        window.onclick = function(event) {
+            const modal = document.getElementById('forgotPasswordModal');
+            if (event.target == modal) {
+                closeForgotPasswordModal();
+            }
+        }
+    </script>
+
+    <style>
+
+        #signin-form h3 {
+          text-align: center;
+          font-size: 24px;
+          margin-bottom: 25px;
+          font-weight: 600;
+        }
+      
+        /* Google Sign-In Button Styling */
+        .google {
+          text-align: center;
+          margin-bottom: 20px;
+        }
+      
+        .google a {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          background-color: #fff;
+          color: #5f6368;
+          border: 1px solid #dadce0;
+          padding: 10px 16px;
+          border-radius: 23.5px;
+          font-size: 16px;
+          font-weight: 500;
+          text-decoration: none;
+          transition: background-color 0.3s, box-shadow 0.3s;
+        }
+      
+        .google a:hover {
+          background-color: #f7f8f8;
+          box-shadow: 0 1px 3px rgba(60, 64, 67, 0.3);
+        }
+      
+        .google i {
+          color: #4285F4;
+          font-size: 18px;
+          margin-right: 10px;
+        }
+      
+        .google span {
+          vertical-align: middle;
+        }
+    </style>
+      
+
+    {% comment %} trim the username like "mipashya@gmail.com "debug it  {% endcomment %}
+
+    <script>
+        // Add this JavaScript to trim spaces from the input
+        document.addEventListener('DOMContentLoaded', function() {
+            const usernameInput = document.querySelector('input[name="username"]');
+            
+            usernameInput.addEventListener('input', function(e) {
+                // Remove leading and trailing spaces as the user types
+                this.value = this.value.trim();
+            });
+            
+            // Or if you're handling form submission
+            const form = document.querySelector('form'); // Assuming this is in a form
+            if (form) {
+                form.addEventListener('submit', function(e) {
+                    usernameInput.value = usernameInput.value.trim();
+                    // Rest of your form submission logic
+                });
+            }
+        });
+        </script>
+
+    <script src="{% static 'user/js/jquery-3.3.1.min.js' %}"></script>
+    <script>
+        const togglePassword = document.querySelector('#togglePassword');
+        const password = document.querySelector('#password');
+        const checkbox = document.getElementById('terms-checkbox');
+        const signinButton = document.getElementById('signin-button');
+
+        // Toggle password visibility
+        togglePassword.addEventListener('click', function () {
+            const type = password.getAttribute('type') === 'password' ? 'text' : 'password';
+            password.setAttribute('type', type);
+            this.classList.toggle('fa-eye');
+            this.classList.toggle('fa-eye-slash');
+        });
+
+        // Handle checkbox click to change button color and state
+        checkbox.addEventListener('click', function () {
+            // Toggle the enabled class based on checkbox state
+            if (this.checked) {
+                signinButton.classList.add('enabled');
+                signinButton.disabled = false;
+            } else {
+                signinButton.classList.remove('enabled');
+                signinButton.disabled = true;
+            }
+        });
+
+        // Prevent form submission and show custom alert with image when unchecked
+        document.getElementById('signin-form').addEventListener('submit', function (e) {
+            if (!checkbox.checked) {
+                e.preventDefault();
+
+                // Create custom alert container if it doesn't exist
+                let alertBox = document.getElementById('custom-alert');
+                if (!alertBox) {
+                    alertBox = document.createElement('div');
+                    alertBox.id = 'custom-alert';
+                    alertBox.style.cssText = `
+                        position: fixed;
+                        top: 50%;
+                        left: 50%;
+                        transform: translate(-50%, -50%);
+                        background: white;
+                        padding: 20px;
+                        border: 1px solid #ccc;
+                        box-shadow: 0 0 10px rgba(0,0,0,0.3);
+                        z-index: 1000;
+                        text-align: center;
+                    `;
+                    document.body.appendChild(alertBox);
+                }
+
+                // Set the content with image and message
+                alertBox.innerHTML = `
+                    <p style= '    color: #008cff;font-size: 18px;    color: #008cff;
+                    font-size: 18px;'>You must agree to the Terms and Conditions before signing in.</p>
+                    <img src="https://t3.ftcdn.net/jpg/01/99/52/22/360_F_199522246_N0hLlmnfe8Gn6TlMhSlNSt4wjxStr6o4.jpg" 
+                         alt="Terms reminder" 
+                         style="max-width: 200px; margin: 10px 0;">
+                    <br>
+                    <button  class="btn btn-contact" onclick="this.parentElement.style.display='none'">OK</button>
+                `;
+
+
+                // Show the alert
+                alertBox.style.display = 'block';
+            }
+            // If checkbox is checked, form will submit normally
+        });
+    </script>
+
+    <style>
+        #signin-button {
+            background-color: grey;
+            cursor: not-allowed;
+            transition: background-color 0.3s ease;
+        }
+
+        #signin-button.enabled {
+            background-color: #007bff;
+            cursor: pointer;
+        }
+
+        #custom-alert {
+            display: none;
+        }
+
+        body:has(#custom-alert[style*="display: block"])::after {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 999;
+        }
+
+        /* Ensure checkbox is focusable */
+        #terms-checkbox:focus {
+            outline: 2px solid #007bff;
+            outline-offset: 2px;
+        }
+    </style>
+    <script src="{% static 'user/js/main.js' %}"></script>
+</body>
+</html>
+{% endblock %}

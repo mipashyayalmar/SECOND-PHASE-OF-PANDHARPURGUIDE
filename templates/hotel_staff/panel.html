@@ -1,0 +1,2682 @@
+{% extends 'rooms/room_basic.html' %}
+{% block title %} staff panel {% endblock title %}
+{%load static%}
+{% block css %}
+<link rel="stylesheet" href="{% static 'staff/panel.css' %}">
+
+<style>
+    
+    /* Custom Styles */
+    .stat-card {
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        background: white;
+        border-radius: 10px;
+    }
+    
+    .stat-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    }
+    
+    .progress {
+        width: 150px;
+        height: 150px;
+        position: relative;
+    }
+    
+    .progress-value {
+        position: absolute;
+        top: 0;
+        left: 0;
+    }
+    
+    .table-responsive {
+        overflow-x: auto;
+        box-shadow: 0 0 20px rgba(0,0,0,0.1);
+        border-radius: 10px;
+    }
+    
+    .btn-action {
+        padding: 5px 10px;
+        font-size: 0.9rem;
+        margin: 2px;
+    }
+    
+    /* Modal Enhancements */
+    .modal-content {
+        border-radius: 15px;
+        border: none;
+    }
+    
+    .modal-header {
+        background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+        color: white;
+        border-radius: 15px 15px 0 0 !important;
+    }
+    
+    /* Feature Checkboxes */
+    .feature-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 10px;
+    }
+    
+    .feature-item {
+        display: flex;
+        align-items: center;
+        padding: 8px;
+        background: #f8f9fa;
+        border-radius: 5px;
+        transition: all 0.3s ease;
+    }
+    
+    .feature-item:hover {
+        background: #e9ecef;
+        transform: translateX(5px);
+    }
+    
+    /* Toast Notification */
+    .toast-container {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 1100;
+    }
+    
+    /* Responsive Adjustments */
+    @media (max-width: 768px) {
+        .stat-card {
+            margin-bottom: 20px;
+        }
+        
+        .feature-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock css %}
+
+{% block content %}
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pandharpur Guide</title>
+<link rel="icon" href="{% static 'favicon/logo.png' %}" type="image/x-icon">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+<link rel="stylesheet" href="{% static 'bootstrap/bootstrap.css' %}">
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.0/js/bootstrap.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+
+<!--Staff section -->
+
+                <!-- Display form errors -->
+                <div class="text-danger">
+                    {% for field in form %}
+                    {% if field.errors %}
+                    <div>
+                        <strong>{{ field.label }}:</strong>
+                        <ul>
+                            {% for error in field.errors %}
+                            <li>{{ error }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    {% endif %}
+                    {% endfor %}
+                </div>
+<!--Room Stats section starts here-->
+
+
+</head>
+<body>
+<section class="my-5">
+    <h2 class="text-center text-primary mb-4">Hotel Room Statistics</h2>
+    <div class="container-fluid px-4 py-5 border rounded-3 bg-light section-container">
+        <!-- Revenue Summary Section -->
+        <div class="row mb-4">
+            <div class="col-md-4 mb-3">
+                <div class="card bg-primary text-white">
+                    <div class="card-body text-center">
+                        <h5 class="card-title">Total Revenue</h5>
+                        <p class="h2">₹{{ total_revenue|floatformat:2 }}</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 mb-3">
+                <div class="card bg-success text-white">
+                    <div class="card-body text-center">
+                        <h5 class="card-title">Today's Revenue</h5>
+                        <p class="h2">₹{{ today_revenue|floatformat:2 }}</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 mb-3">
+                <div class="card bg-info text-white">
+                    <div class="card-body text-center">
+                        <h5 class="card-title">This Month's Revenue</h5>
+                        <p class="h2">₹{{ this_month_revenue|floatformat:2 }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <!-- Total Rooms -->
+            <div class="col-xl-3 col-lg-6 col-sm-12 mb-4">
+                <a href="{% url 'allbookings' %}?view_type=all" class="text-decoration-none">
+                    <div class="rounded-lg p-4 shadow stat-card h-100 hover:bg-gray-100 transition duration-200">
+                        <h2 class="h6 font-weight-bold text-center mb-4">Total Rooms</h2>
+                        <div class="progress mx-auto" data-value="100">
+                            <span class="progress-left">
+                                <span class="progress-bar border-primary"></span>
+                            </span>
+                            <span class="progress-right">
+                                <span class="progress-bar border-primary"></span>
+                            </span>
+                            <div class="progress-value w-100 h-100 rounded-circle d-flex align-items-center justify-content-center">
+                                <div class="h2 font-weight-bold">{{ total_rooms|default:0 }}</div>
+                            </div>
+                        </div>
+                        <div class="text-center mt-3">
+                            <small class="text-muted">All rooms in your hotel</small>
+                        </div>
+                    </div>
+                </a>
+            </div>
+
+            <!-- Available Rooms -->
+            <div class="col-xl-3 col-lg-6 col-sm-12 mb-4">
+                <a href="{% url 'allbookings' %}?view_type=active&day={{ current_date|date:'Y-m-d' }}" class="text-decoration-none">
+                    <div class="rounded-lg p-4 shadow stat-card h-100 hover:bg-gray-100 transition duration-200">
+                        <h2 class="h6 font-weight-bold text-center mb-4">Available Rooms</h2>
+                        <div class="progress mx-auto" data-value="{{ available_percent|floatformat:'0' }}">
+                            <span class="progress-left">
+                                <span class="progress-bar border-success"></span>
+                            </span>
+                            <span class="progress-right">
+                                <span class="progress-bar border-success"></span>
+                            </span>
+                            <div class="progress-value w-100 h-100 rounded-circle d-flex align-items-center justify-content-center">
+                                <div class="h2 font-weight-bold">{{ available_rooms|default:0 }}</div>
+                            </div>
+                        </div>
+                        <div class="text-center mt-3">
+                            <small class="text-muted">{{ available_percent|floatformat:'0'|default:0 }}% of total</small>
+                        </div>
+                    </div>
+                </a>
+            </div>
+
+            <!-- Not Available -->
+            <div class="col-xl-3 col-lg-6 col-sm-12 mb-4">
+                <a href="{% url 'allbookings' %}?view_type=active&day={{ current_date|date:'Y-m-d' }}" class="text-decoration-none">
+                    <div class="rounded-lg p-4 shadow stat-card h-100 hover:bg-gray-100 transition duration-200">
+                        <h2 class="h6 font-weight-bold text-center mb-4">Not Available</h2>
+                        <div class="progress mx-auto" data-value="{{ unavailable_percent|floatformat:'0' }}">
+                            <span class="progress-left">
+                                <span class="progress-bar border-danger"></span>
+                            </span>
+                            <span class="progress-right">
+                                <span class="progress-bar border-danger"></span>
+                            </span>
+                            <div class="progress-value w-100 h-100 rounded-circle d-flex align-items-center justify-content-center">
+                                <div class="h2 font-weight-bold">{{ unavailable_rooms|default:0 }}</div>
+                            </div>
+                        </div>
+                        <div class="text-center mt-3">
+                            <small class="text-muted">{{ unavailable_percent|floatformat:'0'|default:0 }}% of total</small>
+                        </div>
+                    </div>
+                </a>
+            </div>
+
+            <!-- Total Bookings -->
+            <div class="col-xl-3 col-lg-6 col-sm-12 mb-4">
+                <a href="{% url 'allbookings' %}?view_type=all" class="text-decoration-none">
+                    <div class="rounded-lg p-4 shadow stat-card h-100 hover:bg-gray-100 transition duration-200">
+                        <h2 class="h6 font-weight-bold text-center mb-4">Total Bookings</h2>
+                        <div class="progress mx-auto" data-value="{{ total_bookings_percent|floatformat:'0' }}">
+                            <span class="progress-left">
+                                <span class="progress-bar border-warning"></span>
+                            </span>
+                            <span class="progress-right">
+                                <span class="progress-bar border-warning"></span>
+                            </span>
+                            <div class="progress-value w-100 h-100 rounded-circle d-flex align-items-center justify-content-center">
+                                <div class="h2 font-weight-bold">{{ total_bookings|default:0 }}</div>
+                            </div>
+                        </div>
+                        <div class="text-center mt-3">
+                            <small class="text-muted">Revenue: ₹{{ total_revenue|floatformat:2 }}</small>
+                        </div>
+                    </div>
+                </a>
+            </div>
+
+            <!-- Active Bookings -->
+            <div class="col-xl-3 col-lg-6 col-sm-12 mb-4">
+                <a href="{% url 'allbookings' %}?view_type=active&day={{ current_date|date:'Y-m-d' }}" class="text-decoration-none">
+                    <div class="rounded-lg p-4 shadow stat-card h-100 hover:bg-gray-100 transition duration-200">
+                        <h2 class="h6 font-weight-bold text-center mb-4">Active Bookings</h2>
+                        <div class="progress mx-auto" data-value="{{ active_bookings_percent|floatformat:'0' }}">
+                            <span class="progress-left">
+                                <span class="progress-bar border-info"></span>
+                            </span>
+                            <span class="progress-right">
+                                <span class="progress-bar border-info"></span>
+                            </span>
+                            <div class="progress-value w-100 h-100 rounded-circle d-flex align-items-center justify-content-center">
+                                <div class="h2 font-weight-bold">{{ active_bookings|default:0 }}</div>
+                            </div>
+                        </div>
+                        <div class="text-center mt-3">
+                            <small class="text-muted">Currently checked-in ({{ current_date|date:'M d, Y' }})</small><br>
+                            <small class="text-muted">Revenue: ₹{{ active_bookings_revenue|floatformat:2 }}</small>
+                        </div>
+                    </div>
+                </a>
+            </div>
+
+            <!-- Bookings Today -->
+            <div class="col-xl-3 col-lg-6 col-sm-12 mb-4">
+                <a href="{% url 'allbookings' %}?booking_date={{ current_date|date:'Y-m-d' }}" class="text-decoration-none">
+                    <div class="rounded-lg p-4 shadow stat-card h-100 hover:bg-gray-100 transition duration-200">
+                        <h2 class="h6 font-weight-bold text-center mb-4">Bookings Today</h2>
+                        <div class="progress mx-auto" data-value="{{ bookings_today_percent|floatformat:'0' }}">
+                            <span class="progress-left">
+                                <span class="progress-bar border-primary"></span>
+                            </span>
+                            <span class="progress-right">
+                                <span class="progress-bar border-primary"></span>
+                            </span>
+                            <div class="progress-value w-100 h-100 rounded-circle d-flex align-items-center justify-content-center">
+                                <div class="h2 font-weight-bold">{{ bookings_today|default:0 }}</div>
+                            </div>
+                        </div>
+                        <div class="text-center mt-3">
+                            <small class="text-muted">Made today ({{ current_date|date:'M d, Y' }})</small><br>
+                            <small class="text-muted">Revenue: ₹{{ today_revenue|floatformat:2 }}</small>
+                        </div>
+                    </div>
+                </a>
+            </div>
+
+            <!-- Check-ins Today -->
+            <div class="col-xl-3 col-lg-6 col-sm-12 mb-4">
+                <a href="{% url 'allbookings' %}?view_type=check_in&day={{ current_date|date:'Y-m-d' }}" class="text-decoration-none">
+                    <div class="rounded-lg p-4 shadow stat-card h-100 hover:bg-gray-100 transition duration-200">
+                        <h2 class="h6 font-weight-bold text-center mb-4">Check-ins Today</h2>
+                        <div class="progress mx-auto" data-value="{{ check_ins_today_percent|floatformat:'0' }}">
+                            <span class="progress-left">
+                                <span class="progress-bar border-success"></span>
+                            </span>
+                            <span class="progress-right">
+                                <span class="progress-bar border-success"></span>
+                            </span>
+                            <div class="progress-value w-100 h-100 rounded-circle d-flex align-items-center justify-content-center">
+                                <div class="h2 font-weight-bold">{{ check_ins_today|default:0 }}</div>
+                            </div>
+                        </div>
+                        <div class="text-center mt-3">
+                            <small class="text-muted">Scheduled for today</small><br>
+                            <small class="text-muted">Revenue: ₹{{ check_ins_today_revenue|floatformat:2 }}</small>
+                        </div>
+                    </div>
+                </a>
+            </div>
+
+            <!-- Check-outs Today -->
+            <div class="col-xl-3 col-lg-6 col-sm-12 mb-4">
+                <a href="{% url 'allbookings' %}?view_type=check_out&day={{ current_date|date:'Y-m-d' }}" class="text-decoration-none">
+                    <div class="rounded-lg p-4 shadow stat-card h-100 hover:bg-gray-100 transition duration-200">
+                        <h2 class="h6 font-weight-bold text-center mb-4">Check-outs Today</h2>
+                        <div class="progress mx-auto" data-value="{{ check_outs_today_percent|floatformat:'0' }}">
+                            <span class="progress-left">
+                                <span class="progress-bar border-danger"></span>
+                            </span>
+                            <span class="progress-right">
+                                <span class="progress-bar border-danger"></span>
+                            </span>
+                            <div class="progress-value w-100 h-100 rounded-circle d-flex align-items-center justify-content-center">
+                                <div class="h2 font-weight-bold">{{ check_outs_today|default:0 }}</div>
+                            </div>
+                        </div>
+                        <div class="text-center mt-3">
+                            <small class="text-muted">Scheduled for today</small><br>
+                            <small class="text-muted">Revenue: ₹{{ check_outs_today_revenue|floatformat:2 }}</small>
+                        </div>
+                    </div>
+                </a>
+            </div>
+
+            <!-- Bookings This Month -->
+            <div class="col-xl-3 col-lg-6 col-sm-12 mb-4">
+                <a href="{% url 'allbookings' %}?month={{ current_date|date:'F' }}" class="text-decoration-none">
+                    <div class="rounded-lg p-4 shadow stat-card h-100 hover:bg-gray-100 transition duration-200">
+                        <h2 class="h6 font-weight-bold text-center mb-4">Bookings This Month</h2>
+                        <div class="progress mx-auto" data-value="{{ bookings_this_month_percent|floatformat:'0' }}">
+                            <span class="progress-left">
+                                <span class="progress-bar border-warning"></span>
+                            </span>
+                            <span class="progress-right">
+                                <span class="progress-bar border-warning"></span>
+                            </span>
+                            <div class="progress-value w-100 h-100 rounded-circle d-flex align-items-center justify-content-center">
+                                <div class="h2 font-weight-bold">{{ bookings_this_month|default:0 }}</div>
+                            </div>
+                        </div>
+                        <div class="text-center mt-3">
+                            <small class="text-muted">Made in {{ current_date|date:'F Y' }}</small><br>
+                            <small class="text-muted">Revenue: ₹{{ this_month_revenue|floatformat:2 }}</small>
+                        </div>
+                    </div>
+                </a>
+            </div>
+
+            <!-- Check-ins This Month -->
+            <div class="col-xl-3 col-lg-6 col-sm-12 mb-4">
+                <a href="{% url 'allbookings' %}?month={{ current_date|date:'F' }}" class="text-decoration-none">
+                    <div class="rounded-lg p-4 shadow stat-card h-100 hover:bg-gray-100 transition duration-200">
+                        <h2 class="h6 font-weight-bold text-center mb-4">Check-ins This Month</h2>
+                        <div class="progress mx-auto" data-value="{{ check_ins_this_month_percent|floatformat:'0' }}">
+                            <span class="progress-left">
+                                <span class="progress-bar border-info"></span>
+                            </span>
+                            <span class="progress-right">
+                                <span class="progress-bar border-info"></span>
+                            </span>
+                            <div class="progress-value w-100 h-100 rounded-circle d-flex align-items-center justify-content-center">
+                                <div class="h2 font-weight-bold">{{ check_ins_this_month|default:0 }}</div>
+                            </div>
+                        </div>
+                        <div class="text-center mt-3">
+                            <small class="text-muted">Scheduled in {{ current_date|date:'F Y' }}</small><br>
+                            <small class="text-muted">Revenue: ₹{{ check_ins_this_month_revenue|floatformat:2 }}</small>
+                        </div>
+                    </div>
+                </a>
+            </div>
+
+            <!-- Check-outs This Month -->
+            <div class="col-xl-3 col-lg-6 col-sm-12 mb-4">
+                <a href="{% url 'allbookings' %}?month={{ current_date|date:'F' }}" class="text-decoration-none">
+                    <div class="rounded-lg p-4 shadow stat-card h-100 hover:bg-gray-100 transition duration-200">
+                        <h2 class="h6 font-weight-bold text-center mb-4">Check-outs This Month</h2>
+                        <div class="progress mx-auto" data-value="{{ check_outs_this_month_percent|floatformat:'0' }}">
+                            <span class="progress-left">
+                                <span class="progress-bar border-primary"></span>
+                            </span>
+                            <span class="progress-right">
+                                <span class="progress-bar border-primary"></span>
+                            </span>
+                            <div class="progress-value w-100 h-100 rounded-circle d-flex align-items-center justify-content-center">
+                                <div class="h2 font-weight-bold">{{ check_outs_this_month|default:0 }}</div>
+                            </div>
+                        </div>
+                        <div class="text-center mt-3">
+                            <small class="text-muted">Scheduled in {{ current_date|date:'F Y' }}</small><br>
+                            <small class="text-muted">Revenue: ₹{{ check_outs_this_month_revenue|floatformat:2 }}</small>
+                        </div>
+                    </div>
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Bookings Table -->
+<section class="my-5">
+    <h2 class="text-center text-primary mb-4">Bookings</h2>
+    <div class="container-fluid px-4 py-5 border rounded-3 section-container">
+        {% include 'maintainer/booking_table.html' %}
+    </div>
+</section>
+
+<link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.1.3/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const progressBars = document.querySelectorAll('.progress');
+    
+    progressBars.forEach(progress => {
+        // Get the percentage value (already calculated in the view)
+        let value = parseFloat(progress.getAttribute('data-value')) || 0;
+        
+        // Get the count element (the actual number display)
+        const countElement = progress.querySelector('.progress-value .h2');
+        const countValue = countElement ? parseInt(countElement.textContent) || 0 : 0;
+        
+        const rightBar = progress.querySelector('.progress-right .progress-bar');
+        const leftBar = progress.querySelector('.progress-left .progress-bar');
+        
+        // Reset any previous transformations
+        rightBar.style.transform = 'rotate(0deg)';
+        leftBar.style.transform = 'rotate(0deg)';
+        
+        // Apply the appropriate rotation based on percentage
+        if (value > 0) {
+            if (value <= 50) {
+                rightBar.style.transform = `rotate(${value * 3.6}deg)`;
+            } else {
+                rightBar.style.transform = `rotate(180deg)`;
+                leftBar.style.transform = `rotate(${(value - 50) * 3.6}deg)`;
+            }
+        }
+        
+        // Color coding based on status
+        if (progress.closest('.stat-card').querySelector('h2').textContent.includes('Not Available')) {
+            rightBar.style.borderColor = '#dc3545'; // Red for unavailable
+            leftBar.style.borderColor = '#dc3545';
+        } else if (progress.closest('.stat-card').querySelector('h2').textContent.includes('Reservations')) {
+            rightBar.style.borderColor = '#ffc107'; // Yellow for reservations
+            leftBar.style.borderColor = '#ffc107';
+        }
+        
+        // Animation for better visual feedback
+        progress.style.opacity = '0';
+        let opacity = 0;
+        const fadeIn = setInterval(() => {
+            opacity += 0.05;
+            progress.style.opacity = opacity;
+            if (opacity >= 1) clearInterval(fadeIn);
+        }, 20);
+    });
+    
+    // Tooltip for more information
+    const statCards = document.querySelectorAll('.stat-card');
+    statCards.forEach(card => {
+        card.addEventListener('mouseenter', function() {
+            const title = this.querySelector('h2').textContent.trim();
+            const count = this.querySelector('.h2').textContent.trim();
+            const percent = this.querySelector('.progress').getAttribute('data-value') + '%';
+            
+            // Create tooltip
+            const tooltip = document.createElement('div');
+            tooltip.className = 'stat-tooltip';
+            tooltip.innerHTML = `
+                <strong>${title}</strong><br>
+                Count: ${count}<br>
+                Percentage: ${percent}
+            `;
+            
+            // Position and style tooltip
+            tooltip.style.position = 'absolute';
+            tooltip.style.background = 'rgba(0,0,0,0.8)';
+            tooltip.style.color = 'white';
+            tooltip.style.padding = '8px 12px';
+            tooltip.style.borderRadius = '4px';
+            tooltip.style.zIndex = '1000';
+            tooltip.style.maxWidth = '200px';
+            tooltip.style.textAlign = 'center';
+            
+            // Position relative to card
+            const rect = this.getBoundingClientRect();
+            tooltip.style.top = `${rect.top - 50}px`;
+            tooltip.style.left = `${rect.left + rect.width/2 - 100}px`;
+            
+            document.body.appendChild(tooltip);
+            
+            // Remove on mouse leave
+            card.addEventListener('mouseleave', function() {
+                document.body.removeChild(tooltip);
+            });
+        });
+    });
+});
+</script>
+
+<style>
+    :root {
+        --primary-color: #0d6efd;
+        --secondary-color: #6c757d;
+        --success-color: #198754;
+        --info-color: #0dcaf0;
+        --warning-color: #ffc107;
+        --danger-color: #dc3545;
+        --light-color: #f8f9fa;
+        --dark-color: #212529;
+    }
+
+    body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background-color: #f5f8fa;
+        color: #495057;
+    }
+
+    /* Dashboard Main Styling */
+    .dashboard-header {
+        background-color: #fff;
+        box-shadow: 0 2px 15px rgba(0, 0, 0, 0.05);
+        padding: 1.5rem 0;
+        margin-bottom: 2rem;
+    }
+
+    h2.text-primary {
+        font-weight: 600;
+        position: relative;
+        display: inline-block;
+        padding-bottom: 10px;
+    }
+
+    h2.text-primary:after {
+        content: '';
+        display: block;
+        width: 70%;
+        height: 3px;
+        background: var(--primary-color);
+        position: absolute;
+        bottom: 0;
+        left: 15%;
+        border-radius: 3px;
+    }
+
+    .section-container {
+        background-color: #fff;
+        border: none !important;
+        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+        transition: all 0.3s ease;
+    }
+
+    /* Improved Stat Cards */
+    .stat-card {
+        background-color: #fff;
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+        height: 100%;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+    }
+
+    .stat-card h2.h6 {
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: var(--dark-color);
+    }
+
+    .stat-card small.text-muted {
+        font-size: 0.85rem;
+    }
+
+    /* Enhanced Circular Progress Bars */
+    .progress {
+        width: 100px;
+        height: 100px;
+        background: none;
+        position: relative;
+        transition: opacity 0.5s ease;
+    }
+
+    .progress::after {
+        content: "";
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        border: 6px solid #eee;
+        position: absolute;
+        top: 0;
+        left: 0;
+    }
+
+    .progress>span {
+        width: 50%;
+        height: 100%;
+        overflow: hidden;
+        position: absolute;
+        top: 0;
+        z-index: 1;
+    }
+
+    .progress .progress-left {
+        left: 0;
+    }
+
+    .progress .progress-right {
+        right: 0;
+    }
+
+    .progress .progress-bar {
+        width: 100%;
+        height: 100%;
+        background: none;
+        border-width: 6px;
+        border-style: solid;
+        position: absolute;
+        top: 0;
+        border-color: var(--primary-color);
+    }
+
+    .progress .progress-left .progress-bar {
+        left: 100%;
+        border-top-right-radius: 50px;
+        border-bottom-right-radius: 50px;
+        border-left: 0;
+        transform-origin: center left;
+        animation: loading-1 1.5s linear forwards;
+    }
+
+    .progress .progress-right .progress-bar {
+        left: -100%;
+        border-top-left-radius: 50px;
+        border-bottom-left-radius: 50px;
+        border-right: 0;
+        transform-origin: center right;
+        animation: loading-2 1.5s linear forwards;
+    }
+
+    /* Custom colors for different stats */
+    .progress-bar.border-primary {
+        border-color: var(--primary-color);
+    }
+
+    .progress-bar.border-success {
+        border-color: var(--success-color);
+    }
+
+    .progress-bar.border-info {
+        border-color: var(--info-color);
+    }
+
+    .progress-bar.border-warning {
+        border-color: var(--warning-color);
+    }
+
+    .progress-bar.border-danger {
+        border-color: var(--danger-color);
+    }
+
+    /* Center circle with value */
+    .progress .progress-value {
+        display: flex;
+        border-radius: 50%;
+        font-size: 24px;
+        text-align: center;
+        line-height: 20px;
+        align-items: center;
+        justify-content: center;
+        background-color: #fff;
+        box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.1);
+    }
+
+    .progress-value div {
+        margin-top: 0;
+        font-weight: 700;
+        color: #444;
+    }
+
+    /* Improved Form Controls */
+    .form-control, .btn {
+        border-radius: 8px;
+        font-size: 0.95rem;
+        padding: 0.6rem 1rem;
+    }
+
+    .form-control:focus {
+        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.15);
+    }
+
+    .btn-primary {
+        background-color: var(--primary-color);
+        border-color: var(--primary-color);
+        font-weight: 500;
+        padding: 0.6rem 1.5rem;
+        transition: all 0.3s ease;
+    }
+
+    .btn-primary:hover {
+        background-color: #0b5ed7;
+        border-color: #0a58ca;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(13, 110, 253, 0.2);
+    }
+
+    label {
+        font-weight: 500;
+        margin-bottom: 0.5rem;
+        color: var(--dark-color);
+    }
+
+    /* Table Styling */
+    .booking-table {
+        border-radius: 8px;
+        overflow: hidden;
+    }
+
+    .table {
+        margin-bottom: 0;
+    }
+
+    .table th {
+        background-color: #f8f9fa;
+        font-weight: 600;
+        border-top: none;
+        text-transform: uppercase;
+        font-size: 0.85rem;
+        letter-spacing: 0.5px;
+    }
+
+    .table td {
+        vertical-align: middle;
+        font-size: 0.95rem;
+    }
+
+    /* Animation for Progress Bar */
+    @keyframes loading-1 {
+        0% {
+            transform: rotate(0deg);
+        }
+        100% {
+            transform: rotate(180deg);
+        }
+    }
+
+    @keyframes loading-2 {
+        0% {
+            transform: rotate(0deg);
+        }
+        100% {
+            transform: rotate(180deg);
+        }
+    }
+
+    /* Status Colors */
+    .status-badge {
+        font-size: 0.8rem;
+        padding: 0.35rem 0.65rem;
+        border-radius: 50rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    /* Tooltip Styling */
+    .stat-tooltip {
+        pointer-events: none;
+        animation: fadeIn 0.3s ease;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+
+    /* Responsive Adjustments */
+    @media (max-width: 1199px) {
+        .progress {
+            width: 90px;
+            height: 90px;
+        }
+        .progress-value div {
+            font-size: 20px;
+        }
+    }
+
+    @media (max-width: 992px) {
+        .progress {
+            width: 100px;
+            height: 100px;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .section-container {
+            padding: 1.5rem !important;
+        }
+        h2.text-primary {
+            font-size: 1.5rem;
+        }
+        .table-responsive {
+            border: none;
+        }
+        .btn {
+            width: 100%;
+            margin-bottom: 1rem;
+        }
+    }
+
+    @media (max-width: 576px) {
+        .progress {
+            width: 80px;
+            height: 80px;
+        }
+        .progress::after, .progress .progress-bar {
+            border-width: 5px;
+        }
+        .progress-value div {
+            font-size: 18px;
+        }
+        .stat-card h2.h6 {
+            font-size: 0.9rem;
+        }
+        .dashboard-header {
+            padding: 1rem 0;
+        }
+    }
+
+    /* Modern Dashboard Navigation */
+    .dashboard-nav {
+        background-color: #fff;
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        margin-bottom: 2rem;
+    }
+
+    .dashboard-nav .nav-link {
+        padding: 1rem;
+        color: var(--secondary-color);
+        border-radius: 0;
+        transition: all 0.3s ease;
+        position: relative;
+        font-weight: 500;
+    }
+
+    .dashboard-nav .nav-link.active {
+        color: var(--primary-color);
+        background-color: transparent;
+    }
+
+    .dashboard-nav .nav-link.active::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 40%;
+        height: 3px;
+        background-color: var(--primary-color);
+        border-radius: 3px;
+    }
+
+    .dashboard-nav .nav-link:hover {
+        color: var(--primary-color);
+        background-color: rgba(13, 110, 253, 0.05);
+    }
+
+    .dashboard-nav .nav-link i {
+        margin-right: 0.5rem;
+    }
+
+    /* Date Range Selector */
+    .date-range-selector {
+        display: flex;
+        align-items: center;
+        background-color: #fff;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        padding: 0.5rem 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .date-range-selector label {
+        margin-bottom: 0;
+        margin-right: 1rem;
+        white-space: nowrap;
+    }
+
+    .date-range-selector .form-control {
+        border: none;
+        box-shadow: none;
+        padding: 0.4rem 0.5rem;
+    }
+
+    .date-range-selector .btn {
+        padding: 0.4rem 1rem;
+        margin-left: 1rem;
+    }
+
+    a {
+        text-decoration: none;
+    }
+</style>
+
+
+<div id="roomsdetails"aria-labelledby="l">
+
+    <center>
+        <a href="{% url 'viewhotel' %}" class="btn btn-info btn-sm" style= "padding-left:50%;">
+             <i class="fas fa-eye"></i>hote
+        </a>
+    </center>
+</div>
+
+<!-- Buttons for Adding New Room and Location -->
+<div class="d-flex justify-content-between my-3"id="table-responsive">
+    <Button class="btn btn-primary" data-toggle="modal" data-target="#newroom">Add New Room</Button>
+    <Button class="btn btn-primary" data-toggle="modal" data-target="#newlocation">Add New Location</Button>
+</div>
+
+<!-- Filter Form -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0">Filter Rooms</h5>
+    </div>
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-5">
+                <label for="hotel_filter" class="form-label">Hotel Name</label>
+                <select class="form-select" id="hotel_filter" name="hotel_filter">
+                    <option value="all">All Hotels</option>
+                    {% for hotel in hotels %}
+                    <option value="{{ hotel.name }}" {% if selected_hotel == hotel.name %}selected{% endif %}>
+                        {{ hotel.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-5">
+                <label for="status_filter" class="form-label">Room Status</label>
+                <select class="form-select" id="status_filter" name="status_filter">
+                    <option value="all">All Statuses</option>
+                    <option value="1" {% if selected_status == '1' %}selected{% endif %}>Available</option>
+                    <option value="2" {% if selected_status == '2' %}selected{% endif %}>Not Available</option>
+                </select>
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary w-100">Apply Filters</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Buttons for Adding New Room and Location -->
+<div class="d-flex justify-content-between my-3">
+    <Button class="btn btn-primary" data-toggle="modal" data-target="#newroom">Add New Room</Button>
+    <Button class="btn btn-primary" data-toggle="modal" data-target="#newlocation">Add New Location</Button>
+</div>
+
+<!-- Rest of your existing table code -->
+
+<div class="table-responsive" >
+    <table class="table table-striped table-bordered">
+        <thead class="">
+            <tr>
+                <th>Room Number</th>
+                <th>Type</th>
+                <th>Status</th>
+                <th>Original Price (₹)</th>
+                <th>Discount (%)</th>
+                <th>Discounted Price (₹)</th>
+                <th>Saved Money (₹)</th>
+                <th>Capacity</th>
+                <th>Size (sq.ft)</th>
+                <th>Hotel Name</th>
+                <th>Extra Person Charges (₹)</th>
+                <th>Check-in Time</th>
+                <th>Check-out Time</th>
+                <th colspan="2" class="text-center">Room Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% if rooms %}
+            {% for each_room in rooms %}
+            <tr>
+                <td>{{ each_room.room_number }}</td>
+                <td>{{ each_room.get_room_type_display }}</td>
+                <td style="color: {% if each_room.get_status_display == 'not available' %}red{% else %}green{% endif %};">
+                    {{ each_room.get_status_display }}
+                </td>
+                <td>₹{{ each_room.price|floatformat:2 }}</td>
+                <td>{{ each_room.discount }}%</td>
+                <td>₹{{ each_room.discounted_price|floatformat:2 }}</td>
+                <td>₹{{ each_room.saved_money|floatformat:2 }}</td>
+                <td>{{ each_room.capacity }}</td>
+                <td>{{ each_room.size }}</td>
+                <td>{{ each_room.hotel.name }}</td>
+                <td>₹{{ each_room.extra_person_charges|floatformat:2|default_if_none:"0.00" }}</td>
+                <td>{{ each_room.check_in_time|default_if_none:"N/A" }}</td>
+                <td>{{ each_room.check_out_time|default_if_none:"N/A" }}</td>
+                <td>
+                    <a href="{% url 'editroom' each_room.id %}" class="btn btn-warning btn-sm">
+                        <i class="fas fa-edit"></i> Edit
+                    </a>
+                </td>
+                <td>
+                    <a href="{% url 'viewroom' each_room.id %}" class="btn btn-info btn-sm">
+                        <i class="fas fa-eye"></i> View
+                    </a>
+                </td>
+            </tr>
+            {% endfor %}
+            {% else %}
+            <tr>
+                <td colspan="15" class="text-center">
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        No rooms found in your assigned hotels.
+                        <a href="{% url 'staffpanel' %}" class="alert-link">
+                            Add your first room
+                        </a>
+                    </div>
+                </td>
+            </tr>
+            {% endif %}
+        </tbody>
+    </table>
+</div>
+
+
+
+
+
+    <script>
+        const viewer = document.querySelector('.fullscreen-viewer');
+        const viewerImage = viewer.querySelector('img');
+
+        function showFullscreen(img) {
+            viewerImage.src = img.src;
+            viewer.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function hideFullscreen(event) {
+            if (event) {
+                event.stopPropagation();
+            }
+            if (event.target === viewer || event.target.classList.contains('close-button')) {
+                viewer.classList.remove('active');
+                document.body.style.overflow = '';
+                setTimeout(() => {
+                    viewerImage.src = '';
+                }, 300);
+            }
+        }
+
+        // Close on escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && viewer.classList.contains('active')) {
+                hideFullscreen();
+            }
+        });
+    </script>
+<!-- Add New Room Modal -->
+<div class="modal fade" id="newroom" tabindex="-1" aria-labelledby="newroomLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content border-0 shadow-lg">
+            <!-- Modal Header -->
+            <div class="modal-header bg-gradient-primary text-white">
+                <h2 class="modal-title fs-5" id="newroomLabel">
+                    <i class="fas fa-door-open me-2"></i>
+                    Add New Room
+                </h2>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close" data-toggle="modal" data-target="#newroom"></button>
+            </div>
+            
+            <!-- Modal Body -->
+            <div class="modal-body p-4">
+                <form action="{% url 'addroom' %}" method="POST" enctype="multipart/form-data" id="roomForm" class="needs-validation" novalidate>
+                    {% csrf_token %}
+                    
+                    <!-- Progress Steps -->
+                    <div class="stepper mb-4">
+                        <div class="stepper-progress">
+                            <div class="stepper-progress-bar" id="formProgress"></div>
+                        </div>
+                        <div class="stepper-steps">
+                            <div class="stepper-step active" data-step="1">
+                                <div class="stepper-circle">1</div>
+                                <div class="stepper-label">Basic Info</div>
+                            </div>
+                            <div class="stepper-step" data-step="2">
+                                <div class="stepper-circle">2</div>
+                                <div class="stepper-label">Pricing</div>
+                            </div>
+                            <div class="stepper-step" data-step="3">
+                                <div class="stepper-circle">3</div>
+                                <div class="stepper-label">Features</div>
+                            </div>
+                            <div class="stepper-step" data-step="4">
+                                <div class="stepper-circle">4</div>
+                                <div class="stepper-label">Images</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Step 1: Basic Information -->
+                    <div class="form-step active" id="step1">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="room_number" class="form-label">Room Number *</label>
+                                <div class="input-group has-validation">
+                                    <span class="input-group-text bg-light"><i class="fas fa-hashtag text-primary"></i></span>
+                                    <input type="text" class="form-control" id="room_number" name="room_number" required>
+                                    <div class="invalid-feedback">Please enter room number.</div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <label for="roomtype" class="form-label">Room Type *</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light"><i class="fas fa-bed text-primary"></i></span>
+                                    <select class="form-select" name="roomtype" id="roomtype" required>
+                                        <option value="" selected disabled>Select type</option>
+                                        <option value="1">Premium</option>
+                                        <option value="2">Deluxe</option>
+                                        <option value="3">Basic</option>
+                                    </select>
+                                    <div class="invalid-feedback">Please select room type.</div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-4">
+                                <label for="capacity" class="form-label">Capacity *</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light"><i class="fas fa-users text-primary"></i></span>
+                                    <input type="number" class="form-control" id="capacity" name="capacity" min="1" required>
+                                    <div class="invalid-feedback">Minimum capacity is 1.</div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-4">
+                                <label for="size" class="form-label">Size (sq ft) *</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light"><i class="fas fa-ruler-combined text-primary"></i></span>
+                                    <input type="number" class="form-control" id="size" name="size" min="50" required>
+                                    <div class="invalid-feedback">Minimum size is 50 sq ft.</div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-4">
+                                <label for="hotel" class="form-label">Hotel *</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light"><i class="fas fa-hotel text-primary"></i></span>
+                                    <select class="form-select" name="hotel" id="hotel" required>
+                                        <option value="" selected disabled>Select hotel</option>
+                                        {% if request.user.hotel_staff_profile %}
+                                            {# Show only staff's assigned hotels #}
+                                            {% for hotel in request.user.hotel_staff_profile.assigned_hotels.all %}
+                                            <option value="{{ hotel.id }}">{{ hotel.name }} {{ hotel.hotel_type }} ({{ hotel.location }})</option>
+                                            {% empty %}
+                                            <option value="" disabled>No hotels assigned to you</option>
+                                            {% endfor %}
+                                        {% elif request.user.maintainer_profile %}
+                                            {# Show all hotels for maintainers #}
+                                            {% for hotel in all_hotels %}
+                                            <option value="{{ hotel.id }}">{{ hotel.name }} ({{ hotel.location }})</option>
+                                            {% empty %}
+                                            <option value="" disabled>No hotels available</option>
+                                            {% endfor %}
+                                        {% endif %}
+                                    </select>
+                                    <div class="invalid-feedback">Please select hotel.</div>
+                                </div>
+                                {% if request.user.hotel_staff_profile and not request.user.hotel_staff_profile.assigned_hotels.exists %}
+                                <div class="alert alert-warning mt-2">
+                                    <i class="fas fa-exclamation-triangle me-2"></i>
+                                    You haven't been assigned to any hotels. Contact your maintainer.
+                                </div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <label for="status" class="form-label">Status *</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light"><i class="fas fa-toggle-on text-primary"></i></span>
+                                    <select class="form-select" name="status" id="status" required>
+                                        <option value="" selected disabled>Select status</option>
+                                        <option value="1">Available</option>
+                                        <option value="2">Not Available</option>
+                                    </select>
+                                    <div class="invalid-feedback">Please select status.</div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <label for="languages_spoken" class="form-label">Languages Spoken</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light"><i class="fas fa-language text-primary"></i></span>
+                                    <select class="form-select" id="languages_spoken" name="languages_spoken" multiple>
+                                        <option value="marathi">Marathi</option>
+                                        <option value="english">English</option>
+                                        <option value="hindi">Hindi</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div class="col-12">
+                                <label for="heading" class="form-label">Room Heading</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light"><i class="fas fa-heading text-primary"></i></span>
+                                    <input type="text" class="form-control" id="heading" name="heading" placeholder="E.g., Luxury Suite with Ocean View">
+                                </div>
+                            </div>
+                            
+                            <div class="col-12">
+                                <label for="description" class="form-label">Description</label>
+                                <textarea class="form-control" id="description" name="description" rows="3" placeholder="Describe the room features and amenities..."></textarea>
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex justify-content-end mt-4">
+                            <button type="button" class="btn btn-primary next-step">
+                                Next <i class="fas fa-arrow-right ms-2"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Step 2: Pricing & Timing -->
+                    <div class="form-step" id="step2">
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label for="price" class="form-label">Base Price (₹) *</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light">₹</span>
+                                    <input type="number" step="0.01" class="form-control" id="price" name="price" min="100" required>
+                                    <div class="invalid-feedback">Minimum price is ₹100.</div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-4">
+                                <label for="discount" class="form-label">Discount (%)</label>
+                                <div class="input-group">
+                                    <input type="number" step="0.01" class="form-control" id="discount" name="discount" min="0" max="100" value="0">
+                                    <span class="input-group-text bg-light">%</span>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-4">
+                                <label for="extra_person_charges" class="form-label">Extra Person Charge (₹)</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light">₹</span>
+                                    <input type="number" step="0.01" class="form-control" id="extra_person_charges" name="extra_person_charges" min="0" value="0">
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <label for="check_in_time" class="form-label">Check-In Time</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light"><i class="fas fa-clock text-primary"></i></span>
+                                    <input type="time" class="form-control" id="check_in_time" name="check_in_time" value="14:00">
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <label for="check_out_time" class="form-label">Check-Out Time</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light"><i class="fas fa-clock text-primary"></i></span>
+                                    <input type="time" class="form-control" id="check_out_time" name="check_out_time" value="12:00">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between mt-4">
+                            <button type="button" class="btn btn-outline-secondary prev-step">
+                                <i class="fas fa-arrow-left me-2"></i> Previous
+                            </button>
+                            <button type="button" class="btn btn-primary next-step">
+                                Next <i class="fas fa-arrow-right ms-2"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Step 3: Features & Amenities -->
+                    <div class="form-step" id="step3">
+                        <div class="row">
+                            <div class="col-12">
+                                <h5 class="mb-3"><i class="fas fa-concierge-bell me-2 text-primary"></i>Room Features</h5>
+                                <div class="feature-grid">
+                                    <div class="feature-item">
+                                        <input type="checkbox" class="feature-checkbox" id="wifi" name="wifi">
+                                        <label for="wifi" class="feature-label">
+                                            <i class="fas fa-wifi feature-icon"></i>
+                                            <span>Wi-Fi</span>
+                                        </label>
+                                    </div>
+                                    
+                                    <div class="feature-item">
+                                        <input type="checkbox" class="feature-checkbox" id="ac" name="ac">
+                                        <label for="ac" class="feature-label">
+                                            <i class="fas fa-snowflake feature-icon"></i>
+                                            <span>Air Conditioning</span>
+                                        </label>
+                                    </div>
+                                    
+                                    <div class="feature-item">
+                                        <input type="checkbox" class="feature-checkbox" id="fan" name="fan">
+                                        <label for="fan" class="feature-label">
+                                            <i class="fas fa-fan feature-icon"></i>
+                                            <span>Fan</span>
+                                        </label>
+                                    </div>
+                                    
+                                    <div class="feature-item">
+                                        <input type="checkbox" class="feature-checkbox" id="heater" name="heater">
+                                        <label for="heater" class="feature-label">
+                                            <i class="fas fa-fire feature-icon"></i>
+                                            <span>Heater</span>
+                                        </label>
+                                    </div>
+                                    
+                                    <div class="feature-item">
+                                        <input type="checkbox" class="feature-checkbox" id="comfortable_bed" name="comfortable_bed">
+                                        <label for="comfortable_bed" class="feature-label">
+                                            <i class="fas fa-bed feature-icon"></i>
+                                            <span>Comfortable Bed</span>
+                                        </label>
+                                    </div>
+                                    
+                                    <div class="feature-item">
+                                        <input type="checkbox" class="feature-checkbox" id="private_bathroom" name="private_bathroom">
+                                        <label for="private_bathroom" class="feature-label">
+                                            <i class="fas fa-bath feature-icon"></i>
+                                            <span>Private Bathroom</span>
+                                        </label>
+                                    </div>
+                                    
+                                    <div class="feature-item">
+                                        <input type="checkbox" class="feature-checkbox" id="cleanliness" name="cleanliness">
+                                        <label for="cleanliness" class="feature-label">
+                                            <i class="fas fa-broom feature-icon"></i>
+                                            <span>Daily Cleaning</span>
+                                        </label>
+                                    </div>
+                                    
+                                    <div class="feature-item">
+                                        <input type="checkbox" class="feature-checkbox" id="safety_security" name="safety_security">
+                                        <label for="safety_security" class="feature-label">
+                                            <i class="fas fa-shield-alt feature-icon"></i>
+                                            <span>Safety & Security</span>
+                                        </label>
+                                    </div>
+                                    
+                                    <div class="feature-item">
+                                        <input type="checkbox" class="feature-checkbox" id="entertainment_options" name="entertainment_options">
+                                        <label for="entertainment_options" class="feature-label">
+                                            <i class="fas fa-tv feature-icon"></i>
+                                            <span>Entertainment</span>
+                                        </label>
+                                    </div>
+                                    
+                                    <div class="feature-item">
+                                        <input type="checkbox" class="feature-checkbox" id="laundry_facility" name="laundry_facility">
+                                        <label for="laundry_facility" class="feature-label">
+                                            <i class="fas fa-tshirt feature-icon"></i>
+                                            <span>Laundry</span>
+                                        </label>
+                                    </div>
+                                    
+                                    <div class="feature-item">
+                                        <input type="checkbox" class="feature-checkbox" id="outdoor_balcony" name="outdoor_balcony">
+                                        <label for="outdoor_balcony" class="feature-label">
+                                            <i class="fas fa-door-open feature-icon"></i>
+                                            <span>Balcony</span>
+                                        </label>
+                                    </div>
+                                    
+                                    <div class="feature-item">
+                                        <input type="checkbox" class="feature-checkbox" id="concierge_service" name="concierge_service">
+                                        <label for="concierge_service" class="feature-label">
+                                            <i class="fas fa-concierge-bell feature-icon"></i>
+                                            <span>Concierge</span>
+                                        </label>
+                                    </div>
+
+                                    <div class="feature-item">
+                                        <input type="checkbox" class="feature-checkbox" id="convenient_location" name="convenient_location">
+                                        <label for="convenient_location" class="feature-label">
+                                            <i class="fas fa-concierge-bell feature-icon"></i>
+                                            <span>Convenient Location</span>
+                                        </label>
+                                    </div>
+                                    
+                                    <div class="feature-item">
+                                        <input type="checkbox" class="feature-checkbox" id="food_facility" name="food_facility">
+                                        <label for="food_facility" class="feature-label">
+                                            <i class="fas fa-utensils feature-icon"></i>
+                                            <span>Food Facility</span>
+                                        </label>
+                                    </div>
+                                    
+                                    <div class="feature-item">
+                                        <input type="checkbox" class="feature-checkbox" id="parking" name="parking">
+                                        <label for="parking" class="feature-label">
+                                            <i class="fas fa-parking feature-icon"></i>
+                                            <span>Parking</span>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between mt-4">
+                            <button type="button" class="btn btn-outline-secondary prev-step">
+                                <i class="fas fa-arrow-left me-2"></i> Previous
+                            </button>
+                            <button type="button" class="btn btn-primary next-step">
+                                Next <i class="fas fa-arrow-right ms-2"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Step 4: Images -->
+                    <div class="form-step" id="step4">
+                        <div class="row">
+                            <div class="col-12 mb-4">
+                                <div class="alert alert-primary">
+                                    <i class="fas fa-info-circle me-2"></i>
+                                    Upload high-quality images (max 15 images, 5MB each) to showcase your room
+                                </div>
+                            </div>
+                            
+                            <div class="image-upload-grid">
+                                {% for i in "123456789"|make_list %}
+                                <div class="image-upload-card">
+                                    <div class="image-preview-container" id="preview-image{{ i }}">
+                                        <div class="image-placeholder">
+                                            <i class="fas fa-camera fa-2x"></i>
+                                            <span>Image {{ i }}</span>
+                                        </div>
+                                    </div>
+                                    <div class="image-upload-controls">
+                                        <label class="upload-btn btn btn-sm btn-primary">
+                                            <i class="fas fa-upload me-1"></i> Upload
+                                            <input type="file" class="d-none" 
+                                                   id="image{{ i }}" name="image{{ i }}" 
+                                                   accept="image/*" 
+                                                   onchange="previewImage(this, 'preview-image{{ i }}')">
+                                        </label>
+                                        <button type="button" class="btn btn-sm btn-outline-danger clear-btn" 
+                                                onclick="clearImage('image{{ i }}', 'preview-image{{ i }}')">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </div>
+                                    <div class="image-options mt-2">
+                                        <select class="form-select form-select-sm" name="image_type{{ i }}">
+                                            <option value="room">Room View</option>
+                                            <option value="bathroom">Bathroom</option>
+                                            <option value="view">Outside View</option>
+                                            <option value="amenity">Amenity</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between mt-4">
+                            <button type="button" class="btn btn-outline-secondary prev-step">
+                                <i class="fas fa-arrow-left me-2"></i> Previous
+                            </button>
+                            <button type="submit" class="btn btn-success">
+                                <i class="fas fa-save me-2"></i> Save Room
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+            /* Modal Styling */
+            .modal-content {
+                border: none;
+                box-shadow: 0 5px 30px rgba(0, 0, 0, 0.2);
+            }
+
+            .modal-header {
+                padding: 1.5rem;
+                border-bottom: none;
+            }
+
+            .bg-gradient-primary {
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            }
+
+            /* Stepper Styling */
+            .stepper {
+                position: relative;
+                margin-bottom: 2rem;
+            }
+
+            .stepper-progress {
+                height: 6px;
+                background-color: #e9ecef;
+                border-radius: 3px;
+                margin-bottom: 2rem;
+            }
+
+            .stepper-progress-bar {
+                height: 100%;
+                width: 25%;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                border-radius: 3px;
+                transition: width 0.4s ease;
+            }
+
+            .stepper-steps {
+                display: flex;
+                justify-content: space-between;
+                position: relative;
+            }
+
+            .stepper-step {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                flex: 1;
+                position: relative;
+            }
+
+            .stepper-step:not(:last-child):after {
+                content: '';
+                position: absolute;
+                top: 15px;
+                left: 50%;
+                width: 100%;
+                height: 2px;
+                background-color: #e9ecef;
+                z-index: 0;
+            }
+
+            .stepper-circle {
+                width: 30px;
+                height: 30px;
+                border-radius: 50%;
+                background-color: #e9ecef;
+                color: #6c757d;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-weight: 600;
+                position: relative;
+                z-index: 1;
+                margin-bottom: 0.5rem;
+            }
+
+            .stepper-label {
+                font-size: 0.85rem;
+                color: #6c757d;
+                text-align: center;
+            }
+
+            .stepper-step.active .stepper-circle {
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+            }
+
+            .stepper-step.active .stepper-label {
+                color: #495057;
+                font-weight: 500;
+            }
+
+            /* Form Steps */
+            .form-step {
+                display: none;
+                animation: fadeIn 0.4s ease;
+            }
+
+            .form-step.active {
+                display: block;
+            }
+
+            /* Feature Grid */
+            .feature-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+                gap: 1rem;
+            }
+
+            .feature-item {
+                display: flex;
+                align-items: center;
+                padding: 0.75rem;
+                border-radius: 8px;
+                background-color: #f8f9fa;
+                transition: all 0.3s ease;
+                cursor: pointer;
+            }
+
+            .feature-item:hover {
+                background-color: #e9ecef;
+                transform: translateY(-2px);
+            }
+
+            .feature-checkbox {
+                display: none;
+            }
+
+            .feature-checkbox:checked + .feature-label {
+                color: #764ba2;
+                font-weight: 500;
+            }
+
+            .feature-checkbox:checked + .feature-label .feature-icon {
+                color: #764ba2;
+            }
+
+            .feature-label {
+                display: flex;
+                align-items: center;
+                margin-bottom: 0;
+                cursor: pointer;
+                color: #6c757d;
+                transition: color 0.2s;
+                width: 100%;
+            }
+
+            .feature-icon {
+                margin-right: 0.75rem;
+                font-size: 1.1rem;
+                color: #adb5bd;
+                transition: color 0.2s;
+            }
+
+            /* Image Upload */
+            .image-upload-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+                gap: 1.5rem;
+            }
+
+            .image-upload-card {
+                border: 2px dashed #e9ecef;
+                border-radius: 10px;
+                padding: 1rem;
+                transition: all 0.3s ease;
+                background-color: #f8f9fa;
+            }
+
+            .image-upload-card:hover {
+                border-color: #adb5bd;
+                background-color: #f1f3f5;
+            }
+
+            .image-preview-container {
+                width: 100%;
+                height: 120px;
+                border-radius: 8px;
+                background-color: #e9ecef;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                margin-bottom: 0.75rem;
+                overflow: hidden;
+                position: relative;
+            }
+
+            .image-preview-container img {
+                width: 100%;
+                height: 100%;
+                object-fit: cover;
+            }
+
+            .image-placeholder {
+                text-align: center;
+                color: #adb5bd;
+            }
+
+            .image-placeholder i {
+                margin-bottom: 0.5rem;
+            }
+
+            .image-upload-controls {
+                display: flex;
+                gap: 0.5rem;
+            }
+
+            .upload-btn {
+                flex-grow: 1;
+                position: relative;
+            }
+
+            .clear-btn {
+                width: 36px;
+                padding: 0.25rem;
+            }
+
+            .image-options select {
+                font-size: 0.8rem;
+                width: 100%;
+            }
+
+            /* Animations */
+            @keyframes fadeIn {
+                from {
+                    opacity: 0;
+                    transform: translateY(10px);
+                }
+                to {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+            }
+
+            /* Responsive Adjustments */
+            @media (max-width: 992px) {
+                .feature-grid {
+                    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+                }
+                
+                .image-upload-grid {
+                    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+                }
+            }
+
+            @media (max-width: 768px) {
+                .feature-grid {
+                    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+                }
+                
+                .image-upload-grid {
+                    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+                }
+                
+                .stepper-label {
+                    font-size: 0.75rem;
+                }
+            }
+
+            @media (max-width: 576px) {
+                .feature-grid {
+                    grid-template-columns: 1fr;
+                }
+                
+                .image-upload-grid {
+                    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+                }
+                
+                .stepper-step:not(:last-child):after {
+                    display: none;
+                }
+                
+                .stepper-steps {
+                    flex-wrap: wrap;
+                    gap: 1rem;
+                }
+                
+                .stepper-step {
+                    flex: none;
+                    width: calc(50% - 0.5rem);
+                }
+            }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Form validation
+    const forms = document.querySelectorAll('.needs-validation');
+    Array.from(forms).forEach(form => {
+        form.addEventListener('submit', function(event) {
+            if (!form.checkValidity()) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+            form.classList.add('was-validated');
+        }, false);
+    });
+    
+    // Multi-step form navigation
+    const formSteps = document.querySelectorAll('.form-step');
+    const nextButtons = document.querySelectorAll('.next-step');
+    const prevButtons = document.querySelectorAll('.prev-step');
+    const progressBar = document.querySelector('.stepper-progress-bar');
+    const stepperSteps = document.querySelectorAll('.stepper-step');
+    let currentStep = 0;
+    
+    // Initialize first step
+    updateStepIndicator();
+    
+    // Next button click
+    nextButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            // Validate current step before proceeding
+            if (validateStep(currentStep)) {
+                formSteps[currentStep].classList.remove('active');
+                stepperSteps[currentStep].classList.remove('active');
+                
+                currentStep++;
+                
+                formSteps[currentStep].classList.add('active');
+                stepperSteps[currentStep].classList.add('active');
+                updateStepIndicator();
+                updateProgressBar();
+            }
+        });
+    });
+    
+    // Previous button click
+    prevButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            formSteps[currentStep].classList.remove('active');
+            stepperSteps[currentStep].classList.remove('active');
+            
+            currentStep--;
+            
+            formSteps[currentStep].classList.add('active');
+            stepperSteps[currentStep].classList.add('active');
+            updateStepIndicator();
+            updateProgressBar();
+        });
+    });
+    
+    // Validate current step
+    function validateStep(step) {
+        let isValid = true;
+        const currentFormStep = formSteps[step];
+        const requiredFields = currentFormStep.querySelectorAll('[required]');
+        
+        requiredFields.forEach(field => {
+            if (!field.value.trim()) {
+                field.classList.add('is-invalid');
+                isValid = false;
+            } else {
+                field.classList.remove('is-invalid');
+            }
+        });
+        
+        return isValid;
+    }
+    
+    // Update progress bar
+    function updateProgressBar() {
+        const progress = ((currentStep + 1) / formSteps.length) * 100;
+        progressBar.style.width = `${progress}%`;
+    }
+    
+    // Update step indicator
+    function updateStepIndicator() {
+        stepperSteps.forEach((step, index) => {
+            if (index <= currentStep) {
+                step.classList.add('active');
+            } else {
+                step.classList.remove('active');
+            }
+        });
+    }
+    
+    // Image preview functionality
+    window.previewImage = function(input, previewId) {
+        const preview = document.getElementById(previewId);
+        const file = input.files[0];
+        
+        if (file) {
+            // Validate file size (5MB max)
+            if (file.size > 5 * 1024 * 1024) {
+                alert('File size exceeds 5MB limit');
+                input.value = '';
+                return;
+            }
+            
+            // Validate image type
+            if (!file.type.match('image.*')) {
+                alert('Please select an image file');
+                input.value = '';
+                return;
+            }
+            
+            const reader = new FileReader();
+            
+            reader.onload = function(e) {
+                preview.innerHTML = '';
+                const img = document.createElement('img');
+                img.src = e.target.result;
+                img.style.width = '100%';
+                img.style.height = '100%';
+                img.style.objectFit = 'cover';
+                preview.appendChild(img);
+                
+                // Add image info badge
+                const infoBadge = document.createElement('div');
+                infoBadge.className = 'image-info-badge';
+                infoBadge.innerHTML = `<span>${formatFileSize(file.size)}</span>`;
+                preview.appendChild(infoBadge);
+            };
+            
+            reader.readAsDataURL(file);
+        }
+    };
+    
+    // Clear image
+    window.clearImage = function(inputId, previewId) {
+        document.getElementById(inputId).value = '';
+        const preview = document.getElementById(previewId);
+        preview.innerHTML = `
+            <div class="image-placeholder">
+                <i class="fas fa-camera fa-2x"></i>
+                <span>Image ${previewId.replace('preview-image', '')}</span>
+            </div>
+        `;
+    };
+    
+    // Format file size
+    function formatFileSize(bytes) {
+        if (bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+    }
+    
+    // Initialize features with animation
+    const featureItems = document.querySelectorAll('.feature-item');
+    featureItems.forEach((item, index) => {
+        item.style.opacity = 0;
+        item.style.transform = 'translateY(10px)';
+        item.style.transition = `opacity 0.3s ease ${index * 0.05}s, transform 0.3s ease ${index * 0.05}s`;
+        
+        setTimeout(() => {
+            item.style.opacity = 1;
+            item.style.transform = 'translateY(0)';
+        }, 100);
+    });
+    
+    // Drag and drop for image upload
+    const uploadCards = document.querySelectorAll('.image-upload-card');
+    uploadCards.forEach(card => {
+        card.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            this.classList.add('drag-over');
+        });
+        
+        card.addEventListener('dragleave', function() {
+            this.classList.remove('drag-over');
+        });
+        
+        card.addEventListener('drop', function(e) {
+            e.preventDefault();
+            this.classList.remove('drag-over');
+            
+            const input = this.querySelector('input[type="file"]');
+            if (e.dataTransfer.files.length) {
+                input.files = e.dataTransfer.files;
+                const event = new Event('change');
+                input.dispatchEvent(event);
+            }
+        });
+    });
+});
+</script>
+<style>
+    
+    .form-check {
+    position: relative;
+    display: block;
+    padding: 10px 111px;
+    font-size: 1rem;
+    margin: -8px;
+    animation: fadeIn 0.5s ease-in-out;
+        }
+    
+    .form-check-input {
+        width: 1.5rem; /* Adjust checkbox width */
+        height: 1.5rem; /* Adjust checkbox height */
+        margin-right: 1rem; /* Space between checkbox and label */
+    }
+    
+    /* Define the animation */
+    @keyframes fadeIn {
+        0% {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+        100% {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+</style>
+<!-- Add New Location Modal -->
+<div class="modal fade" id="newlocation" tabindex="-1" aria-labelledby="newlocationLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content border-0 shadow-lg">
+            <!-- Modal Header -->
+            <div class="modal-header bg-gradient-primary text-white">
+                <h2 class="modal-title fs-5" id="newlocationLabel">
+                    <i class="fas fa-map-marker-alt me-2"></i>
+                    Add New Location
+                </h2>
+                <button type="button" class="btn-close btn-close-white" data-dismiss="modal"></button>
+            </div>
+            
+            <!-- Modal Body -->
+            <div class="modal-body p-4">
+                <form action="{% url 'addnewlocation' %}" method="POST" id="locationForm" class="needs-validation" novalidate enctype="multipart/form-data">
+                    {% csrf_token %}
+                    
+                    <div class="row g-3">
+
+                        <!-- Hotel Type -->
+                        <div class="col-12">
+                            <label for="hotel_type" class="form-label"> Type of location *</label>
+                            <div class="input-group has-validation">
+                                <span class="input-group-text bg-light"><i class="fas fa-building text-primary"></i></span>
+                                <select class="form-control" id="hotel_type" name="hotel_type" required>
+                                    <option value="hotel_restaurant">Hotel/Restaurant</option>
+                                    <option value="dormitory">Dormitory</option>
+                                    <option value="math_dharmashala">Math/Dharmashala</option>
+                                    <option value="other">Other</option>
+                                </select>
+                                <div class="invalid-feedback">Please select a location type.</div>
+                            </div>
+                        </div>
+
+                        <!-- Hotel Name -->
+                        <div class="col-12">
+                            <label for="hotel_name" class="form-label">Location Name*</label>
+                            <div class="input-group has-validation">
+                                <span class="input-group-text bg-light"><i class="fas fa-hotel text-primary"></i></span>
+                                <input type="text" class="form-control" id="hotel_name" name="hotel_name" required>
+                                <div class="invalid-feedback">Please enter hotel name.</div>
+                            </div>
+                        </div>
+                        
+                        <!-- Owner -->
+                        <div class="col-12">
+                            <label for="new_owner" class="form-label">Owner*</label>
+                            <div class="input-group has-validation">
+                                <span class="input-group-text bg-light"><i class="fas fa-user text-primary"></i></span>
+                                <input type="text" class="form-control" id="new_owner" name="new_owner" required>
+                                <div class="invalid-feedback">Please enter owner name.</div>
+                            </div>
+                        </div>
+                        
+                        <!-- City -->
+                        <div class="col-md-6">
+                            <label for="new_city" class="form-label">City*</label>
+                            <div class="input-group has-validation">
+                                <span class="input-group-text bg-light"><i class="fas fa-city text-primary"></i></span>
+                                <input type="text" class="form-control" id="new_city" name="new_city" required>
+                                <div class="invalid-feedback">Please enter city.</div>
+                            </div>
+                        </div>
+                        
+                        <!-- State -->
+                        <div class="col-md-6">
+                            <label for="new_state" class="form-label">State*</label>
+                            <div class="input-group has-validation">
+                                <span class="input-group-text bg-light"><i class="fas fa-landmark text-primary"></i></span>
+                                <input type="text" class="form-control" id="new_state" name="new_state" required>
+                                <div class="invalid-feedback">Please enter state.</div>
+                            </div>
+                        </div>
+                        
+                        <!-- Country -->
+                        <div class="col-12">
+                            <label for="new_country" class="form-label">Country*</label>
+                            <div class="input-group has-validation">
+                                <span class="input-group-text bg-light"><i class="fas fa-globe text-primary"></i></span>
+                                <input type="text" class="form-control" id="new_country" name="new_country" required>
+                                <div class="invalid-feedback">Please enter country.</div>
+                            </div>
+                        </div>
+                        
+                        
+                        
+                        <!-- Other Heading (shown only when hotel_type is 'other') -->
+                        <div class="col-12" id="other_heading_div" style="display: none;">
+                            <label for="other_heading" class="form-label">Custom Heading</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light"><i class="fas fa-heading text-primary"></i></span>
+                                <input type="text" class="form-control" id="other_heading" name="other_heading" placeholder="e.g., Custom Accommodation Type">
+                            </div>
+                        </div>
+                        
+                        <!-- Map Heading -->
+                        <div class="col-12">
+                            <label for="heading_map" class="form-label">Map Heading</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light"><i class="fas fa-heading text-primary"></i></span>
+                                <input type="text" class="form-control" id="heading_map" name="heading_map" placeholder="e.g., Location Overview">
+                            </div>
+                        </div>
+                        
+                        <!-- Map Description -->
+                        <div class="col-12">
+                            <label for="description_map" class="form-label">Map Description</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light"><i class="fas fa-align-left text-primary"></i></span>
+                                <textarea class="form-control" id="description_map" name="description_map" rows="4" placeholder="e.g., Detailed description of the hotel location"></textarea>
+                            </div>
+                        </div>
+                        
+                        <!-- Embedded Map Link -->
+                        <div class="col-12">
+                            <label for="embedded_map_link" class="form-label">Google Maps Embed Link*</label>
+                            <div class="input-group has-validation">
+                                <span class="input-group-text bg-light"><i class="fas fa-map text-primary"></i></span>
+                                <input type="url" class="form-control" id="embedded_map_link" name="embedded_map_link" required placeholder="e.g., https://www.google.com/maps/embed?pb=...">
+                                <div class="invalid-feedback">Please enter a valid Google Maps embed link.</div>
+                            </div>
+                            <small class="form-text text-muted">
+                                To get the embed link: Open Google Maps, find the location, click "Share" > "Embed a map", and copy the iframe src URL. Ensure the location name avoids special characters (e.g., &, ') to prevent errors.
+                            </small>
+                        </div>
+                        
+                        <!-- Image Upload Fields -->
+                        <div class="col-12">
+                            <label for="image_1" class="form-label">Hotel Image 1</label>
+                            <div class="input-group">
+                                <input type="file" class="form-control" id="image_1" name="image_1" accept="image/*">
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <label for="image_2" class="form-label">Hotel Image 2</label>
+                            <div class="input-group">
+                                <input type="file" class="form-control" id="image_2" name="image_2" accept="image/*">
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <label for="image_3" class="form-label">Hotel Image 3</label>
+                            <div class="input-group">
+                                <input type="file" class="form-control" id="image_3" name="image_3" accept="image/*">
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <label for="image_4" class="form-label">Hotel Image 4</label>
+                            <div class="input-group">
+                                <input type="file" class="form-control" id="image_4" name="image_4" accept="image/*">
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <label for="image_5" class="form-label">Hotel Image 5</label>
+                            <div class="input-group">
+                                <input type="file" class="form-control" id="image_5" name="image_5" accept="image/*">
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <label for="image_6" class="form-label">Hotel Image 6</label>
+                            <div class="input-group">
+                                <input type="file" class="form-control" id="image_6" name="image_6" accept="image/*">
+                            </div>
+                        </div>
+                        
+                        <!-- Rank -->
+                        <div class="col-md-6">
+                            <label for="rank" class="form-label">Rank</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light"><i class="fas fa-star text-primary"></i></span>
+                                <input type="number" class="form-control" id="rank" name="rank" min="0" value="0">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex justify-content-end mt-4">
+                        <button type="button" class="btn btn-outline-secondary me-3" data-dismiss="modal">
+                            Cancel
+                        </button>
+                        <button type="submit" class="btn btn-success" id="submitButton" disabled>
+                            <i class="fas fa-save me-2"></i> Save Location
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- JavaScript to toggle other_heading field visibility -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const hotelTypeSelect = document.getElementById('hotel_type');
+    const otherHeadingDiv = document.getElementById('other_heading_div');
+
+    function toggleOtherHeading() {
+        if (hotelTypeSelect.value === 'other') {
+            otherHeadingDiv.style.display = 'block';
+        } else {
+            otherHeadingDiv.style.display = 'none';
+            document.getElementById('other_heading').value = ''; // Clear the field when hidden
+        }
+    }
+
+    // Run on page load
+    toggleOtherHeading();
+
+    // Run on change
+    hotelTypeSelect.addEventListener('change', toggleOtherHeading);
+});
+</script>
+
+
+<!-- Edit Location Modal -->
+<div class="modal fade" id="editLocationModal" tabindex="-1" aria-labelledby="editLocationLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content border-0 shadow-lg">
+            <!-- Modal Header -->
+            <div class="modal-header bg-gradient-primary text-white">
+                <h2 class="modal-title fs-5" id="editLocationLabel">
+                    <i class="fas fa-edit me-2"></i>
+                    Edit Hotel Location
+                </h2>
+                <button type="button" class="btn-close btn-close-white" data-dismiss="modal"></button>
+            </div>
+            
+            <!-- Modal Body -->
+            <div class="modal-body p-4">
+                <form action="{% url 'hotel_staff_edit_location' %}" method="POST" id="editLocationForm" class="needs-validation" novalidate enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <input type="hidden" name="hotel_id" id="hotel_id">
+                    
+                    <div class="row g-3">
+                        <!-- Hotel Name -->
+                        <div class="col-12">
+                            <label for="hotel_name" class="form-label">Hotel Name*</label>
+                            <div class="input-group has-validation">
+                                <span class="input-group-text bg-light"><i class="fas fa-hotel text-primary"></i></span>
+                                <input type="text" class="form-control" id="hotel_name" name="hotel_name" required>
+                                <div class="invalid-feedback">Please enter hotel name.</div>
+                            </div>
+                        </div>
+                        
+                        <!-- Owner -->
+                        <div class="col-12">
+                            <label for="new_owner" class="form-label">Owner*</label>
+                            <div class="input-group has-validation">
+                                <span class="input-group-text bg-light"><i class="fas fa-user text-primary"></i></span>
+                                <input type="text" class="form-control" id="new_owner" name="owner" required>
+                                <div class="invalid-feedback">Please enter owner name.</div>
+                            </div>
+                        </div>
+                        
+                        <!-- City -->
+                        <div class="col-md-6">
+                            <label for="new_city" class="form-label">City*</label>
+                            <div class="input-group has-validation">
+                                <span class="input-group-text bg-light"><i class="fas fa-city text-primary"></i></span>
+                                <input type="text" class="form-control" id="new_city" name="location" required>
+                                <div class="invalid-feedback">Please enter city.</div>
+                            </div>
+                        </div>
+                        
+                        <!-- State -->
+                        <div class="col-md-6">
+                            <label for="new_state" class="form-label">State*</label>
+                            <div class="input-group has-validation">
+                                <span class="input-group-text bg-light"><i class="fas fa-landmark text-primary"></i></span>
+                                <input type="text" class="form-control" id="new_state" name="state" required>
+                                <div class="invalid-feedback">Please enter state.</div>
+                            </div>
+                        </div>
+                        
+                        <!-- Country -->
+                        <div class="col-12">
+                            <label for="new_country" class="form-label">Country*</label>
+                            <div class="input-group has-validation">
+                                <span class="input-group-text bg-light"><i class="fas fa-globe text-primary"></i></span>
+                                <input type="text" class="form-control" id="new_country" name="country" required>
+                                <div class="invalid-feedback">Please enter country.</div>
+                            </div>
+                        </div>
+                        
+                        <!-- Map Heading -->
+                        Irma
+                        <div class="col-12">
+                            <label for="heading_map" class="form-label">Map Heading</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light"><i class="fas fa-heading text-primary"></i></span>
+                                <input type="text" class="form-control" id="heading_map" name="heading_map" placeholder="e.g., Location Overview">
+                            </div>
+                        </div>
+                        
+                        <!-- Map Description -->
+                        <div class="col-12">
+                            <label for="description_map" class="form-label">Map Description</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light"><i class="fas fa-align-left text-primary"></i></span>
+                                <textarea class="form-control" id="description_map" name="description_map" rows="4" placeholder="e.g., Detailed description of the hotel location"></textarea>
+                            </div>
+                        </div>
+                        
+                        <!-- Embedded Map Link -->
+                        <div class="col-12">
+                            <label for="embedded_map_link" class="form-label">Google Maps Embed Link*</label>
+                            <div class="input-group has-validation">
+                                <span class="input-group-text bg-light"><i class="fas fa-map text-primary"></i></span>
+                                <input type="url" class="form-control" id="embedded_map_link" name="embedded_map_link" required placeholder="e.g., https://www.google.com/maps/embed?pb=...">
+                                <div class="invalid-feedback">Please enter a valid Google Maps embed link.</div>
+                            </div>
+                            <small class="form-text text-muted">
+                                To get the embed link: Open Google Maps, find the location, click "Share" > "Embed a map", and copy the iframe src URL. Ensure the location name avoids special characters (e.g., &, ') to prevent errors.
+                            </small>
+                        </div>
+                        
+                        <!-- Image Upload Fields -->
+                        <div class="col-12">
+                            <label for="image_1" class="form-label">Hotel Image 1</label>
+                            <div class="input-group">
+                                <input type="file" class="form-control" id="image_1" name="image_1" accept="image/*">
+                                <img id="image_1_preview" src="" alt="Image 1 Preview" style="max-width: 100px; margin-top: 10px; display: none;">
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <label for="image_2" class="form-label">Hotel Image 2</label>
+                            <div class="input-group">
+                                <input type="file" class="form-control" id="image_2" name="image_2" accept="image/*">
+                                <img id="image_2_preview" src="" alt="Image 2 Preview" style="max-width: 100px; margin-top: 10px; display: none;">
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <label for="image_3" class="form-label">Hotel Image 3</label>
+                            <div class="input-group">
+                                <input type="file" class="form-control" id="image_3" name="image_3" accept="image/*">
+                                <img id="image_3_preview" src="" alt="Image 3 Preview" style="max-width: 100px; margin-top: 10px; display: none;">
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <label for="image_4" class="form-label">Hotel Image 4</label>
+                            <div class="input-group">
+                                <input type="file" class="form-control" id="image_4" name="image_4" accept="image/*">
+                                <img id="image_4_preview" src="" alt="Image 4 Preview" style="max-width: 100px; margin-top: 10px; display: none;">
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <label for="image_5" class="form-label">Hotel Image 5</label>
+                            <div class="input-group">
+                                <input type="file" class="form-control" id="image_5" name="image_5" accept="image/*">
+                                <img id="image_5_preview" src="" alt="Image 5 Preview" style="max-width: 100px; margin-top: 10px; display: none;">
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <label for="image_6" class="form-label">Hotel Image 6</label>
+                            <div class="input-group">
+                                <input type="file" class="form-control" id="image_6" name="image_6" accept="image/*">
+                                <img id="image_6_preview" src="" alt="Image 6 Preview" style="max-width: 100px; margin-top: 10px; display: none;">
+                            </div>
+                        </div>
+                        
+                        <!-- Rank -->
+                        <div class="col-md-6">
+                            <label for="rank" class="form-label">Rank</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light"><i class="fas fa-star text-primary"></i></span>
+                                <input type="number" class="form-control" id="rank" name="rank" min="0" value="0">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex justify-content-end mt-4">
+                        <button type="button" class="btn btn-outline-secondary me-3" data-dismiss="modal">
+                            Cancel
+                        </button>
+                        <button type="submit" class="btn btn-success" id="submitButton">
+                            <i class="fas fa-save me-2"></i> Update Location
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- JavaScript to Populate Modal with Hotel Data -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var editModal = document.getElementById('editLocationModal');
+    editModal.addEventListener('show.bs.modal', function(event) {
+        var button = event.relatedTarget; // Button that triggered the modal
+        var hotelId = button.getAttribute('data-hotel-id');
+        var hotelName = button.getAttribute('data-hotel-name');
+        var owner = button.getAttribute('data-owner');
+        var location = button.getAttribute('data-location');
+        var state = button.getAttribute('data-state');
+        var country = button.getAttribute('data-country');
+        var headingMap = button.getAttribute('data-heading-map');
+        var descriptionMap = button.getAttribute('data-description-map');
+        var embeddedMapLink = button.getAttribute('data-embedded-map-link');
+        var rank = button.getAttribute('data-rank');
+        var image1 = button.getAttribute('data-image-1');
+        var image2 = button.getAttribute('data-image-2');
+        var image3 = button.getAttribute('data-image-3');
+        var image4 = button.getAttribute('data-image-4');
+        var image5 = button.getAttribute('data-image-5');
+        var image6 = button.getAttribute('data-image-6');
+
+        // Populate the form fields
+        var modal = this;
+        modal.querySelector('#hotel_id').value = hotelId;
+        modal.querySelector('#hotel_name').value = hotelName;
+        modal.querySelector('#new_owner').value = owner;
+        modal.querySelector('#new_city').value = location;
+        modal.querySelector('#new_state').value = state;
+        modal.querySelector('#new_country').value = country;
+        modal.querySelector('#heading_map').value = headingMap || '';
+        modal.querySelector('#description_map').value = descriptionMap || '';
+        modal.querySelector('#embedded_map_link').value = embeddedMapLink || '';
+        modal.querySelector('#rank').value = rank || '0';
+
+        // Image previews
+        var images = [image1, image2, image3, image4, image5, image6];
+        for (var i = 1; i <= 6; i++) {
+            var imgPreview = modal.querySelector('#image_' + i + '_preview');
+            if (images[i-1]) {
+                imgPreview.src = images[i-1];
+                imgPreview.style.display = 'block';
+            } else {
+                imgPreview.src = '';
+                imgPreview.style.display = 'none';
+            }
+        }
+    });
+});
+</script>
+
+<!-- Client-side validation for form -->
+<script>
+(function () {
+    'use strict';
+    const forms = document.querySelectorAll('.needs-validation');
+    const embedLinkInput = document.getElementById('embedded_map_link');
+    const submitButton = document.getElementById('submitButton');
+
+    // Enable submit button only when all required fields are filled
+    forms.forEach(form => {
+        const inputs = form.querySelectorAll('input[required], textarea[required]');
+        inputs.forEach(input => {
+            input.addEventListener('input', () => {
+                let allFilled = true;
+                inputs.forEach(reqInput => {
+                    if (!reqInput.value.trim()) allFilled = false;
+                });
+                submitButton.disabled = !allFilled;
+            });
+        });
+
+        form.addEventListener('submit', event => {
+            if (!form.checkValidity()) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+            form.classList.add('was-validated');
+        }, false);
+    });
+
+    // Validate Google Maps embed link format
+    embedLinkInput.addEventListener('input', () => {
+        const value = embedLinkInput.value.trim();
+        const isValid = value.startsWith('https://www.google.com/maps/embed');
+        embedLinkInput.setCustomValidity(isValid ? '' : 'Please enter a valid Google Maps embed link.');
+    });
+})();
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Get the form and submit button elements
+    const locationForm = document.getElementById('locationForm');
+    const submitButton = document.getElementById('submitButton');
+    
+    if (locationForm && submitButton) {
+        // Disable submit button initially
+        submitButton.disabled = true;
+
+        // Enable/Disable submit button based on form validity
+        locationForm.addEventListener('input', function() {
+            submitButton.disabled = !locationForm.checkValidity();
+        });
+
+        // Form validation on submit
+        locationForm.addEventListener('submit', function(event) {
+            if (!locationForm.checkValidity()) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+            locationForm.classList.add('was-validated');
+        }, false);
+    }
+
+    // Initialize modal
+    var locationModal = document.getElementById('newlocation');
+    if (locationModal) {
+        var modal = new bootstrap.Modal(locationModal);
+        
+        // Manually handle close events if needed
+        var closeButtons = document.querySelectorAll('[data-bs-dismiss="modal"]');
+        closeButtons.forEach(function(button) {
+            button.addEventListener('click', function() {
+                modal.hide();
+            });
+        });
+    }
+});
+</script>
+
+<!--Modal for Add New Location starts from here-->
+
+<!-- The Modal -->
+{% comment %} <div class="modal" id="newlocation">
+    <div class="modal-dialog">
+        <div class="modal-content">
+
+            <!-- Modal Header -->
+            <div class="modal-header">
+                <h4 class="modal-title">Add New Location</h4>
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+            </div>
+
+            <!-- Modal body -->
+            <div class="modal-body">
+                <div class="container">
+
+                    <div class="row">
+                        <div class="col mx-auto">
+
+                            <form action="{%url 'addnewlocation'%}" method="POST">
+                                {% csrf_token %}
+
+                                <div class="form-group">
+                                    <label for="hotel_name">Hotel Name:</label>
+                                    <input type="text" class="form-control " id="new_hotel_name" name="new_hotel_name">
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="Owner">Owner:</label>
+                                    <input type="text" class="form-control " id="new_owner" name="new_owner">
+                                </div>
+                                <div class="form-group">
+                                    <label for="city">City:</label>
+                                    <input type="text" class="form-control " id="new_city" name="new_city">
+                                </div>
+                                <div class="form-group">
+                                    <label for="">State:</label>
+                                    <input type="text" class="form-control " id="new_state" name="new_state">
+                                </div>
+                                <div class="form-group">
+                                    <label for="country">Country:</label>
+                                    <input type="text" class="form-control " id="new_country" name="new_country">
+                                </div>
+
+
+                                <button type="submit" class="btn btn-primary">Add Location</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+
+
+        </div>
+    </div>
+</div> {% endcomment %}
+<!--Modal for Add New location Ends here-->
+
+<!--Modal for Add New Room starts from here-->
+
+<!-- The Modal -->
+<div class="modal" id="newroom">
+    <div class="modal-dialog">
+        <div class="modal-content">
+
+            <!-- Modal Header -->
+            <div class="modal-header">
+                <h4 class="modal-title">Add New Room</h4>
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+            </div>
+
+            <!-- Modal Body -->
+            <div class="modal-body">
+                <div class="container">
+                    <div class="row">
+                        <div class="col mx-auto">
+                            <form action="{%url 'addroom' %}" method="POST">
+                                {% csrf_token %}
+
+                                <div class="form-group">
+                                    <label for="room_number">Room Number:</label>
+                                    <input type="text" class="form-control" id="room_number" name="room_number" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="roomtype">Room Type:</label>
+                                    <select class="form-control" name="roomtype" id="roomtype" required>
+                                        <option value="1">Premium</option>
+                                        <option value="2">Deluxe</option>
+                                        <option value="3">Basic</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="capacity">Capacity:</label>
+                                    <input type="number" class="form-control" id="capacity" name="capacity" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="price">Price:</label>
+                                    <input type="number" step="0.01" class="form-control" id="price" name="price" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="discount">Discount (%):</label>
+                                    <input type="number" step="0.01" class="form-control" id="discount" name="discount">
+                                </div>
+                                <div class="form-group">
+                                    <label for="size">Size:</label>
+                                    <input type="number" class="form-control" id="size" name="size" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="roomstatus">Status:</label>
+                                    <select class="form-control" name="status" id="roomstatus" required>
+                                        <option value="1">Available</option>
+                                        <option value="2">Not Available</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="hotel">Location:</label>
+                                    <select class="form-control" name="hotel" id="hotel" required>
+                                        {% for each_location, eachid in location %}
+                                            <option value="{{ eachid }}">{{ each_location }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <button type="submit" class="btn btn-primary">Add Room</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+{% endblock  %} 

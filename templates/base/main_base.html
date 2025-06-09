@@ -1,0 +1,1463 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta content="width=device-width, initial-scale=1.0" name="viewport">
+  <title>PandharpurGuide</title>
+  <meta name="description" content="">
+  <meta name="keywords" content="">
+
+  <!-- Favicons -->
+  <link href="{% static 'assets/img/favicon.png' %}" rel="icon">
+  <link href="{% static 'assets/img/apple-touch-icon.png' %}" rel="apple-touch-icon">
+
+  <!-- Fonts -->
+  <link href="https://fonts.googleapis.com" rel="preconnect">
+  <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Raleway:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap" rel="stylesheet">
+
+  <!-- Vendor CSS Files -->
+  <link href="{% static 'assets/vendor/bootstrap/css/bootstrap.min.css' %}" rel="stylesheet">
+  <link href="{% static 'assets/vendor/bootstrap-icons/bootstrap-icons.css' %}" rel="stylesheet">
+  <link href="{% static 'assets/vendor/aos/aos.css" rel="stylesheet' %}">
+  <link href="{% static 'assets/vendor/glightbox/css/glightbox.min.css' %}" rel="stylesheet">
+  <link href="{% static 'assets/vendor/swiper/swiper-bundle.min.css' %}" rel="stylesheet">
+
+  <!-- fas fa icons  -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+
+  <!-- Main CSS File -->
+  <link href="{% static 'assets/css/main.css' %}" rel="stylesheet">
+
+  <link href="{% static 'assets/css/advertisement.css' %}" rel="stylesheet">
+
+</head>
+
+{% load static %}
+<style>
+            /* Popup Container for Django Messages */
+            .popup1-container {
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                z-index: 10000;
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .popup1 {
+                position: relative;
+                background: #fff;
+                padding: 15px;
+                border-radius: 5px;
+                box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+                max-width: 300px;
+                animation: fadeIn 0.5s;
+            }
+
+            .popup1-content p {
+                margin: 0 0 10px;
+                font-size: 14px;
+            }
+
+            .popup1-buttons {
+                display: flex;
+                justify-content: flex-end;
+            }
+
+            .close-btn {
+                background: #f44336;
+                color: white;
+                border: none;
+                padding: 5px 10px;
+                border-radius: 3px;
+                cursor: pointer;
+            }
+
+            .popup1 .cancel-btn {
+                position: absolute;
+                top: 5px;
+                right: 5px;
+                background: transparent;
+                color: #555;
+                border: none;
+                font-size: 16px;
+                cursor: pointer;
+            }
+
+            /* Full Screen Popup Ad Styles */
+            .fullscreen-popup-ad {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100vw;
+                height: 100vh;
+                background-color: rgba(0, 0, 0, 0.7);
+                z-index: 9999;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                animation: fadeIn 0.5s;
+            }
+
+            .fullscreen-ad-content {
+                position: relative;
+                max-width: 90%;
+                max-height: 90%;
+                background: white;
+                padding: 20px;
+                border-radius: 8px;
+                text-align: center;
+            }
+
+            .fullscreen-ad-content img,
+            .fullscreen-ad-content video {
+                max-width: 100%;
+                max-height: 80vh;
+                display: block;
+                margin: 0 auto;
+                object-fit: contain;
+            }
+
+            .close-full-screen {
+                position: absolute;
+                top: 10px;
+                right: 10px;
+                background: none;
+                border: none;
+                font-size: 18px;
+                cursor: pointer;
+                color: #333;
+                z-index: 1002;
+            }
+
+            .countdown {
+                position: absolute;
+                top: 8px;
+                left: 8px;
+                background: rgba(0, 255, 0, 0.8);
+                color: white;
+                padding: 4px 8px;
+                border-radius: 4px;
+                font-size: 14px;
+                z-index: 1001;
+            }
+
+            .ad-spot-info {
+                position: absolute;
+                bottom: 8px;
+                left: 8px;
+                background: rgba(0, 0, 0, 0.5);
+                color: white;
+                padding: 2px 5px;
+                font-size: 10px;
+                border-radius: 2px;
+            }
+
+            @keyframes fadeIn {
+                from { opacity: 0; }
+                to { opacity: 1; }
+            }
+
+            @media (max-width: 768px) {
+                .fullscreen-ad-content {
+                    max-width: 95%;
+                    padding: 15px;
+                }
+                .fullscreen-ad-content img,
+                .fullscreen-ad-content video {
+                    max-height: 70vh;
+                }
+                .popup1-container {
+                    top: 10px;
+                    right: 10px;
+                    max-width: 90%;
+                }
+            }
+
+            @media (max-width: 640px) {
+                .fullscreen-ad-content {
+                    max-width: 95%;
+                    padding: 10px;
+                }
+                .fullscreen-ad-content img,
+                .fullscreen-ad-content video {
+                    max-height: 70vh;
+                }
+                .popup1 {
+                    max-width: 100%;
+                    padding: 10px;
+                }
+            }
+
+            /* Modern Ad Container Styles */
+            .advertisements-upper-menu,
+            .advertisements-below-menu,
+            .advertisements-left-side,
+            .advertisements-right-side,
+            .advertisements-below-footer,
+            .advertisements-below-page {
+                width: 100%;
+                position: relative;
+                text-align: center;
+                z-index: 1000;
+                box-sizing: border-box;
+            }
+
+            .advertisements-left-side,
+            .advertisements-right-side {
+                position: fixed;
+                top: 50%;
+                transform: translateY(-50%);
+                width: 160px;
+                max-width: 15%;
+                z-index: 1001;
+            }
+
+            .advertisements-left-side {
+                left: 10px;
+            }
+
+            .advertisements-right-side {
+                right: 10px;
+            }
+
+            /* Advertisement Item Styling */
+            .advertisement {
+                display: block;
+                position: relative;
+                width: 100%;
+                max-width: 900px;
+                margin: 15px auto;
+                background: #fff;
+                border-radius: 8px;
+                padding: 15px;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+                overflow: hidden;
+                transition: all 0.3s ease;
+            }
+
+            .advertisement:hover {
+                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                transform: translateY(-2px);
+            }
+
+            .advertisements-left-side .advertisement,
+            .advertisements-right-side .advertisement {
+                width: 100%;
+                max-width: 100%;
+                margin: 10px 0;
+            }
+
+            /* Ad Content Styling */
+            .advertisement img,
+            .advertisement video {
+                max-width: 100%;
+                height: auto;
+                display: block;
+                margin-bottom: 12px;
+                border-radius: 4px;
+            }
+
+            .advertisement h6 {
+                margin: 8px 0;
+                font-size: 14px;
+                color: #333;
+                font-weight: 600;
+            }
+
+            .advertisement a {
+                text-decoration: none;
+                color: inherit;
+                display: block;
+            }
+
+            /* Close Button */
+            .cancel-btn {
+                position: absolute;
+                top: 8px;
+                right: 8px;
+                background: rgba(255, 255, 255, 0.9);
+                color: #555;
+                border: none;
+                border-radius: 50%;
+                cursor: pointer;
+                width: 24px;
+                height: 24px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 12px;
+                font-weight: bold;
+                box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+                z-index: 1002;
+                transition: all 0.2s ease;
+            }
+
+            .cancel-btn:hover {
+                background: #f44336;
+                color: white;
+                transform: scale(1.1);
+            }
+
+            /* Animations */
+            .fade-in {
+                animation: fadeIn 0.6s ease-out forwards;
+            }
+
+            .fade-out {
+                animation: fadeOut 0.4s ease-out forwards;
+            }
+
+            @keyframes fadeOut {
+                from { opacity: 1; transform: translateY(0); }
+                to { opacity: 0; transform: translateY(-10px); }
+            }
+
+            @media (min-width: 500px) and (max-width: 768px) {
+                .advertisement img,
+                .advertisement video {
+                    width: 50%;
+                    height: auto;
+                    display: block;
+                    margin-left: auto;
+                    margin-right: auto;
+                }
+            }
+
+            @media (max-width: 768px) {
+                .advertisements-left-side,
+                .advertisements-right-side {
+                    position: static;
+                    width: 100%;
+                    max-width: 100%;
+                    transform: none;
+                    margin: 15px 0;
+                }
+                .advertisement {
+                    max-width: 90%;
+                    padding: 15px;
+                }
+                .content-wrapper {
+                    padding: 15px;
+                }
+            }
+</style>
+
+<style>
+        /* Popup Container for Django Messages */
+        .popup1-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 10000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .popup1 {
+            position: relative;
+            background: #fff;
+            padding: 15px;
+            border-radius: 5px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            max-width: 300px;
+            animation: fadeIn 0.5s;
+        }
+
+        .popup1-content p {
+            margin: 0 0 10px;
+            font-size: 14px;
+        }
+
+        .popup1-buttons {
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        .close-btn {
+            background: #f44336;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+
+        .popup1 .cancel-btn {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background: transparent;
+            color: #555;
+            border: none;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        /* Advertisement Container Styles */
+        .advertisements-upper-menu,
+        .advertisements-below-menu,
+        .advertisements-left-side,
+        .advertisements-right-side,
+        .advertisements-below-footer,
+        .advertisements-below-page {
+            width: 100%;
+            position: relative;
+            text-align: center;
+            z-index: 1000;
+            box-sizing: border-box;
+        }
+
+        .advertisements-left-side,
+        .advertisements-right-side {
+            position: fixed;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 160px;
+            max-width: 15%;
+            z-index: 1001;
+        }
+
+        .advertisements-left-side {
+            left: 10px;
+        }
+
+        .advertisements-right-side {
+            right: 10px;
+        }
+
+        /* Full Screen Popup Ad Styles */
+        .fullscreen-popup-ad {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-color: rgba(0, 0, 0, 0.7);
+            z-index: 9999;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            animation: fadeIn 0.5s;
+        }
+
+        .fullscreen-ad-content {
+            position: relative;
+            max-width: 90%;
+            max-height: 90%;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+    
+        .advertisement:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            transform: translateY(-2px);
+        }
+
+        .fullscreen-ad-content img,
+        .fullscreen-ad-content video,
+        .advertisement img,
+        .advertisement video {
+            max-width: 100%;
+            max-height: 80vh;
+            display: block;
+            margin: 0 auto;
+            object-fit: contain;
+            border-radius: 4px;
+        }
+
+        .advertisement h6 {
+            margin: 8px 0;
+            font-size: 14px;
+            color: #333;
+            font-weight: 600;
+        }
+
+        .advertisement a, .fullscreen-ad-content a {
+            text-decoration: none;
+            color: inherit;
+            display: block;
+        }
+
+        /* Close Button */
+        .cancel-btn, .close-full-screen {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: rgba(255, 255, 255, 0.9);
+            color: #555;
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            z-index: 1002;
+            transition: all 0.2s ease;
+        }
+
+        .cancel-btn:hover, .close-full-screen:hover {
+            background: #f44336;
+            color: white;
+            transform: scale(1.1);
+        }
+
+        /* Countdown Timer */
+        .countdown-timer {
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            background: rgba(0, 255, 0, 0.8);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 14px;
+            z-index: 1001;
+        }
+
+        /* Ad Spot Info */
+        .ad-spot-info {
+            position: absolute;
+            bottom: 8px;
+            left: 8px;
+            background: rgba(0, 0, 0, 0.5);
+            color: white;
+            padding: 2px 5px;
+            font-size: 10px;
+            border-radius: 2px;
+        }
+
+        /* Animations */
+        .fade-in {
+            animation: fadeIn 0.6s ease-out forwards;
+        }
+
+        .fade-out {
+            animation: fadeOut 0.4s ease-out forwards;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes fadeOut {
+            from { opacity: 1; transform: translateY(0); }
+            to { opacity: 0; transform: translateY(-10px); }
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .fullscreen-ad-content, .advertisement {
+                max-width: 95%;
+                padding: 15px;
+            }
+            .fullscreen-ad-content img,
+            .fullscreen-ad-content video,
+            .advertisement img,
+            .advertisement video {
+                max-height: 70vh;
+            }
+            .popup1-container {
+                top: 10px;
+                right: 10px;
+                max-width: 90%;
+            }
+            .advertisements-left-side,
+            .advertisements-right-side {
+                position: static;
+                width: 100%;
+                max-width: 100%;
+                transform: none;
+                margin: 15px 0;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .fullscreen-ad-content, .advertisement {
+                max-width: 95%;
+                padding: 10px;
+            }
+            .popup1 {
+                max-width: 100%;
+                padding: 10px;
+            }
+        }
+    </style>
+
+    <style>
+    /* Full Screen Popup Ad Styles */
+    .fullscreen-popup-ad {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.9);
+        z-index: 9999;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        animation: fadeIn 0.5s;
+    }
+
+    .fullscreen-ad-content {
+        position: relative;
+        max-width: 90%;
+        max-height: 90%;
+        background: white;
+        padding: 20px;
+        border-radius: 5px;
+        text-align: center;
+    }
+
+    .fullscreen-ad-content img {
+        max-width: 100%;
+        max-height: 80vh;
+        display: block;
+        margin: 0 auto;
+    }
+
+    .close-fullscreen-ad {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        background: transparent;
+        border: none;
+        font-size: 20px;
+        cursor: pointer;
+        color: #333;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+</style>
+
+
+
+
+
+<body class="index-page">
+<!-- HTML Structure -->
+
+<div class="popup-container" id="popupContainer">
+  {% for message in messages %}
+  <div class="popup alert-{{ message.tags }}" role="alert">
+    <button class="cancel-btn" aria-label="Cancel">×</button>
+    <div class="popup-content">
+      <p>{{ message }}</p>
+      <div class="popup-buttons">
+        <button class="btn close-btn">Close</button>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+
+<script>
+        function closeFullscreenAd(adId) {
+            document.getElementById(adId).style.display = 'none';
+        }
+
+        // Optional: Auto-close after some time
+        document.addEventListener('DOMContentLoaded', function() {
+            {% for ad in advertisements %}
+                {% if ad.position == "full-screen-popup" and ad.status == "enable" %}
+                    setTimeout(function() {
+                        var ad = document.getElementById('fullscreen-popup-ad-{{ forloop.counter }}');
+                        if (ad) ad.style.display = 'none';
+                    }, 10000); // 10 seconds
+                {% endif %}
+            {% endfor %}
+        });
+</script>
+    
+
+
+<script>
+    function closeFullscreenAd(adId) {
+        document.getElementById(adId).style.display = 'none';
+        // Mark as closed in sessionStorage for show_once ads
+        const adElement = document.getElementById(adId);
+        if (adElement && adElement.dataset.frequency === 'show_once') {
+            sessionStorage.setItem(adId, 'closed');
+        }
+    }
+
+    // Optional: Auto-close after some time
+    document.addEventListener('DOMContentLoaded', function() {
+        {% for ad in advertisements %}
+            {% if ad.position == "full-screen-popup" and ad.status == "enable" %}
+                // Only auto-close if not already closed
+                if (!sessionStorage.getItem('fullscreen-popup-ad-{{ forloop.counter }}')) {
+                    setTimeout(function() {
+                        var ad = document.getElementById('fullscreen-popup-ad-{{ forloop.counter }}');
+                        if (ad) {
+                            ad.style.display = 'none';
+                            if (ad.dataset.frequency === 'show_once') {
+                                sessionStorage.setItem('fullscreen-popup-ad-{{ forloop.counter }}', 'closed');
+                            }
+                        }
+                    }, 10000); // 10 seconds
+                }
+            {% endif %}
+        {% endfor %}
+    });
+</script>
+
+<script>
+    // Track active countdowns to prevent duplicates
+    const activeCountdowns = new Set();
+
+    // Close advertisement with fade-out and handle frequency
+    function closeAd(adId, frequency, repeatInterval, duration, isFullscreen) {
+        const adElement = document.getElementById(adId);
+        if (adElement) {
+            adElement.classList.remove('fade-in');
+            adElement.classList.add('fade-out');
+            
+            setTimeout(() => {
+                adElement.style.display = 'none';
+                adElement.classList.remove('fade-out');
+                
+                // Clear any existing countdown for this ad
+                const countdownElement = document.getElementById('countdown-' + adId);
+                if (countdownElement) {
+                    countdownElement.remove();
+                }
+                activeCountdowns.delete(adId);
+                
+                if (frequency === 'repeat') {
+                    setTimeout(() => {
+                        if (!sessionStorage.getItem(adId + '_permanent_close')) {
+                            adElement.style.display = isFullscreen ? 'flex' : 'block';
+                            adElement.classList.add('fade-in');
+                            
+                            if (duration > 0) {
+                                startCountdown(adId, duration, isFullscreen);
+                            }
+                            if (isFullscreen) {
+                                toggleNonPopupAds(false);
+                            }
+                        }
+                    }, repeatInterval * 1000);
+                } else if (frequency === 'show_once') {
+                    // Mark as closed in sessionStorage
+                    sessionStorage.setItem(adId, 'closed');
+                    if (isFullscreen) {
+                        toggleNonPopupAds(true);
+                    }
+                }
+            }, 400);
+            
+            if (isFullscreen) {
+                toggleNonPopupAds(true);
+            }
+        }
+    }
+
+    // Start countdown timer for an ad
+    function startCountdown(adId, duration, isFullscreen) {
+        // Prevent duplicate countdowns
+        if (activeCountdowns.has(adId)) return;
+        activeCountdowns.add(adId);
+        
+        const adElement = document.getElementById(adId);
+        if (!adElement) return;
+
+        let countdownElement = document.getElementById('countdown-' + adId);
+        if (!countdownElement) {
+            countdownElement = document.createElement('div');
+            countdownElement.className = 'countdown-timer';
+            countdownElement.id = 'countdown-' + adId;
+            
+            if (isFullscreen) {
+                adElement.querySelector('.fullscreen-ad-content').appendChild(countdownElement);
+            } else {
+                adElement.appendChild(countdownElement);
+            }
+        }
+
+        let timeLeft = duration;
+        countdownElement.textContent = `Closing in ${timeLeft}s`;
+
+        const countdownInterval = setInterval(() => {
+            timeLeft--;
+            countdownElement.textContent = `Closing in ${timeLeft}s`;
+            
+            if (timeLeft <= 0) {
+                clearInterval(countdownInterval);
+                const frequency = adElement.dataset.frequency;
+                const repeatInterval = parseInt(adElement.dataset.repeatInterval);
+                closeAd(adId, frequency, repeatInterval, duration, isFullscreen);
+            }
+        }, 1000);
+    }
+
+    // Toggle visibility of non-popup ads
+    function toggleNonPopupAds(show) {
+        const containers = document.querySelectorAll(
+            '.advertisements-upper-menu, .advertisements-below-menu, .advertisements-left-side, ' +
+            '.advertisements-right-side, .advertisements-below-footer, .advertisements-below-page'
+        );
+        containers.forEach(container => {
+            container.style.display = show ? 'block' : 'none';
+        });
+    }
+
+    // Initialize ads on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        let hasFullscreenAd = false;
+        
+        {% for ad in advertisements %}
+            {% if ad.status == "enable" %}
+                const adId{{ forloop.counter }} = '{% if ad.position == "full-screen-popup" %}fullscreen-popup-ad-{{ forloop.counter }}{% else %}ad-{{ ad.position|slugify }}-{{ forloop.counter }}{% endif %}';
+                const adElement{{ forloop.counter }} = document.getElementById(adId{{ forloop.counter }});
+                
+                if (adElement{{ forloop.counter }}) {
+                    // Check if ad should be shown based on frequency
+                    const shouldShowAd = (
+                        (adElement{{ forloop.counter }}.dataset.frequency === 'show_once' && 
+                        !sessionStorage.getItem(adId{{ forloop.counter }})) ||
+                        (adElement{{ forloop.counter }}.dataset.frequency === 'repeat' && 
+                        !sessionStorage.getItem(adId{{ forloop.counter }} + '_permanent_close'))
+                    );
+                    
+                    {% if ad.position == "full-screen-popup" %}
+                        hasFullscreenAd = true;
+                        if (shouldShowAd) {
+                            adElement{{ forloop.counter }}.style.display = 'flex';
+                            adElement{{ forloop.counter }}.classList.add('fade-in');
+                            toggleNonPopupAds(false);
+                            
+                            {% if ad.countdown_mode == "custom" %}
+                                startCountdown(adId{{ forloop.counter }}, {{ ad.countdown_duration }}, true);
+                            {% endif %}
+                        } else {
+                            adElement{{ forloop.counter }}.style.display = 'none';
+                            toggleNonPopupAds(true);
+                        }
+                    {% else %}
+                        if (!hasFullscreenAd && shouldShowAd) {
+                            setTimeout(() => {
+                                adElement{{ forloop.counter }}.style.display = 'block';
+                                adElement{{ forloop.counter }}.classList.add('fade-in');
+                                
+                                {% if ad.countdown_mode == "custom" %}
+                                    startCountdown(adId{{ forloop.counter }}, {{ ad.countdown_duration }}, false);
+                                {% endif %}
+                            }, {{ forloop.counter }} * 800);
+                        } else {
+                            adElement{{ forloop.counter }}.style.display = 'none';
+                        }
+                    {% endif %}
+                }
+            {% endif %}
+        {% endfor %}
+
+        // Handle close buttons
+        document.querySelectorAll('.cancel-btn, .close-full-screen').forEach(button => {
+            button.addEventListener('click', function() {
+                const adElement = this.closest('.advertisement, .fullscreen-popup-ad');
+                if (adElement) {
+                    const adId = adElement.id;
+                    const frequency = adElement.dataset.frequency;
+                    const repeatInterval = parseInt(adElement.dataset.repeatInterval);
+                    const duration = parseInt(adElement.dataset.countdownDuration) || 0;
+                    const isFullscreen = adElement.classList.contains('fullscreen-popup-ad');
+                    
+                    closeAd(adId, frequency, repeatInterval, duration, isFullscreen);
+                }
+            });
+        });
+
+        window.addEventListener('scroll', maintainAdZIndex);
+    });
+
+    // Maintain z-index for ads
+    function maintainAdZIndex() {
+        document.querySelectorAll('.advertisements-upper-menu, .advertisements-below-menu, .advertisements-left-side, .advertisements-right-side, .advertisements-below-footer, .advertisements-below-page').forEach(container => {
+            container.style.zIndex = '1000';
+        });
+        document.querySelectorAll('.advertisements-left-side, .advertisements-right-side').forEach(sideAd => {
+            sideAd.style.zIndex = '1001';
+        });
+    }
+
+    // Permanent close function (if needed)
+    function permanentCloseAd(adId) {
+        sessionStorage.setItem(adId + '_permanent_close', 'true');
+        const adElement = document.getElementById(adId);
+        if (adElement) {
+            adElement.style.display = 'none';
+        }
+    }
+</script>
+
+<body class="index-page">
+
+
+
+    <div class="content-wrapper">
+        <!-- Upper menu advertisement spot -->
+        <div class="advertisements-upper-menu">
+            {% for ad in advertisements %}
+                {% if ad.position == "upper-menu" and ad.status == "enable" %}
+                    <div class="advertisement" id="ad-upper-menu-{{ forloop.counter }}"
+                         data-frequency="{{ ad.display_frequency }}"
+                         data-repeat-interval="{{ ad.repeat_interval }}"
+                         data-countdown-duration="{{ ad.countdown_duration|default:10 }}">
+                        <button class="cancel-btn">✕</button>
+                        <div class="ad-spot-info">ADVERTISEMENT</div>
+                        {% if ad.is_google_adsense %}
+                            <div class="google-adsense">
+                                {{ ad.google_adsense_code|safe }}
+                            </div>
+                        {% else %}
+                            {% if ad.site_link %}
+                                <a href="{{ ad.site_link }}" target="_blank">
+                                    {% if ad.image %}
+                                        <img src="{{ ad.image.url }}" alt="{{ ad.title }}" />
+                                    {% endif %}
+                                    {% if ad.video %}
+                                        <video src="{{ ad.video.url }}" controls autoplay muted></video>
+                                    {% endif %}
+                                    <h6>{{ ad.title }}</h6>
+                                </a>
+                            {% else %}
+                                {% if ad.image %}
+                                    <img src="{{ ad.image.url }}" alt="{{ ad.title }}" />
+                                {% endif %}
+                                {% if ad.video %}
+                                    <video src="{{ ad.video.url }}" controls autoplay muted></video>
+                                {% endif %}
+                                <h6>{{ ad.title }}</h6>
+                            {% endif %}
+                        {% endif %}
+                    </div>
+                {% endif %}
+            {% endfor %}
+        </div>
+
+        {% block second_nav %}
+        {% endblock %}
+
+        <!-- Below menu advertisement spot -->
+        <div class="advertisements-below-menu">
+            {% for ad in advertisements %}
+                {% if ad.position == "below-menu" and ad.status == "enable" %}
+                    <div class="advertisement" id="ad-below-menu-{{ forloop.counter }}"
+                         data-frequency="{{ ad.display_frequency }}"
+                         data-repeat-interval="{{ ad.repeat_interval }}"
+                         data-countdown-duration="{{ ad.countdown_duration|default:10 }}">
+                        <button class="cancel-btn">✕</button>
+                        <div class="ad-spot-info">ADVERTISEMENT</div>
+                        {% if ad.is_google_adsense %}
+                            <div class="google-adsense">
+                                {{ ad.google_adsense_code|safe }}
+                            </div>
+                        {% else %}
+                            {% if ad.site_link %}
+                                <a href="{{ ad.site_link }}" target="_blank">
+                                    {% if ad.image %}
+                                        <img src="{{ ad.image.url }}" alt="{{ ad.title }}" />
+                                    {% endif %}
+                                    {% if ad.video %}
+                                        <video src="{{ ad.video.url }}" controls autoplay muted></video>
+                                    {% endif %}
+                                    <h6>{{ ad.title }}</h6>
+                                </a>
+                            {% else %}
+                                {% if ad.image %}
+                                    <img src="{{ ad.image.url }}" alt="{{ ad.title }}" />
+                                {% endif %}
+                                {% if ad.video %}
+                                    <video src="{{ ad.video.url }}" controls autoplay muted></video>
+                                {% endif %}
+                                <h6>{{ ad.title }}</h6>
+                            {% endif %}
+                        {% endif %}
+                    </div>
+                {% endif %}
+            {% endfor %}
+        </div>
+
+        <!-- Left side advertisement spot -->
+        <div class="advertisements-left-side">
+            {% for ad in advertisements %}
+                {% if ad.position == "left-side-of-page" and ad.status == "enable" %}
+                    <div class="advertisement" id="ad-left-side-{{ forloop.counter }}"
+                         data-frequency="{{ ad.display_frequency }}"
+                         data-repeat-interval="{{ ad.repeat_interval }}"
+                         data-countdown-duration="{{ ad.countdown_duration|default:10 }}">
+                        <button class="cancel-btn">✕</button>
+                        <div class="ad-spot-info">ADVERTISEMENT</div>
+                        {% if ad.is_google_adsense %}
+                            <div class="google-adsense">
+                                {{ ad.google_adsense_code|safe }}
+                            </div>
+                        {% else %}
+                            {% if ad.site_link %}
+                                <a href="{{ ad.site_link }}" target="_blank">
+                                    {% if ad.image %}
+                                        <img src="{{ ad.image.url }}" alt="{{ ad.title }}" />
+                                    {% endif %}
+                                    {% if ad.video %}
+                                        <video src="{{ ad.video.url }}" controls autoplay muted></video>
+                                    {% endif %}
+                                    <h6>{{ ad.title }}</h6>
+                                </a>
+                            {% else %}
+                                {% if ad.image %}
+                                    <img src="{{ ad.image.url }}" alt="{{ ad.title }}" />
+                                {% endif %}
+                                {% if ad.video %}
+                                    <video src="{{ ad.video.url }}" controls autoplay muted></video>
+                                {% endif %}
+                                <h6>{{ ad.title }}</h6>
+                            {% endif %}
+                        {% endif %}
+                    </div>
+                {% endif %}
+            {% endfor %}
+        </div>
+
+        <!-- Right side advertisement spot -->
+        <div class="advertisements-right-side">
+            {% for ad in advertisements %}
+                {% if ad.position == "right-side-of-page" and ad.status == "enable" %}
+                    <div class="advertisement" id="ad-right-side-{{ forloop.counter }}"
+                         data-frequency="{{ ad.display_frequency }}"
+                         data-repeat-interval="{{ ad.repeat_interval }}"
+                         data-countdown-duration="{{ ad.countdown_duration|default:10 }}">
+                        <button class="cancel-btn">✕</button>
+                        <div class="ad-spot-info">ADVERTISEMENT</div>
+                        {% if ad.is_google_adsense %}
+                            <div class="google-adsense">
+                                {{ ad.google_adsense_code|safe }}
+                            </div>
+                        {% else %}
+                            {% if ad.site_link %}
+                                <a href="{{ ad.site_link }}" target="_blank">
+                                    {% if ad.image %}
+                                        <img src="{{ ad.image.url }}" alt="{{ ad.title }}" />
+                                    {% endif %}
+                                    {% if ad.video %}
+                                        <video src="{{ ad.video.url }}" controls autoplay muted></video>
+                                    {% endif %}
+                                    <h6>{{ ad.title }}</h6>
+                                </a>
+                            {% else %}
+                                {% if ad.image %}
+                                    <img src="{{ ad.image.url }}" alt="{{ ad.title }}" />
+                                {% endif %}
+                                {% if ad.video %}
+                                    <video src="{{ ad.video.url }}" controls autoplay muted></video>
+                                {% endif %}
+                                <h6>{{ ad.title }}</h6>
+                            {% endif %}
+                        {% endif %}
+                    </div>
+                {% endif %}
+            {% endfor %}
+        </div>
+
+        <script>
+    // Track active countdowns to prevent duplicates
+    const activeCountdowns = new Set();
+
+    // Close advertisement with fade-out and handle frequency
+    function closeAd(adId, frequency, repeatInterval, duration) {
+        const adElement = document.getElementById(adId);
+        if (adElement) {
+            adElement.classList.remove('fade-in');
+            adElement.classList.add('fade-out');
+            
+            setTimeout(() => {
+                adElement.style.display = 'none';
+                adElement.classList.remove('fade-out');
+                
+                // Clear any existing countdown for this ad
+                const countdownElement = document.getElementById('countdown-' + adId);
+                if (countdownElement) {
+                    countdownElement.remove();
+                }
+                activeCountdowns.delete(adId);
+                
+                if (frequency === 'repeat') {
+                    setTimeout(() => {
+                        if (!sessionStorage.getItem(adId + '_permanent_close')) {
+                            adElement.style.display = 'block';
+                            adElement.classList.add('fade-in');
+                            
+                            if (duration > 0) {
+                                startCountdown(adId, duration);
+                            }
+                        }
+                    }, repeatInterval * 1000);
+                } else if (frequency === 'show_once') {
+                    // Mark as closed in sessionStorage
+                    sessionStorage.setItem(adId, 'closed');
+                }
+            }, 400);
+        }
+    }
+
+    // Start countdown timer for an ad
+    function startCountdown(adId, duration) {
+        // Prevent duplicate countdowns
+        if (activeCountdowns.has(adId)) return;
+        activeCountdowns.add(adId);
+        
+        const adElement = document.getElementById(adId);
+        if (!adElement) return;
+
+        let countdownElement = document.getElementById('countdown-' + adId);
+        if (!countdownElement) {
+            countdownElement = document.createElement('div');
+            countdownElement.className = 'countdown-timer';
+            countdownElement.id = 'countdown-' + adId;
+            adElement.appendChild(countdownElement);
+        }
+
+        let timeLeft = duration;
+        countdownElement.textContent = `Closing in ${timeLeft}s`;
+
+        const countdownInterval = setInterval(() => {
+            timeLeft--;
+            countdownElement.textContent = `Closing in ${timeLeft}s`;
+            
+            if (timeLeft <= 0) {
+                clearInterval(countdownInterval);
+                const frequency = adElement.dataset.frequency;
+                const repeatInterval = parseInt(adElement.dataset.repeatInterval);
+                closeAd(adId, frequency, repeatInterval, duration);
+            }
+        }, 1000);
+    }
+
+    // Initialize side ads on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize left side ads
+        {% for ad in advertisements %}
+            {% if ad.position == "left-side-of-page" and ad.status == "enable" %}
+                const leftAdId = 'ad-left-side-{{ forloop.counter }}';
+                const leftAdElement = document.getElementById(leftAdId);
+                
+                if (leftAdElement) {
+                    const shouldShowAd = (
+                        (leftAdElement.dataset.frequency === 'show_once' && 
+                        !sessionStorage.getItem(leftAdId)) ||
+                        (leftAdElement.dataset.frequency === 'repeat' && 
+                        !sessionStorage.getItem(leftAdId + '_permanent_close'))
+                    );
+                    
+                    if (shouldShowAd) {
+                        setTimeout(() => {
+                            leftAdElement.style.display = 'block';
+                            leftAdElement.classList.add('fade-in');
+                            
+                            {% if ad.countdown_mode == "custom" %}
+                                startCountdown(leftAdId, {{ ad.countdown_duration }});
+                            {% endif %}
+                        }, {{ forloop.counter }} * 800);
+                    } else {
+                        leftAdElement.style.display = 'none';
+                    }
+                }
+            {% endif %}
+        {% endfor %}
+
+        // Initialize right side ads
+        {% for ad in advertisements %}
+            {% if ad.position == "right-side-of-page" and ad.status == "enable" %}
+                const rightAdId = 'ad-right-side-{{ forloop.counter }}';
+                const rightAdElement = document.getElementById(rightAdId);
+                
+                if (rightAdElement) {
+                    const shouldShowAd = (
+                        (rightAdElement.dataset.frequency === 'show_once' && 
+                        !sessionStorage.getItem(rightAdId)) ||
+                        (rightAdElement.dataset.frequency === 'repeat' && 
+                        !sessionStorage.getItem(rightAdId + '_permanent_close'))
+                    );
+                    
+                    if (shouldShowAd) {
+                        setTimeout(() => {
+                            rightAdElement.style.display = 'block';
+                            rightAdElement.classList.add('fade-in');
+                            
+                            {% if ad.countdown_mode == "custom" %}
+                                startCountdown(rightAdId, {{ ad.countdown_duration }});
+                            {% endif %}
+                        }, {{ forloop.counter }} * 800);
+                    } else {
+                        rightAdElement.style.display = 'none';
+                    }
+                }
+            {% endif %}
+        {% endfor %}
+
+        // Handle close buttons for side ads
+        document.querySelectorAll('.advertisements-left-side .cancel-btn, .advertisements-right-side .cancel-btn').forEach(button => {
+            button.addEventListener('click', function() {
+                const adElement = this.closest('.advertisement');
+                if (adElement) {
+                    const adId = adElement.id;
+                    const frequency = adElement.dataset.frequency;
+                    const repeatInterval = parseInt(adElement.dataset.repeatInterval);
+                    const duration = parseInt(adElement.dataset.countdownDuration) || 0;
+                    
+                    closeAd(adId, frequency, repeatInterval, duration);
+                }
+            });
+        });
+    });
+
+    // Permanent close function for side ads
+    function permanentCloseSideAd(adId) {
+        sessionStorage.setItem(adId + '_permanent_close', 'true');
+        const adElement = document.getElementById(adId);
+        if (adElement) {
+            adElement.style.display = 'none';
+        }
+    }
+</script>
+        {% block content %}
+        {% endblock %}
+
+        <!-- Below page advertisement spot -->
+        <div class="advertisements-below-page">
+            {% for ad in advertisements %}
+                {% if ad.position == "below-page" and ad.status == "enable" %}
+                    <div class="advertisement" id="ad-below-page-{{ forloop.counter }}"
+                         data-frequency="{{ ad.display_frequency }}"
+                         data-repeat-interval="{{ ad.repeat_interval }}"
+                         data-countdown-duration="{{ ad.countdown_duration|default:10 }}">
+                        <button class="cancel-btn">✕</button>
+                        <div class="ad-spot-info">ADVERTISEMENT</div>
+                        {% if ad.is_google_adsense %}
+                            <div class="google-adsense">
+                                {{ ad.google_adsense_code|safe }}
+                            </div>
+                        {% else %}
+                            {% if ad.site_link %}
+                                <a href="{{ ad.site_link }}" target="_blank">
+                                    {% if ad.image %}
+                                        <img src="{{ ad.image.url }}" alt="{{ ad.title }}" />
+                                    {% endif %}
+                                    {% if ad.video %}
+                                        <video src="{{ ad.video.url }}" controls autoplay muted></video>
+                                    {% endif %}
+                                    <h6>{{ ad.title }}</h6>
+                                </a>
+                            {% else %}
+                                {% if ad.image %}
+                                    <img src="{{ ad.image.url }}" alt="{{ ad.title }}" />
+                                {% endif %}
+                                {% if ad.video %}
+                                    <video src="{{ ad.video.url }}" controls autoplay muted></video>
+                                {% endif %}
+                                <h6>{{ ad.title }}</h6>
+                            {% endif %}
+                        {% endif %}
+                    </div>
+                {% endif %}
+            {% endfor %}
+        </div>
+
+        <!-- Below footer advertisement spot -->
+        <div class="advertisements-below-footer">
+            {% for ad in advertisements %}
+                {% if ad.position == "below-footer" and ad.status == "enable" %}
+                    <div class="advertisement" id="ad-below-footer-{{ forloop.counter }}"
+                         data-frequency="{{ ad.display_frequency }}"
+                         data-repeat-interval="{{ ad.repeat_interval }}"
+                         data-countdown-duration="{{ ad.countdown_duration|default:10 }}">
+                        <button class="cancel-btn">✕</button>
+                        <div class="ad-spot-info">ADVERTISEMENT</div>
+                        {% if ad.is_google_adsense %}
+                            <div class="google-adsense">
+                                {{ ad.google_adsense_code|safe }}
+                            </div>
+                        {% else %}
+                            {% if ad.site_link %}
+                                <a href="{{ ad.site_link }}" target="_blank">
+                                    {% if ad.image %}
+                                        <img src="{{ ad.image.url }}" alt="{{ ad.title }}" />
+                                    {% endif %}
+                                    {% if ad.video %}
+                                        <video src="{{ ad.video.url }}" controls autoplay muted></video>
+                                    {% endif %}
+                                    <h6>{{ ad.title }}</h6>
+                                </a>
+                            {% else %}
+                                {% if ad.image %}
+                                    <img src="{{ ad.image.url }}" alt="{{ ad.title }}" />
+                                {% endif %}
+                                {% if ad.video %}
+                                    <video src="{{ ad.video.url }}" controls autoplay muted></video>
+                                {% endif %}
+                                <h6>{{ ad.title }}</h6>
+                            {% endif %}
+                        {% endif %}
+                    </div>
+                {% endif %}
+            {% endfor %}
+        </div>
+
+       {% for ad in advertisements %}
+    {% if ad.position == "full-screen-popup" and ad.status == "enable" %}
+        <div class="fullscreen-popup-ad" id="fullscreen-popup-ad-{{ forloop.counter }}"
+             data-frequency="{{ ad.display_frequency }}"
+             data-repeat-interval="{{ ad.repeat_interval }}"
+             data-countdown-duration="{{ ad.countdown_duration|default:10 }}">
+            <div class="fullscreen-ad-content">
+                <button class="close-full-screen">✕</button>
+                <div class="ad-spot-info">ADVERTISEMENT</div>
+                {% if ad.is_google_adsense %}
+                    <div class="google-adsense">
+                        {{ ad.google_adsense_code|safe }}
+                    </div>
+                {% else %}
+                    {% if ad.site_link %}
+                        <a href="{{ ad.site_link }}" target="_blank">
+                            {% if ad.image %}
+                                <img src="{{ ad.image.url }}" alt="{{ ad.title }}" />
+                            {% endif %}
+                            {% if ad.video %}
+                                <video src="{{ ad.video.url }}" controls autoplay muted></video>
+                            {% endif %}
+                            <h6>{{ ad.title }}</h6>
+                        </a>
+                    {% else %}
+                        {% if ad.image %}
+                            <img src="{{ ad.image.url }}" alt="{{ ad.title }}" />
+                        {% endif %}
+                        {% if ad.video %}
+                            <video src="{{ ad.video.url }}" controls autoplay muted></video>
+                        {% endif %}
+                        <h6>{{ ad.title }}</h6>
+                    {% endif %}
+                {% endif %}
+                {% if ad.display_frequency == "repeat" %}
+                    <button class="permanent-close-btn">Don't show again</button>
+                {% endif %}
+            </div>
+        </div>
+    {% endif %}
+{% endfor %}
+    </div>
+
+   {% comment %} footer  {% endcomment %}
+<footer id="footer" class="footer dark-background">
+
+    <div class="container footer-top">
+      <div class="row gy-4">
+        <div class="col-lg-4 col-md-6 footer-about">
+          <a href="index.html" class="logo d-flex align-items-center">
+            <span class="sitename">PandharpurGuide</span>
+          </a>
+          <div class="footer-contact pt-3">
+            <p>A108 Adam Street</p>
+            <p>New York, NY 535022</p>
+            <p class="mt-3"><strong>Phone:</strong> <span>+1 5589 55488 55</span></p>
+            <p><strong>Email:</strong> <span>info@example.com</span></p>
+          </div>
+          <div class="social-links d-flex mt-4">
+            <a href=""><i class="bi bi-twitter-x"></i></a>
+            <a href=""><i class="bi bi-facebook"></i></a>
+            <a href=""><i class="bi bi-instagram"></i></a>
+            <a href=""><i class="bi bi-linkedin"></i></a>
+          </div>
+        </div>
+
+        <div class="col-lg-2 col-md-3 footer-links">
+          <h4>Useful Links</h4>
+          <ul>
+            <li><a href="#">Home</a></li>
+            <li><a href="#">About us</a></li>
+            <li><a href="#">Services</a></li>
+            <li><a href="#">Terms of service</a></li>
+            <li><a href="#">Privacy policy</a></li>
+          </ul>
+        </div>
+
+        <div class="col-lg-2 col-md-3 footer-links">
+          <h4>Our Services</h4>
+          <ul>
+            <li><a href="#">Web Design</a></li>
+            <li><a href="#">Web Development</a></li>
+            <li><a href="#">Product Management</a></li>
+            <li><a href="#">Marketing</a></li>
+            <li><a href="#">Graphic Design</a></li>
+          </ul>
+        </div>
+
+        <div class="col-lg-4 col-md-12 footer-newsletter">
+          <h4>Our Newsletter</h4>
+          <p>Subscribe to our newsletter and receive the latest news about our products and services!</p>
+          <form action="forms/newsletter.php" method="post" class="php-email-form">
+            <div class="newsletter-form"><input type="email" name="email"><input type="submit" value="Subscribe"></div>
+            <div class="loading">Loading</div>
+            <div class="error-message"></div>
+            <div class="sent-message">Your subscription request has been sent. Thank you!</div>
+          </form>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="container copyright text-center mt-4">
+      <p>© <span>Copyright</span> <strong class="px-1 sitename">PandharpurGuide</strong> <span>All Rights Reserved</span></p>
+      <div class="credits">
+        Designed by <a href="">IlitecodeMade</a> Distributed by <a href="">ThemeWagon
+      </div>
+    </div>
+
+  </footer>
+
+ 
+ 
+ 
+  <!-- Scroll Top -->
+  <a href="#" id="scroll-top" class="scroll-top d-flex align-items-center justify-content-center"><i class="bi bi-arrow-up-short"></i></a>
+
+  <!-- Preloader -->
+  {% comment %} <div id="preloader"></div> {% endcomment %}
+
+  <!-- Vendor JS Files -->
+  <script src="{% static 'assets/vendor/bootstrap/js/bootstrap.bundle.min.js' %}"></script>
+  <script src="{% static 'assets/vendor/php-email-form/validate.js' %}"></script>
+  <script src="{% static 'assets/vendor/aos/aos.js' %}"></script>
+  <script src="{% static 'assets/vendor/glightbox/js/glightbox.min.js' %}"></script>
+  <script src="{% static 'assets/vendor/imagesloaded/imagesloaded.pkgd.min.js' %}"></script>
+  <script src="{% static 'assets/vendor/isotope-layout/isotope.pkgd.min.js' %}"></script>
+  <script src="{% static 'assets/vendor/purecounter/purecounter_vanilla.js' %}"></script>
+  <script src="{% static 'assets/vendor/waypoints/noframework.waypoints.js' %}"></script>
+  <script src="{% static 'assets/vendor/swiper/swiper-bundle.min.js' %}"></script>
+
+  <!-- Main JS File -->
+  <script src="{% static 'assets/js/main.js' %}"></script>
+
+  <script src="{% static 'assets/js/advertisement.js' %}"></script>
+
+</body>
+
+</html>

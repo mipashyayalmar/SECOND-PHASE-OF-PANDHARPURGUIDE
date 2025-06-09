@@ -1,0 +1,216 @@
+{% extends 'rooms/room_basic.html' %}
+{% block content %}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Room</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
+
+
+    
+    <style>
+
+
+
+        
+        body {
+            font-family: Arial, sans-serif;
+        }
+
+        .checkbox-animated input[type="checkbox"]:not(:checked),
+        .checkbox-animated input[type="checkbox"]:checked {
+            visibility: hidden;
+        }
+
+        .checkbox-animated input[type="checkbox"]:checked + .checkmark,
+        .checkbox-animated input[type="checkbox"]:not(:checked) + .checkmark {
+            visibility: visible;
+            display: inline-block;
+        }
+
+        .checkbox-animated {
+            display: inline-block;
+            position: relative;
+        }
+
+        .checkmark {
+            width: 20px;
+            height: 20px;
+            border: 2px solid #007bff;
+            border-radius: 4px;
+            background-color: white;
+            transition: all 0.3s ease-in-out;
+            transform: scale(1);
+        }
+
+        .checkbox-animated input[type="checkbox"]:checked + .checkmark {
+            background-color: #007bff;
+            color: white;
+            transform: scale(1.2);
+        }
+
+        .checkbox-animated input[type="checkbox"]:not(:checked) + .checkmark {
+            transform: scale(1);
+        }
+
+        select {
+            transition: all 0.3s ease-in-out;
+            opacity: 0;
+            animation: fadeIn 0.5s forwards;
+        }
+
+        #extraFields {
+            transition: opacity 0.3s ease, transform 0.3s ease;
+            opacity: 0;
+            transform: translateY(-10px);
+            display: none;
+        }
+
+        #extraFields.visible {
+            display: block;
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+
+        .header {
+            animation: slideDown 0.5s ease-in-out;
+        }
+
+        @keyframes slideDown {
+            from {
+                transform: translateY(-100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+
+<body class="bg-light">
+    <div class="header">
+        <h1 class="m-0 text-center bg-warning my-0 py-3">Edit Room</h1>
+    </div>
+
+    <div class="container mt-4">
+        <div class="form-container bg-white p-4 rounded shadow">
+            <form method="POST" enctype="multipart/form-data">
+                {% csrf_token %}
+                <input type="hidden" name="roomid" value="{{ room.id }}">
+
+                <div class="row">
+                    <!-- Room Number (read-only) -->
+                    <div class="col-md-6 mb-3">
+                        <label for="roomnumber" class="form-label">Room Number</label>
+                        <input type="number" class="form-control" id="roomnumber" name="roomnumber" value="{{ form.instance.room_number }}" disabled>
+                    </div>
+
+                    <!-- Dynamic Field Selection -->
+                    <div class="col-md-6 mb-3">
+                        <label for="roomtype" class="form-label">Room Type</label>
+                        <select id="roomtype" name="roomtype" class="form-select" onchange="toggleFields()">
+                            <option value="" selected disabled>Choose...</option>
+                            <option value="single" {% if form.instance.room_type == 'single' %}selected{% endif %}>Single</option>
+                            <option value="double" {% if form.instance.room_type == 'double' %}selected{% endif %}>Double</option>
+                            <option value="suite" {% if form.instance.room_type == 'suite' %}selected{% endif %}>Suite</option>
+                        </select>
+                    </div>
+
+                    <!-- Additional Fields for Room Type -->
+                    <div class="col-md-6 mb-3" id="extraFields">
+                        <label for="amenities" class="form-label">Amenities</label>
+                        <input type="text" class="form-control" id="amenities" name="amenities" value="{{ form.instance.amenities }}" placeholder="Enter amenities">
+                    </div>
+
+                    <!-- Render all form fields dynamically -->
+                    {{ form.as_p }}
+                </div>
+
+                <!-- Display Selected Information in Table -->
+                <div class="my-4">
+                    <h5>Selected Room Information:</h5>
+                    <table class="table table-bordered">
+                        <thead>
+                            <tr>
+                                <th>Field</th>
+                                <th>Value</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Room Number</td>
+                                <td>{{ form.instance.room_number }}</td>
+                            </tr>
+                            <tr>
+                                <td>Room Type</td>
+                                <td>{{ form.instance.room_type }}</td>
+                            </tr>
+                            <tr>
+                                <td>Amenities</td>
+                                <td>{{ form.instance.amenities }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Display form errors -->
+                <div class="text-danger">
+                    {% for field in form %}
+                    {% if field.errors %}
+                    <div>
+                        <strong>{{ field.label }}:</strong>
+                        <ul>
+                            {% for error in field.errors %}
+                            <li>{{ error }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    {% endif %}
+                    {% endfor %}
+                </div>
+
+                <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                    <button type="submit" class="btn btn-primary px-4">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function toggleFields() {
+            const roomType = document.getElementById('roomtype').value;
+            const extraFields = document.getElementById('extraFields');
+
+            if (roomType === 'suite' || roomType === 'double') {
+                extraFields.classList.add('visible');
+            } else {
+                extraFields.classList.remove('visible');
+            }
+        }
+
+        // Initialize the fields based on pre-selected data
+        window.onload = function () {
+            toggleFields();
+        };
+    </script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/js/bootstrap.bundle.min.js"></script>
+</body>
+
+</html>
+{% endblock %}

@@ -1,0 +1,52 @@
+{% comment %} {% extends 'base/base.html' %}
+{% load static %}
+{% block title %}Carousel{% endblock %}
+
+{% block content %}
+<div class="content">
+    <div class="carousel-container">
+        <div class="arrow left" onclick="previousImage()">❮</div>
+        <div class="carousel"></div>
+        <div class="arrow right" onclick="nextImage()">❯</div>
+    </div>
+</div>
+
+<script>
+    const images = [
+        {% for image in images %}
+            {
+                online: "{{ image.online_url }}",
+                offline: "{% static image.offline_url %}"
+            },
+        {% endfor %}
+    ];
+
+    let currentIndex = 0;
+
+    function updateCarousel() {
+        const carousel = document.querySelector('.carousel');
+        carousel.innerHTML = '';
+        images.forEach((image, index) => {
+            const imgElement = document.createElement('img');
+            imgElement.src = navigator.onLine ? image.online : image.offline;
+            imgElement.onerror = () => imgElement.src = image.offline;
+            carousel.appendChild(imgElement);
+        });
+    }
+
+    function previousImage() {
+        currentIndex = (currentIndex > 0) ? currentIndex - 1 : images.length - 1;
+        document.querySelector('.carousel').style.transform = `translateX(-${currentIndex * 1000}px)`;
+    }
+
+    function nextImage() {
+        currentIndex = (currentIndex < images.length - 1) ? currentIndex + 1 : 0;
+        document.querySelector('.carousel').style.transform = `translateX(-${currentIndex * 1000}px)`;
+    }
+
+    setInterval(nextImage, 4000);
+    window.addEventListener('load', updateCarousel);
+    window.addEventListener('online', updateCarousel);
+    window.addEventListener('offline', updateCarousel);
+</script>
+{% endblock content %} {% endcomment %}

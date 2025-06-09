@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body {
+      margin: 0;
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      overflow: hidden;
+    }
+
+    .container {
+      text-align: center;
+      color: white;
+      position: relative;
+      z-index: 1;
+    }
+
+    h1 {
+      font-size: 8em;
+      margin: 0;
+      animation: pulse 2s infinite;
+      text-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
+    }
+
+    p {
+      font-size: 1.5em;
+      margin: 1em 0;
+      opacity: 0;
+      animation: fadeIn 1s ease-out forwards;
+      animation-delay: 0.5s;
+    }
+
+    .button {
+      display: inline-block;
+      padding: 12px 24px;
+      background: #4a90e2;
+      color: white;
+      text-decoration: none;
+      border-radius: 25px;
+      font-weight: bold;
+      opacity: 0;
+      animation: fadeIn 1s ease-out forwards;
+      animation-delay: 1s;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(74, 144, 226, 0.4);
+    }
+
+    .astronaut {
+      position: absolute;
+      width: 100px;
+      height: 100px;
+      animation: float 6s ease-in-out infinite;
+      opacity: 0;
+      animation-delay: 1.5s;
+      animation-fill-mode: forwards;
+    }
+
+    .stars {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+      100% { transform: scale(1); }
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes float {
+      0% { transform: translateY(0px) rotate(0deg); opacity: 1; }
+      50% { transform: translateY(-20px) rotate(5deg); opacity: 1; }
+      100% { transform: translateY(0px) rotate(0deg); opacity: 1; }
+    }
+
+    .star {
+      position: absolute;
+      background: white;
+      border-radius: 50%;
+      animation: twinkle var(--duration) ease-in-out infinite;
+      opacity: 0;
+    }
+
+  </style>
+</head>
+<body>
+  <div class="stars" id="starsContainer"></div>
+  
+  <div class="container">
+    <h1>404</h1>
+    <p>Houston, we have a problem! Page not found.</p>
+    <a href="/" class="button">Return Home</a>
+    
+    <svg class="astronaut" viewBox="0 0 100 100">
+      <circle cx="50" cy="50" r="35" fill="#fff"/>
+      <circle cx="50" cy="50" r="30" fill="#e6e6e6"/>
+      <circle cx="55" cy="45" r="5" fill="#333"/>
+      <rect x="40" y="60" width="20" height="25" fill="#fff"/>
+      <circle cx="50" cy="85" r="10" fill="#e6e6e6"/>
+    </svg>
+  </div>
+
+  <script>
+    // Create twinkling stars
+    const starsContainer = document.getElementById('starsContainer');
+    
+    function createStar() {
+      const star = document.createElement('div');
+      star.className = 'star';
+      
+      // Random position
+      const x = Math.random() * 100;
+      const y = Math.random() * 100;
+      
+      // Random size
+      const size = Math.random() * 3;
+      
+      // Random duration
+      const duration = 2 + Math.random() * 3;
+      
+      star.style.cssText = `
+        left: ${x}%;
+        top: ${y}%;
+        width: ${size}px;
+        height: ${size}px;
+        --duration: ${duration}s;
+      `;
+      
+      starsContainer.appendChild(star);
+    }
+
+    // Create multiple stars
+    for (let i = 0; i < 100; i++) {
+      createStar();
+    }
+
+    // Add parallax effect
+    document.addEventListener('mousemove', (e) => {
+      const astronaut = document.querySelector('.astronaut');
+      const xAxis = (window.innerWidth / 2 - e.pageX) / 25;
+      const yAxis = (window.innerHeight / 2 - e.pageY) / 25;
+      astronaut.style.transform = `translate(${xAxis}px, ${yAxis}px)`;
+    });
+  </script>
+</body>
+</html>

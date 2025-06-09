@@ -1,0 +1,643 @@
+{% extends 'base/main_base.html' %}
+{% block title %}User Profile{% endblock %}
+{% block content %}
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Profile</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #4361ee;
+            --secondary-color: #3f37c9;
+            --accent-color: #4895ef;
+            --dark-color: #1b263b;
+            --light-color: #f8f9fa;
+            --success-color: #4cc9f0;
+            --warning-color: #f8961e;
+            --danger-color: #f72585;
+            --card-bg: #ffffff;
+            --text-color: #2b2d42;
+            --text-secondary: #8d99ae;
+            --box-shadow: 0 10px 20px rgba(0, 0, 0, 0.08);
+            --transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+        
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #f5f7ff;
+            color: var(--text-color);
+            margin: 0;
+            padding: 0;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        
+        .profile-header {
+            text-align: center;
+            margin-bottom: 2rem;
+            position: relative;
+        }
+        
+        .profile-header h1 {
+            font-size: 2.5rem;
+            color: var(--dark-color);
+            margin-bottom: 0.5rem;
+            font-weight: 700;
+        }
+        
+        .breadcrumb {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-bottom: 2rem;
+        }
+        
+        .breadcrumb a {
+            color: var(--primary-color);
+            text-decoration: none;
+            transition: var(--transition);
+        }
+        
+        .breadcrumb a:hover {
+            color: var(--secondary-color);
+            text-decoration: underline;
+        }
+        
+        .breadcrumb .separator {
+            margin: 0 0.5rem;
+            color: var(--text-secondary);
+        }
+        
+        .profile-container {
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+        }
+        
+        .profile-card {
+            background: var(--card-bg);
+            border-radius: 15px;
+            box-shadow: var(--box-shadow);
+            padding: 2rem;
+            transition: var(--transition);
+        }
+        
+        .profile-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.12);
+        }
+        
+        .profile-intro {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+        
+        .profile-avatar {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 5px solid var(--primary-color);
+            margin-bottom: 1.5rem;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            transition: var(--transition);
+            cursor: pointer;
+        }
+        
+        .profile-avatar:hover {
+            transform: scale(1.05);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        }
+        
+        .profile-name {
+            font-size: 1.8rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: var(--dark-color);
+        }
+        
+        .profile-bio {
+            color: var(--text-secondary);
+            margin-bottom: 1.5rem;
+            max-width: 600px;
+        }
+        
+        .profile-stats {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .stat-item {
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary-color);
+        }
+        
+        .stat-label {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+        
+        .card-header {
+            border-bottom: 1px solid #eee;
+            padding-bottom: 1rem;
+            margin-bottom: 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .card-header h3 {
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: var(--dark-color);
+            margin: 0;
+        }
+        
+        .edit-btn {
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 50px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .edit-btn:hover {
+            background: var(--secondary-color);
+            transform: translateY(-2px);
+        }
+        
+        .detail-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 1.5rem;
+        }
+        
+        .detail-item {
+            margin-bottom: 1rem;
+        }
+        
+        .detail-label {
+            display: block;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.3rem;
+        }
+        
+        .detail-value {
+            font-size: 1.1rem;
+            font-weight: 500;
+            color: var(--text-color);
+        }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 0.3rem 0.8rem;
+            border-radius: 50px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+        
+        .badge-verified {
+            background-color: rgba(76, 201, 240, 0.1);
+            color: var(--success-color);
+        }
+        
+        .badge-not-verified {
+            background-color: rgba(247, 37, 133, 0.1);
+            color: var(--danger-color);
+        }
+        
+        .badge-premium {
+            background-color: rgba(248, 150, 30, 0.1);
+            color: var(--warning-color);
+        }
+        
+        .badge-standard {
+            background-color: rgba(77, 77, 77, 0.1);
+            color: #4d4d4d;
+        }
+        
+        .documents-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 1.5rem;
+        }
+        
+        .document-card {
+            border: 1px solid #eee;
+            border-radius: 10px;
+            overflow: hidden;
+            transition: var(--transition);
+        }
+        
+        .document-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.08);
+        }
+        
+        .document-img {
+            width: 100%;
+            height: 150px;
+            object-fit: cover;
+            cursor: pointer;
+        }
+        
+        .document-info {
+            padding: 1rem;
+        }
+        
+        .document-title {
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: var(--text-color);
+        }
+        
+        .document-actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .document-btn {
+            background: none;
+            border: none;
+            color: var(--primary-color);
+            cursor: pointer;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+            transition: var(--transition);
+        }
+        
+        .document-btn:hover {
+            color: var(--secondary-color);
+        }
+        
+        .whatsapp-float {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            width: 60px;
+            height: 60px;
+            background-color: #25d366;
+            color: white;
+            border-radius: 50%;
+            text-align: center;
+            font-size: 1.8rem;
+            box-shadow: 0 5px 15px rgba(37, 211, 102, 0.3);
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: var(--transition);
+        }
+        
+        .whatsapp-float:hover {
+            transform: scale(1.1);
+            box-shadow: 0 8px 25px rgba(37, 211, 102, 0.4);
+        }
+        
+        /* Modal styles */
+        .image-modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.9);
+            overflow: auto;
+            animation: fadeIn 0.3s;
+        }
+        
+        .modal-content {
+            margin: auto;
+            display: block;
+            max-width: 90%;
+            max-height: 90%;
+            margin-top: 5vh;
+        }
+        
+        .close-modal {
+            position: absolute;
+            top: 20px;
+            right: 35px;
+            color: white;
+            font-size: 2.5rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+        
+        .close-modal:hover {
+            color: var(--danger-color);
+            transform: rotate(90deg);
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .profile-stats {
+                flex-direction: column;
+                gap: 1rem;
+            }
+            
+            .detail-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .documents-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="profile-header">
+            <h1>User Profile</h1>
+            <div class="breadcrumb">
+                <a href="#">Home</a>
+                <span class="separator">•</span>
+                <span>Profile</span>
+            </div>
+        </div>
+        
+        <div class="profile-container">
+            <!-- Profile Intro Card -->
+            <div class="profile-card">
+                <div class="profile-intro">
+                    {% if social_data.picture %}
+                        <img src="{{ social_data.picture }}" alt="Profile" class="profile-avatar">
+                    {% elif user.profile_image %}
+                        <img src="{{ user.profile_image.url }}" alt="Profile" class="profile-avatar">
+                    {% else %}
+                        <img src="https://img.freepik.com/premium-vector/avatar-profile-icon-flat-style-male-user-profile-vector-illustration-isolated-background-man-profile-sign-business-concept_157943-38764.jpg" alt="Profile" class="profile-avatar">
+                    {% endif %}
+                    
+                    <h2 class="profile-name">Welcome, {{ social_data.full_name|default:user.name }}</h2>
+                    <p class="profile-bio">Manage your account information and settings</p>
+                    
+                    <div class="profile-stats">
+                        <div class="stat-item">
+                            <div class="stat-value">{% if user.paid_member %}Premium{% else %}Basic{% endif %}</div>
+                            <div class="stat-label">Membership</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value">
+                                <span class="status-badge {% if social_data.email or user.is_verified %}badge-verified{% else %}badge-not-verified{% endif %}">
+                                    {% if social_data.email or user.is_verified %}Verified{% else %}Not Verified{% endif %}
+                                </span>
+                            </div>
+                            <div class="stat-label">Status</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value">Member</div>
+                            <div class="stat-label">Since {{ user.date_joined|date:"Y" }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Messages -->
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="profile-card" style="background: {% if message.tags == 'success' %}#e6ffed{% elif message.tags == 'error' %}#ffebee{% else %}#e3f2fd{% endif %};">
+                        <div class="card-header">
+                            <h3>{% if message.tags == 'success' %}Success!{% elif message.tags == 'error' %}Error{% else %}Message{% endif %}</h3>
+                        </div>
+                        <p>{{ message }}</p>
+                    </div>
+                {% endfor %}
+            {% endif %}
+            
+            <!-- Account Information Card -->
+            <div class="profile-card">
+                <div class="card-header">
+                    <h3>Account Information</h3>
+                    <button class="edit-btn">
+                        <i class="fas fa-edit"></i> 
+                    </button>
+                </div>
+                
+                <div class="detail-grid">
+                    <div class="detail-item">
+                        <span class="detail-label">Username</span>
+                        <span class="detail-value">{{ user.username }}</span>
+                    </div>
+                    
+                    <div class="detail-item">
+                        <span class="detail-label">Email</span>
+                        <span class="detail-value">{{ user.email }}</span>
+                    </div>
+                    
+                    <div class="detail-item">
+                        <span class="detail-label">Phone Number</span>
+                        <span class="detail-value">{{ user.phone|default:"Not provided" }}</span>
+                    </div>
+                    
+                    <div class="detail-item">
+                        <span class="detail-label">Account Status</span>
+                        <span class="detail-value">
+                            <span class="status-badge {% if user.is_active %}badge-verified{% else %}badge-not-verified{% endif %}">
+                                {% if user.is_active %}Active{% else %}Inactive{% endif %}
+                            </span>
+                        </span>
+                    </div>
+                    
+                    <div class="detail-item">
+                        <span class="detail-label">Member Since</span>
+                        <span class="detail-value">{{ user.date_joined|date:"M d, Y" }}</span>
+                    </div>
+                    
+                    <div class="detail-item">
+                        <span class="detail-label">Last Login</span>
+                        <span class="detail-value">{{ user.last_login|date:"M d, Y h:i A"|default:"Never" }}</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Verification Documents Card -->
+            <div class="profile-card">
+                <div class="card-header">
+                    <h3>Verification Documents</h3>
+                    <button class="edit-btn">
+                        <i class="fas fa-upload"></i> 
+                    </button>
+                </div>
+                
+                <div class="documents-grid">
+                    {% if user.aadhar_image %}
+                    <div class="document-card">
+                        <img src="{{ user.aadhar_image.url }}" alt="Aadhar Card" class="document-img" onclick="openImage(this)">
+                        <div class="document-info">
+                            <div class="document-title">Aadhar Card (Front)</div>
+                            <div class="document-actions">
+                                <button class="document-btn" onclick="downloadImage('{{ user.aadhar_image.url }}')">
+                                    <i class="fas fa-download"></i> Download
+                                </button>
+                                <button class="document-btn" onclick="openImageModal('{{ user.aadhar_image.url }}')">
+                                    <i class="fas fa-expand"></i> View
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if user.profile_image %}
+                    <div class="document-card">
+                        <img src="{{ user.profile_image.url }}" alt="Aadhar Card Back" class="document-img" onclick="openImage(this)">
+                        <div class="document-info">
+                            <div class="document-title">Aadhar Card (Back)</div>
+                            <div class="document-actions">
+                                <button class="document-btn" onclick="downloadImage('{{ user.profile_image.url }}')">
+                                    <i class="fas fa-download"></i> Download
+                                </button>
+                                <button class="document-btn" onclick="openImageModal('{{ user.profile_image.url }}')">
+                                    <i class="fas fa-expand"></i> View
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if user.pancard_image %}
+                    <div class="document-card">
+                        <img src="{{ user.pancard_image.url }}" alt="PAN Card" class="document-img" onclick="openImage(this)">
+                        <div class="document-info">
+                            <div class="document-title">PAN Card</div>
+                            <div class="document-actions">
+                                <button class="document-btn" onclick="downloadImage('{{ user.pancard_image.url }}')">
+                                    <i class="fas fa-download"></i> Download
+                                </button>
+                                <button class="document-btn" onclick="openImageModal('{{ user.pancard_image.url }}')">
+                                    <i class="fas fa-expand"></i> View
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if not user.aadhar_image and not user.profile_image and not user.pancard_image %}
+                    <div class="document-card" style="grid-column: 1 / -1; text-align: center; padding: 2rem;">
+                        <i class="fas fa-folder-open" style="font-size: 3rem; color: var(--text-secondary); margin-bottom: 1rem;"></i>
+                        <h4>No documents uploaded yet</h4>
+                        <p>Upload your verification documents to complete your profile</p>
+                        <button class="edit-btn" style="margin-top: 1rem;color:red;">
+                            <i class="fas fa-upload"></i>Not uploaded Documents
+                        </button>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- WhatsApp Float Button -->
+    <a href="#" class="whatsapp-float">
+        <i class="fab fa-whatsapp"></i>
+    </a>
+    
+    <!-- Image Modal -->
+    <div id="imageModal" class="image-modal">
+        <span class="close-modal">&times;</span>
+        <img class="modal-content" id="modalImage">
+    </div>
+    
+    <script>
+        // Image Modal functionality
+        function openImageModal(imageSrc) {
+            const modal = document.getElementById('imageModal');
+            const modalImg = document.getElementById('modalImage');
+            
+            modal.style.display = "block";
+            modalImg.src = imageSrc;
+        }
+        
+        function closeImageModal() {
+            document.getElementById('imageModal').style.display = "none";
+        }
+        
+        // Close modal when clicking the X or outside the image
+        document.querySelector('.close-modal').addEventListener('click', closeImageModal);
+        document.getElementById('imageModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeImageModal();
+            }
+        });
+        
+        // Make all document images clickable
+        document.querySelectorAll('.document-img').forEach(img => {
+            img.addEventListener('click', function() {
+                openImageModal(this.src);
+            });
+        });
+        
+        // Make profile image clickable
+        document.querySelector('.profile-avatar')?.addEventListener('click', function() {
+            openImageModal(this.src);
+        });
+        
+        // Download image function
+        function downloadImage(url) {
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = url.split('/').pop();
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+        
+        // Animation on scroll
+        document.addEventListener('DOMContentLoaded', function() {
+            const cards = document.querySelectorAll('.profile-card');
+            
+            cards.forEach((card, index) => {
+                card.style.opacity = '0';
+                card.style.transform = 'translateY(20px)';
+                card.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+                
+                setTimeout(() => {
+                    card.style.opacity = '1';
+                    card.style.transform = 'translateY(0)';
+                }, 200 * index);
+            });
+        });
+    </script>
+</body>
+</html>
+{% endblock %}

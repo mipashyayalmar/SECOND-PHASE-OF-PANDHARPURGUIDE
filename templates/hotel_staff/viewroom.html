@@ -1,0 +1,455 @@
+{% extends 'rooms/room_basic.html' %}
+{% block title %}View Room{% endblock title %}
+{% block content %}
+{% load static %}
+<html>
+    <head>
+        <meta charset="utf-8"/>
+        <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+        <link href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" rel="stylesheet"/>
+        <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" rel="stylesheet"/>
+        <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet"/>
+        <link rel="stylesheet" href="{% static 'staff/viewroom.css' %}"/>
+        <script src="{% static 'staff/viewroom.js' %}"></script>
+        <style>
+            .modal-content {
+                background-color: transparent;
+            }
+            .modal {
+                display: none;
+                position: fixed;
+                z-index: 9999;
+                padding-top: 0;
+                left: 0;
+                top: 0;
+                width: 100%;
+                height: 100%;
+                overflow: auto;
+                background-color: rgba(0,0,0,0.9);
+            }
+            .modal-content-map {
+                display: block;
+                margin: auto;
+                max-width: 90%;
+                max-height: 90%;
+                width: 100%;
+                height: 100%;
+                object-fit: contain;
+            }
+            .close {
+                position: absolute;
+                top: 10px;
+                right: 25px;
+                color: white;
+                font-size: 40px;
+                font-weight: bold;
+                cursor: pointer;
+            }
+            .map-responsive {
+                overflow: hidden;
+                padding-bottom: 56.25%;
+                position: relative;
+                height: 0;
+            }
+            .map-responsive iframe {
+                left: 0;
+                top: 0;
+                height: 100%;
+                width: 100%;
+                position: absolute;
+                border: 0;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="room-number">
+            {{ room.room_number }} 
+        </div>
+        
+        <div class="sub-header">
+            {{ room.hotel.name|upper }} - {% if room.heading is not None %}{{room.heading| title}} {%endif%}
+        </div>
+
+        <div class="container">
+            <div class="left-column">
+                <div class="main-image">
+                    {% if room.image1 %}
+                    <img 
+                        id="mainImage"
+                        alt="no-img"
+                        height="400"
+                        src="{{ room.image1.url }}"
+                        width="800"
+                        onclick="openFullScreen(this.src)"
+                        style="cursor: pointer;"
+                    /> 
+                    {% else %}
+                    <img 
+                        id="mainImage"
+                        alt="no-img"
+                        height="400"
+                        src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRtsilo4bPQ2OqSFcMZjq0dxxS17so2RbKCZAVhoS7bwgLQ8U5iyUUdepMp05E4XM2iMg&usqp=CAU"
+                        width="800"
+                        onclick="openFullScreen(this.src)"
+                        style="cursor: pointer;"
+                    />
+                    {% endif %}
+                </div>
+                <div class="thumbnail-images">
+                    {% if room.image1 %}
+                        <img alt="Thumbnail image 1" height="100" src="{{ room.image1.url }}" width="100" onclick="changeImage(this.src)" />
+                    {% else %}
+                        <span><img alt="no-img" height="100" src="{% static 'default-img/noimg.png' %}" width="100"/></span>
+                    {% endif %}
+                    {% if room.image2 %}
+                        <img alt="Thumbnail image 2" height="100" src="{{ room.image2.url }}" width="100" onclick="changeImage(this.src)" />
+                    {% else %}
+                        <span><img alt="no-img" height="100" src="{% static 'default-img/noimg.png' %}" width="100"/></span>
+                    {% endif %}
+                    {% if room.image3 %}
+                        <img alt="Thumbnail image 3" height="100" src="{{ room.image3.url }}" width="100" onclick="changeImage(this.src)" />
+                    {% else %}
+                        <span><img alt="no-img" height="100" src="{% static 'default-img/noimg.png' %}" width="100"/></span>
+                    {% endif %}
+                    {% if room.image4 %}
+                        <img alt="Thumbnail image 4" height="100" src="{{ room.image4.url }}" width="100" onclick="changeImage(this.src)" />
+                    {% else %}
+                        <span><img alt="no-img" height="100" src="{% static 'default-img/noimg.png' %}" width="100"/></span>
+                    {% endif %}
+                    {% if room.image5 %}
+                        <img alt="Thumbnail image 5" height="100" src="{{ room.image5.url }}" width="100" onclick="changeImage(this.src)" />
+                    {% else %}
+                        <span><img alt="no-img" height="100" src="{% static 'default-img/noimg.png' %}" width="100"/></span>
+                    {% endif %}
+                </div>
+
+                <div class="amenities">
+                    {% if room.comfortable_bed == True %}
+                    <div class="facility-box"><i class="fas fa-bed"></i> Comfortable Bed</div>
+                    {% endif %}
+                    {% if room.private_bathroom == True %}
+                    <div class="facility-box"><i class="fas fa-bath"></i> Private Bathroom</div>
+                    {% endif %}
+                    {% if room.wifi == True %}
+                    <div class="facility-box"><i class="fas fa-wifi"></i> Wi-Fi</div>
+                    {% endif %}
+                    {% if room.ac == True %}
+                    <div class="facility-box"><i class="fas fa-snowflake"></i> AC</div>
+                    {% endif %}
+                    {% if room.fan == True %}
+                    <div class="facility-box"><i class="fas fa-fan"></i> Fan</div>
+                    {% endif %}
+                    {% if room.heater == True %}
+                    <div class="facility-box"><i class="fas fa-fire"></i> Heater</div>
+                    {% endif %}
+                    {% if room.cleanliness == True %}
+                    <div class="facility-box"><i class="fas fa-broom"></i> Cleanliness (Regular)</div>
+                    {% endif %}
+                    {% if room.safety_security == True %}
+                    <div class="facility-box"><i class="fas fa-lock"></i> Safety & Security</div>
+                    {% endif %}
+                    {% if room.entertainment_options == True %}
+                    <div class="facility-box"><i class="fas fa-tv"></i> Entertainment Options</div>
+                    {% endif %}
+                    {% if room.laundry_facility == True %}
+                    <div class="facility-box"><i class="fas fa-tshirt"></i> Laundry Facility</div>
+                    {% endif %}
+                    {% if room.outdoor_balcony == True %}
+                    <div class="facility-box"><i class="fas fa-umbrella-beach"></i> Outdoor Balcony</div>
+                    {% endif %}
+                    {% if room.parking == True %}
+                    <div class="facility-box"><i class="fas fa-parking"></i> Parking Area</div>
+                    {% endif %}
+                    {% if room.food_facility == True %}
+                    <div class="facility-box"><i class="fas fa-utensils"></i> Food Facility</div>
+                    {% endif %}
+                    {% if room.convenient_location == True %}
+                    <div class="facility-box"><i class="fas fa-map-marker-alt"></i> Convenient Location</div>
+                    {% endif %}
+                    {% if room.concierge_service == True %}
+                    <div class="facility-box"><i class="fas fa-concierge-bell"></i> Concierge Service</div>
+                    {% endif %}
+                </div>
+                
+            </div>
+            
+            <div class="right-column">
+                <div class="description">
+                    <h2>
+                        Description of {{ room.hotel.name }}
+                        {% if room.heading is not None %}
+                        ( {{ room.heading }} )
+                        {% endif %}
+                    </h2>
+                    <p>{{ room.description }}</p>
+                </div>
+                <div class="facilities">
+                    <h3>Facilities</h3>
+                    <ul>
+                        {% if room.discount %}
+                        <li><i class="fas fa-check-circle"></i> Gate till discount: {{ room.discount }}%</li>
+                        {% endif %}
+                        {% if room.size %}
+                        <li><i class="fas fa-check-circle"></i> Room size: {{ room.size }} sq ft</li>
+                        {% endif %}
+                        <li><i class="fas fa-check-circle"></i> Budget Room</li>
+                        {% if room.food_facility == True %}
+                        <li><i class="fas fa-check-circle"></i> Food facilities near the room</li>
+                        {% endif %}
+                    </ul>
+                </div>
+                <div class="charges">
+                    <h3>Charges</h3>
+                    <ul>
+                        {% if room.extra_person_charges %}
+                        <li>Extra Person charges: Rs. {{ room.extra_person_charges }}/- (Ex GST)</li>
+                        {% else %}
+                        <li>No charges have been defined for additional persons.</li>
+                        {% endif %}
+                    </ul>
+                </div>
+                <div class="important-info">
+                    <h3>Important Information</h3>
+                    <ul>
+                        <li><i class="fas fa-clock"></i> Check-in: {{ room.check_in_time }} | Check-out: {{ room.check_out_time }}</li>
+                        <li><i class="fas fa-language"></i> Languages Spoken by Staff: {{ room.languages_spoken|title }}</li>
+                    </ul>
+                </div>
+                <div class="extra-info">
+                    <div class="extra-info-icon">
+                        <div class="extra-info-content">
+                            {% if room.room_type == '1' %}
+                            <i class="fas fa-star"></i>
+                            <small>Premium Room Amenities</small>
+                            {% elif room.room_type == '2' %}
+                            <i class="fas fa-check-circle"></i>
+                            <small>Deluxe Room Features</small>
+                            {% elif room.room_type == '3' %}
+                            <i class="fas fa-check-circle"></i>
+                            <small>Basic Room Features</small>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                <div class="extra-info">
+                    <div class="extra-info-icon">
+                        <div class="extra-info-content">
+                            <i class="fas fa-users"></i>
+                            <small>Capacity: {{ room.capacity }} Persons</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="container">
+            <div class="left-column">
+                <div class="map-responsive animate__animated animate__fadeIn">
+                    <iframe 
+                        src="{{ room.hotel.embedded_map_link }}" 
+                        width="600" 
+                        height="450" 
+                        style="border:0; cursor: pointer;" 
+                        allowfullscreen="" 
+                        loading="lazy"
+                        onclick="openFullScreenMap(this.src)"
+                    ></iframe>
+                </div>
+                <p><strong>Rank:</strong> {{ room.hotel.rank }}</p>
+            </div>
+            <div class="right-column">
+                <div class="login-section">
+                    <div>
+                        {% if user.is_authenticated %}
+                            <button class="login-button" data-toggle="modal" data-target="#forlogin">
+                                Hello, {{request.user}}
+                            </button>
+                        {% else %}
+                            <button class="login-button">LOGIN</button>
+                        {% endif %}
+                    </div>
+                    <div>
+                        <span class="price">₹{{ room.discounted_price|floatformat:2 }}</span>
+                        <span class="discount">₹{{ room.price|floatformat:2 }}</span>
+                    </div>
+                </div>
+                <div class="table-section">
+                    <table class="details-table">
+                        <thead>
+                            <tr>
+                                <th>Item</th>
+                                <th>Details of {{ room.hotel.name }}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Total Price</td>
+                                <td>₹{{ room.discounted_price|floatformat:2 }}</td>
+                            </tr>
+                            <tr>
+                                <td>Discount</td>
+                                <td>
+                                    {% if room.saved_money and room.discount %}
+                                        ₹{{ room.saved_money|floatformat:2 }}
+                                        ({{ room.discount }}% off)
+                                    {% else %}
+                                        Not Discounted Yet
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>Guests</td>
+                                <td>2 Guests {% if room.extra_person_charges %}
+                                    [charges/person: Rs. {{room.extra_person_charges}}/- (Ex GST)]
+                                    {% else %}
+                                    & (No charges have been defined for additional persons.)
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>Total Price</td>
+                                <td><div class="summary-price" style="font-size:18px;">₹{{ room.total_money|floatformat:2 }} including all taxes</div></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="price-section">
+                    <div>
+                        <p>
+                {% comment %} <h2 class="facilities-heading">Available Facilities</h2> {% endcomment %}
+                
+
+
+                <!-- Map Section -->
+                {% comment %} <h2>{{ room.hotel.heading_map }}</h2>
+                <p>{{ room.hotel.description_map }}</p> {% endcomment %}<br />
+                            Mon, 7 Aug – Thu, 10 Aug | 1 Room, 2 Guests
+                        </p>
+                    </div>
+                    <div>
+                        <button class="continue-button">Continue to Book</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="container">
+            <div class="footer-grid">
+                <div class="footer-card">
+                    <div>
+                        <button class="action-button login-button">
+                       Description Of Location</button>
+                        <div class="price-info">
+                            <span class="current-price"><p>{{ room.hotel.heading_map|upper }}</span>
+                            
+                        </div>
+                        <div class="text-muted">
+                            <small>{{ room.hotel.description_map }}</small><br>
+                            <small>Mon, 7 Aug – Thu, 10 Aug | 1 Room, 2 Guests</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="footer-card">
+                    <div class="room-details">
+                        <h4 class="mb-4">Room Information</h4>
+                        <p><b><i class="fas fa-info-circle me-2"></i> Status:</b> {{ room.get_status_display|capfirst }}</p>
+                        <p><b><i class="fas fa-map-marker-alt me-2"></i> City:</b> {{ room.hotel.location|capfirst }}</p>
+                        <p><b><i class="fas fa-globe me-2"></i> State:</b> {{ room.hotel.state|capfirst }}</p>
+                        <p><b><i class="fas fa-flag me-2"></i> Country:</b> {{ room.hotel.country|capfirst }}</p>
+                        <p><b><i class="fas fa-door-open me-2"></i> Room Number:</b> {{ room.room_number }}</p>
+                        <p><b><i class="fas fa-bed me-2"></i> Type:</b> {{ room.get_room_type_display }}</p>
+                    </div>
+                </div>
+                <div class="footer-card">
+                    <div class="summary-container">
+                        <div class="summary-text">
+                            <button class="action-button offers-button saving_booking">Savings & Booking</button>
+                            <div class="summary-price">Total price: ₹{{ room.total_money|floatformat:2 }}</div>
+                            <p>including all taxes with extra charges</p>
+                            <p>Your savings: ₹{{ room.saved_money|floatformat:2 }}</p>
+                        </div>
+                        <button class="action-button book-button">Continue to Book</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="container-fluid px-4">
+            <hr>
+            <div class="bookings-section">
+                <h3 class="text-success mb-4">
+                    <i class="fas fa-book me-2"></i>Bookings
+                </h3>
+                {% if reservations %}
+                <div class="table-responsive">
+                    <table id="bookingsTable" class="table table-striped table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Username</th>
+                                <th>Persons</th>
+                                <th>Check In</th>
+                                <th>Check Out</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for each_detail in reservations %}
+                            <tr>
+                                <td>{{ each_detail.guest.username }}</td>
+                                <td>{{ each_detail.room.capacity }}</td>
+                                <td>{{ each_detail.check_in }}</td>
+                                <td>{{ each_detail.check_out }}</td>
+                                <td style="background-color: {% if each_detail.check_out < current_date %}red{% elif each_detail.check_in <= current_date and each_detail.check_out >= current_date %}green{% else %}blue{% endif %};">
+                                    {% if each_detail.check_out < current_date %}
+                                        Past
+                                    {% elif each_detail.check_in <= current_date and each_detail.check_out >= current_date %}
+                                        Current
+                                    {% else %}
+                                        Future
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="alert alert-info">No booking details found</div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Full-screen Image Modal -->
+        <div id="imageModal" class="modal" onclick="closeFullScreen()">
+            <span class="close" onclick="closeFullScreen()">×</span>
+            <img id="fullImage" class="modal-content" alt="Full screen image">
+        </div>
+
+        <!-- Full-screen Map Modal -->
+        <div id="mapModal" class="modal" onclick="closeFullScreenMap()">
+            <span class="close" onclick="closeFullScreenMap()">×</span>
+            <iframe id="fullMap" class="modal-content-map" allowfullscreen="" loading="lazy"></iframe>
+        </div>
+
+        <script>
+            function openFullScreen(src) {
+                document.getElementById("fullImage").src = src;
+                document.getElementById("imageModal").style.display = "block";
+            }
+            function closeFullScreen() {
+                document.getElementById("imageModal").style.display = "none";
+            }
+            function changeImage(src) {
+                document.getElementById("mainImage").src = src;
+            }
+            function openFullScreenMap(src) {
+                document.getElementById("fullMap").src = src;
+                document.getElementById("mapModal").style.display = "block";
+            }
+            function closeFullScreenMap() {
+                document.getElementById("mapModal").style.display = "none";
+            }
+        </script>
+    </body>
+</html>
+{% endblock %}

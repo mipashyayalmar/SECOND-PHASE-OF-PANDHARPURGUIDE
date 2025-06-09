@@ -1,0 +1,244 @@
+<div id="calendar" class="mt-3"></div>
+
+<style>
+    #calendar {
+        background-color: white;
+        border-radius: 8px;
+        padding: 20px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    
+    .fc-event {
+        cursor: pointer;
+        border: 1px solid rgba(0,0,0,0.1);
+        margin: 1px;
+        font-size: 0.85em;
+    }
+    
+    .fc-event .fc-event-main {
+        padding: 2px;
+        color: #333 !important;
+    }
+    
+    .fc-daygrid-event-dot {
+        display: none !important;
+    }
+    
+    .fc-toolbar-title {
+        font-size: 1.2em;
+    }
+    
+    .fc-button {
+        background-color: #f8f9fa !important;
+        border-color: #dee2e6 !important;
+        color: #495057 !important;
+    }
+    
+    .fc-button-primary:not(:disabled).fc-button-active {
+        background-color: #0d6efd !important;
+        border-color: #0d6efd !important;
+        color: white !important;
+    }
+    
+    .fc-button:disabled {
+        opacity: 0.5 !important;
+    }
+    
+    .fc-col-header-cell {
+        background-color: #f8f9fa;
+    }
+    
+    .fc-day-today {
+        background-color: #e6f7ff !important;
+    }
+    
+    .legend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-bottom: 15px;
+        padding: 10px;
+        background-color: #f8f9fa;
+        border-radius: 5px;
+    }
+    
+    .legend-item {
+        display: flex;
+        align-items: center;
+        font-size: 0.9em;
+    }
+    
+    .legend-color {
+        width: 20px;
+        height: 20px;
+        margin-right: 5px;
+        border-radius: 3px;
+        border: 1px solid #ddd;
+    }
+    
+    .status-filter {
+        margin-left: auto;
+    }
+    
+    .status-filter select {
+        padding: 5px;
+        border-radius: 4px;
+        border: 1px solid #ddd;
+    }
+</style>
+
+<div class="legend">
+    <div class="legend-item">
+        <div class="legend-color" style="background-color: #ffdddd;"></div>
+        <span>Past Bookings</span>
+    </div>
+    <div class="legend-item">
+        <div class="legend-color" style="background-color: #dfffdf;"></div>
+        <span>Current Bookings</span>
+    </div>
+    <div class="legend-item">
+        <div class="legend-color" style="background-color: #e6f2ff;"></div>
+        <span>Future Bookings</span>
+    </div>
+    
+    <div class="status-filter">
+        <select id="calendarStatusFilter" class="form-select form-select-sm">
+            <option value="all">All Statuses</option>
+            <option value="past">Past Only</option>
+            <option value="current">Current Only</option>
+            <option value="future">Future Only</option>
+        </select>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const calendarEl = document.getElementById('calendar');
+        const calendar = new FullCalendar.Calendar(calendarEl, {
+            initialView: 'dayGridMonth',
+            headerToolbar: {
+                left: 'prev,next today',
+                center: 'title',
+                right: 'dayGridMonth,timeGridWeek,timeGridDay,listMonth'
+            },
+            views: {
+                timeGridWeek: {
+                    dayHeaderFormat: { weekday: 'short', month: 'numeric', day: 'numeric' }
+                }
+            },
+            firstDay: 1, // Monday
+            navLinks: true,
+            editable: false,
+            dayMaxEvents: true,
+            eventSources: [
+                {
+                    url: window.location.pathname + '?action=calendar',
+                    method: 'GET',
+                    extraParams: function() {
+                        return {
+                            view_type: $('#view_type').val(),
+                            status: $('#calendarStatusFilter').val(),
+                            day: $('#day').val(),
+                            search_name: $('#search_name').val(),
+                            start_date: $('#start_date').val(),
+                            end_date: $('#end_date').val(),
+                            month: $('#month').val(),
+                            week: $('#week').val(),
+                            booking_date: $('#booking_date').val()
+                        };
+                    },
+                    failure: function() {
+                        alert('There was an error fetching events!');
+                    }
+                }
+            ],
+            eventDidMount: function(info) {
+                // Add status class based on event data
+                if (info.event.extendedProps.status === 'past') {
+                    info.el.classList.add('booking-past');
+                } else if (info.event.extendedProps.status === 'current') {
+                    info.el.classList.add('booking-current');
+                } else {
+                    info.el.classList.add('booking-future');
+                }
+                
+                // Add tooltip
+                $(info.el).tooltip({
+                    title: `
+                        <strong>${info.event.title}</strong><br>
+                        <strong>Check-in:</strong> ${info.event.extendedProps.check_in}<br>
+                        <strong>Check-out:</strong> ${info.event.extendedProps.check_out}<br>
+                        <strong>Nights:</strong> ${info.event.extendedProps.nights}<br>
+                        <strong>Amount:</strong> ${info.event.extendedProps.amount}<br>
+                        <strong>Status:</strong> ${info.event.extendedProps.status}
+                    `,
+                    html: true,
+                    placement: 'top',
+                    container: 'body'
+                });
+            },
+            eventClick: function(info) {
+                $('#bookingModal .modal-title').html(`Booking Details: ${info.event.title}`);
+                $('#bookingModal .modal-body').html(`
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>Guest:</strong> ${info.event.extendedProps.guest}</p>
+                            <p><strong>Room:</strong> ${info.event.extendedProps.room}</p>
+                            <p><strong>Hotel:</strong> ${info.event.extendedProps.hotel}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Check-in:</strong> ${info.event.extendedProps.check_in}</p>
+                            <p><strong>Check-out:</strong> ${info.event.extendedProps.check_out}</p>
+                            <p><strong>Nights:</strong> ${info.event.extendedProps.nights}</p>
+                            <p><strong>Amount:</strong> ${info.event.extendedProps.amount}</p>
+                        </div>
+                    </div>
+                    <div class="row mt-2">
+                        <div class="col-12">
+                            <p><strong>Booking Date:</strong> ${info.event.extendedProps.booking_date}</p>
+                            <p><strong>Status:</strong> <span class="badge ${getStatusBadgeClass(info.event.extendedProps.status)}">
+                                ${info.event.extendedProps.status.charAt(0).toUpperCase() + info.event.extendedProps.status.slice(1)}
+                            </span></p>
+                        </div>
+                    </div>
+                `);
+                $('#bookingModal').modal('show');
+            },
+            datesSet: function(info) {
+                // Update month/week filter when calendar view changes
+                const view = calendar.view;
+                if (view.type === 'dayGridMonth') {
+                    const month = `${info.start.getFullYear()}-${(info.start.getMonth() + 1).toString().padStart(2, '0')}`;
+                    $('#month').val(month);
+                } else if (view.type === 'timeGridWeek') {
+                    const year = info.start.getFullYear();
+                    const weekNum = getWeekNumber(info.start);
+                    $('#week').val(`${year}-W${weekNum}`);
+                }
+            }
+        });
+        
+        calendar.render();
+        
+        // Status filter change handler
+        $('#calendarStatusFilter').change(function() {
+            calendar.refetchEvents();
+        });
+        
+        // Helper function to get week number
+        function getWeekNumber(d) {
+            d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+            d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
+            const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+            const weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+            return weekNo;
+        }
+        
+        // Helper function to get status badge class
+        function getStatusBadgeClass(status) {
+            if (status === 'past') return 'bg-secondary';
+            if (status === 'current') return 'bg-success';
+            return 'bg-primary';
+        }
+    });
+</script>

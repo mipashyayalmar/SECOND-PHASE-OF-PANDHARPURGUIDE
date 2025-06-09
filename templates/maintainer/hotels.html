@@ -1,0 +1,453 @@
+{% extends 'rooms/room_basic.html' %}
+{% load static %}
+{% block title %}Home - Pandharpur Guide{% endblock %}
+{% block content %}
+<div class="container mt-4 mt-md-5 animate__animated animate__fadeIn">
+    <div class="hotel-header text-center animate__animated animate__fadeInDown mb-4">
+        <h1 class="display-4">Your Hotels</h1>
+        <p class="lead">Manage your property portfolio</p>
+    </div>
+
+    {% if messages %}
+        <div class="alert alert-dismissible fade show" role="alert">
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+            {% endfor %}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    {% endif %}
+
+    <div class="row g-4 mt-3 mt-md-4" id="hotels-row">
+        {% for hotel in hotels %}
+            <div class="col-12 col-md-6 col-lg-4 animate__animated animate__fadeInUp">
+                <div class="card hotel-card h-100 shadow-sm">
+                    {% if hotel.image_1 %}
+                        <div class="card-img-top-wrapper">
+                            <img src="{{ hotel.image_1.url }}" alt="{{ hotel.name }}" class="card-img-top hotel-thumbnail">
+                        </div>
+                    {% endif %}
+                    <div class="card-body">
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="hotel-icon-wrapper me-3">
+                                <i class="fas fa-hotel fa-2x text-primary"></i>
+                            </div>
+                            <div>
+                                <h5 class="card-title mb-0">{{ hotel.name }} <span class="hotel-type-badge">{{ hotel.get_hotel_type_display|lower }}</span></h5>
+                                <small class="text-muted">{{ hotel.location }}, {{ hotel.state }}</small>
+                            </div>
+                        </div>
+                        <ul class="list-group list-group-flush mb-3">
+                            <li class="list-group-item d-flex justify-content-between px-0">
+                                <span><i class="fas fa-map-marker-alt me-2 text-secondary"></i>Country:</span>
+                                <span class="fw-bold">{{ hotel.country }}</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between px-0">
+                                <span><i class="fas fa-user me-2 text-secondary"></i>Owner:</span>
+                                <span class="fw-bold">{{ hotel.owner }}</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between px-0">
+                                <span><i class="fas fa-users me-2 text-secondary"></i>Staff:</span>
+                                <span class="fw-bold text-truncate" style="max-width: 150px;" title="{% for staff in hotel.assigned_staff.all %}{{ staff.user.username }}{% if not forloop.last %}, {% endif %}{% endfor %}">
+                                    {% for staff in hotel.assigned_staff.all %}
+                                        {{ staff.user.username }}{% if not forloop.last %}, {% endif %}
+                                    {% empty %}
+                                        None
+                                    {% endfor %}
+                                </span>
+                            </li>
+                        </ul>
+                        <div class="d-flex justify-content-between mt-auto">
+                            <a href="{% url 'hotel_staff_edit_location' %}?hotel_id={{ hotel.id }}" class="btn btn-sm btn-warning">
+                                <i class="fas fa-edit me-1"></i> Edit
+                            </a>
+                            <button class="btn btn-sm btn-primary hotel-detail-btn" 
+                                    data-hotel-id="{{ hotel.id }}"
+                                    data-hotel-name="{{ hotel.name }}"
+                                    data-hotel-location="{{ hotel.location }}"
+                                    data-hotel-state="{{ hotel.state }}"
+                                    data-hotel-country="{{ hotel.country }}"
+                                    data-hotel-owner="{{ hotel.owner }}"
+                                    data-hotel-description-map="{{ hotel.description_map }}"
+                                    data-hotel-heading-map="{{ hotel.heading_map }}"
+                                    data-hotel-embedded-map="{{ hotel.embedded_map_link|default:'' }}"
+                                    data-hotel-rank="{{ hotel.rank }}"
+                                    data-hotel-image1="{% if hotel.image_1 %}{{ hotel.image_1.url }}{% else %}{% endif %}"
+                                    data-hotel-image2="{% if hotel.image_2 %}{{ hotel.image_2.url }}{% else %}{% endif %}"
+                                    data-hotel-image3="{% if hotel.image_3 %}{{ hotel.image_3.url }}{% else %}{% endif %}"
+                                    data-hotel-image4="{% if hotel.image_4 %}{{ hotel.image_4.url }}{% else %}{% endif %}"
+                                    data-hotel-image5="{% if hotel.image_5 %}{{ hotel.image_5.url }}{% else %}{% endif %}"
+                                    data-hotel-image6="{% if hotel.image_6 %}{{ hotel.image_6.url }}{% else %}{% endif %}"
+                                    data-hotel-staff="{% for staff in hotel.assigned_staff.all %}{{ staff.user.username }}{% if not forloop.last %}, {% endif %}{% empty %}None{% endfor %}"
+                                    data-hotel-created-by="{{ hotel.created_by.user.username|default:'N/A' }}"
+                                    data-bs-toggle="modal" 
+                                    data-bs-target="#hotelDetailModal">
+                                <i class="fas fa-info-circle me-1"></i> Details
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% empty %}
+            <div class="col-12">
+                <div class="empty-state text-center py-5 animate__animated animate__fadeIn">
+                    <i class="fas fa-hotel fa-4x text-muted mb-3"></i>
+                    <h3>No Hotels Found</h3>
+                    <p class="text-muted">You haven't added any hotels to your portfolio yet.</p>
+                    <a href="{% url 'addnewlocation' %}" class="btn btn-primary mt-3">
+                        <i class="fas fa-plus me-2"></i> Add Your First Hotel
+                    </a>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Hotel Detail Modal -->
+<div class="modal fade" id="hotelDetailModal" tabindex="-1" aria-labelledby="hotelDetailModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header bg-light">
+                <h5 class="modal-title" id="hotelDetailModalLabel">Hotel Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Hotel Images Carousel -->
+                <div id="hotelImagesCarousel" class="carousel slide mb-4" data-bs-ride="carousel">
+                    <div class="carousel-inner" id="carousel-inner">
+                        <!-- Images will be inserted here via JavaScript -->
+                    </div>
+                    <button class="carousel-control-prev" type="button" data-bs-target="#hotelImagesCarousel" data-bs-slide="prev">
+                        <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                        <span class="visually-hidden">Previous</span>
+                    </button>
+                    <button class="carousel-control-next" type="button" data-bs-target="#hotelImagesCarousel" data-bs-slide="next">
+                        <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                        <span class="visually-hidden">Next</span>
+                    </button>
+                    <div class="carousel-indicators" id="carousel-indicators">
+                        <!-- Indicators will be inserted here via JavaScript -->
+                    </div>
+                </div>
+                
+                <div id="noImagesMessage" class="alert alert-info text-center d-none">
+                    <i class="fas fa-images me-2"></i> No images available for this hotel
+                </div>
+
+                <!-- Hotel Details -->
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="info-group mb-3">
+                            <h6 class="text-muted">Name</h6>
+                            <p id="modal-hotel-name" class="fw-bold fs-5 mb-1"></p>
+                        </div>
+                        
+                        <div class="info-group mb-3">
+                            <h6 class="text-muted">Location</h6>
+                            <p id="modal-hotel-location" class="mb-1"></p>
+                            <p id="modal-hotel-state" class="mb-1"></p>
+                            <p id="modal-hotel-country" class="mb-1"></p>
+                        </div>
+                        
+                        <div class="info-group mb-3">
+                            <h6 class="text-muted">Ranking</h6>
+                            <p id="modal-hotel-rank" class="mb-1"></p>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <div class="info-group mb-3">
+                            <h6 class="text-muted">Owner</h6>
+                            <p id="modal-hotel-owner" class="mb-1"></p>
+                        </div>
+                        
+                        <div class="info-group mb-3">
+                            <h6 class="text-muted">Assigned Staff</h6>
+                            <p id="modal-hotel-staff" class="mb-1"></p>
+                        </div>
+                        
+                        <div class="info-group mb-3">
+                            <h6 class="text-muted">Created By</h6>
+                            <p id="modal-hotel-created-by" class="mb-1"></p>
+                        </div>
+                    </div>
+                </div>
+                
+                <hr>
+                
+                <!-- Map Section -->
+                <div id="map-section">
+                    <h5 class="mb-3"><i class="fas fa-map-marked-alt me-2"></i>Location Map</h5>
+                    
+                    <div id="map-heading-section" class="mb-2">
+                        <h6 class="text-muted">Heading</h6>
+                        <p id="modal-hotel-heading-map" class="mb-2"></p>
+                    </div>
+                    
+                    <div id="map-description-section" class="mb-3">
+                        <h6 class="text-muted">Description</h6>
+                        <p id="modal-hotel-description-map" class="mb-3"></p>
+                    </div>
+                    
+                    <div id="modal-hotel-embedded-map" class="mt-3 mb-3 map-container rounded overflow-hidden"></div>
+                    
+                    <div id="no-map-message" class="alert alert-info text-center d-none">
+                        <i class="fas fa-map me-2"></i> No map available for this location
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <a id="edit-hotel-link" href="#" class="btn btn-warning me-auto">
+                    <i class="fas fa-edit me-1"></i> Edit Hotel
+                </a>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    
+            .hotel-type-badge {
+                background-color: var(--accent-color);
+                color: white;
+                padding: 0.25rem 0.75rem;
+                border-radius: 20px;
+                font-size: 0.75rem;
+                font-weight: 500;
+                margin-left: 0.5rem;
+            }
+        /* Custom styles for the hotels page */
+        .hotel-card {
+            transition: all 0.3s ease;
+            border-radius: 10px;
+            overflow: hidden;
+            height: 100%;
+        }
+
+        .hotel-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1) !important;
+        }
+
+        .card-img-top-wrapper {
+            position: relative;
+            overflow: hidden;
+            height: 180px;
+        }
+
+        .hotel-thumbnail {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.5s ease;
+        }
+
+        .hotel-card:hover .hotel-thumbnail {
+            transform: scale(1.05);
+        }
+
+        .hotel-icon-wrapper {
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: rgba(0, 123, 255, 0.1);
+            border-radius: 50%;
+        }
+
+        .empty-state {
+            background-color: #f8f9fa;
+            border-radius: 10px;
+            padding: 40px 20px;
+        }
+
+        /* Modal styles */
+        .carousel-item {
+            height: 300px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+
+        .carousel-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .info-group h6 {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 5px;
+        }
+
+        .map-container {
+            min-height: 300px;
+            background-color: #f8f9fa;
+        }
+
+        .map-container iframe {
+            width: 100%;
+            height: 100%;
+            min-height: 300px;
+            border: none;
+        }
+
+        @media (max-width: 767.98px) {
+            .carousel-item {
+                height: 200px;
+            }
+            
+            .map-container, .map-container iframe {
+                min-height: 200px;
+            }
+            
+            
+        }
+</style>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Function to check if an element is in viewport
+            function isInViewport(element) {
+                const rect = element.getBoundingClientRect();
+                return (
+                    rect.top >= 0 &&
+                    rect.left >= 0 &&
+                    rect.bottom <= (window.innerHeight || document.documentElement.clientHeight) &&
+                    rect.right <= (window.innerWidth || document.documentElement.clientWidth)
+                );
+            }
+
+            // Animate cards on scroll
+            const cards = document.querySelectorAll('.hotel-card');
+            function checkCards() {
+                cards.forEach((card, index) => {
+                    if (isInViewport(card) && !card.classList.contains('animated')) {
+                        card.classList.add('animated', 'animate__animated', 'animate__fadeInUp');
+                        card.style.animationDelay = `${index * 0.1}s`;
+                    }
+                });
+            }
+            checkCards();
+            window.addEventListener('scroll', checkCards);
+
+            // Handle hotel detail modal
+            const detailButtons = document.querySelectorAll('.hotel-detail-btn');
+            detailButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    // Populate modal with hotel data
+                    document.getElementById('modal-hotel-name').textContent = this.dataset.hotelName;
+                    document.getElementById('modal-hotel-location').textContent = this.dataset.hotelLocation;
+                    document.getElementById('modal-hotel-state').textContent = this.dataset.hotelState;
+                    document.getElementById('modal-hotel-country').textContent = this.dataset.hotelCountry;
+                    document.getElementById('modal-hotel-owner').textContent = this.dataset.hotelOwner;
+                    document.getElementById('modal-hotel-staff').textContent = this.dataset.hotelStaff;
+                    document.getElementById('modal-hotel-created-by').textContent = this.dataset.hotelCreatedBy;
+                    document.getElementById('modal-hotel-heading-map').textContent = this.dataset.hotelHeadingMap;
+                    document.getElementById('modal-hotel-description-map').textContent = this.dataset.hotelDescriptionMap;
+
+                    // Set edit link
+                    document.getElementById('edit-hotel-link').href = "{% url 'hotel_staff_edit_location' %}?hotel_id=" + this.dataset.hotelId;
+
+                    // Handle rating stars
+                    const rank = parseInt(this.dataset.hotelRank) || 0;
+                    let starsHtml = '';
+                    for (let i = 1; i <= 5; i++) {
+                        starsHtml += `<i class="fas fa-star${i > rank ? '-o' : ''}"></i> `;
+                    }
+                    document.getElementById('modal-hotel-rank').innerHTML = starsHtml;
+
+                    // Handle embedded map
+                    const embeddedMapDiv = document.getElementById('modal-hotel-embedded-map');
+                    const noMapMessage = document.getElementById('no-map-message');
+                    const googleMapsLink = document.getElementById('modal-google-maps-link');
+                    let mapLink = this.dataset.hotelEmbeddedMap;
+
+                    if (mapLink && mapLink.includes('<iframe')) {
+                        const srcMatch = mapLink.match(/src="([^"]*)"/);
+                        if (srcMatch && srcMatch[1]) {
+                            mapLink = srcMatch[1];
+                        }
+                    }
+
+                    if (mapLink && mapLink.startsWith('http')) {
+                        embeddedMapDiv.innerHTML = `
+                            <iframe src="${mapLink}" width="100%" height="100%" style="border:0;" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+                        `;
+                        embeddedMapDiv.classList.remove('d-none');
+                        noMapMessage.classList.add('d-none');
+                        const googleMapsUrl = mapLink.replace('/embed?', '/?');
+                        googleMapsLink.href = googleMapsUrl;
+                        googleMapsLink.classList.remove('d-none');
+                    } else {
+                        embeddedMapDiv.innerHTML = '';
+                        embeddedMapDiv.classList.add('d-none');
+                        noMapMessage.classList.remove('d-none');
+                        googleMapsLink.classList.add('d-none');
+                    }
+
+                    // Handle images for carousel
+                    const images = [
+                        this.dataset.hotelImage1,
+                        this.dataset.hotelImage2,
+                        this.dataset.hotelImage3,
+                        this.dataset.hotelImage4,
+                        this.dataset.hotelImage5,
+                        this.dataset.hotelImage6
+                    ].filter(img => img && img.trim() !== '');
+
+                    const carouselInner = document.getElementById('carousel-inner');
+                    const carouselIndicators = document.getElementById('carousel-indicators');
+                    const carousel = document.getElementById('hotelImagesCarousel');
+                    const noImagesMessage = document.getElementById('noImagesMessage');
+
+                    carouselInner.innerHTML = '';
+                    carouselIndicators.innerHTML = '';
+
+                    if (images.length > 0) {
+                        carousel.classList.remove('d-none');
+                        noImagesMessage.classList.add('d-none');
+                        images.forEach((imgSrc, index) => {
+                            const item = document.createElement('div');
+                            item.className = `carousel-item ${index === 0 ? 'active' : ''}`;
+                            const img = document.createElement('img');
+                            img.src = imgSrc;
+                            img.className = 'd-block w-100';
+                            img.alt = `Hotel Image ${index + 1}`;
+                            item.appendChild(img);
+                            carouselInner.appendChild(item);
+
+                            const indicator = document.createElement('button');
+                            indicator.type = 'button';
+                            indicator.setAttribute('data-bs-target', '#hotelImagesCarousel');
+                            indicator.setAttribute('data-bs-slide-to', index.toString());
+                            if (index === 0) {
+                                indicator.className = 'active';
+                                indicator.setAttribute('aria-current', 'true');
+                            }
+                            indicator.setAttribute('aria-label', `Slide ${index + 1}`);
+                            carouselIndicators.appendChild(indicator);
+                        });
+                    } else {
+                        carousel.classList.add('d-none');
+                        noImagesMessage.classList.remove('d-none');
+                    }
+                });
+            });
+
+            // Fix modal backdrop issue
+            const hotelDetailModal = document.getElementById('hotelDetailModal');
+            hotelDetailModal.addEventListener('hidden.bs.modal', function() {
+                if (document.body.classList.contains('modal-open')) {
+                    document.body.classList.remove('modal-open');
+                    document.body.style.paddingRight = '';
+                    document.querySelectorAll('.modal-backdrop').forEach(backdrop => backdrop.remove());
+                }
+            });
+        });
+    </script>
+{% endblock %}

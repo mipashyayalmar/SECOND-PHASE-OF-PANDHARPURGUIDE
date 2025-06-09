@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    {% load static %}
+    {% load socialaccount %}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login Here</title>
+
+    <!-- STYLE CSS -->
+    <link rel="stylesheet" href="{% static 'user/css/style.css' %}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+
+<body>
+    <div class="wrapper">
+        <div class="inner">
+            <div class="image-holder">
+                <img src="{% static 'imgs/seond.png'%}" alt="">
+                <img src="{% static 'imgs/first.jpg'%}" alt="">
+            </div>
+            
+            <form action="{% url 'user:signin' %}" method="POST" id="signin-form">
+                <h3>Sign In</h3>
+                {% csrf_token %}
+                {% if message %} 
+                    <p class="hint-text text-center" style="color: #FF0000">{{ message }}</p>
+                {% endif %}
+                <div class="form-holder">
+                    <input type="email" class="form-control" name="username" placeholder="Email" required>
+                </div>
+                <div class="form-holder" style="position: relative;">
+                    <input type="password" placeholder="Password" name="password" class="form-control" id="password" required>
+                    <span toggle="#password" class="fa fa-fw fa-eye-slash field-icon" id="togglePassword" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); cursor: pointer;"></span>
+                </div>
+                
+                <!-- Checkbox for Terms and Conditions -->
+                <div class="checkbox">
+                    <label>
+                        <input type="checkbox" id="terms-checkbox"> I agree to all statements in <a href="#">Terms & Conditions</a>
+                        <span class="checkmark"></span>
+                    </label>
+                </div>
+                <div class="form-login">
+                    <button type="submit" id="signin-button" disabled>Sign In</button>
+                </div>
+<br><br><br>
+                <div class="forgot-pass">
+					<p>Don't have an account? <a href="{% url 'user:signup' %}">Sign up</a>
+					</p><br>
+                    Forgot Password? <a href="{% url 'user:password-reset' %}">Click Here</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="{% static 'user/js/jquery-3.3.1.min.js' %}"></script>
+    <script>
+        const togglePassword = document.querySelector('#togglePassword');
+        const password = document.querySelector('#password');
+        const checkbox = document.getElementById('terms-checkbox');
+        const signinButton = document.getElementById('signin-button');
+
+        // Toggle password visibility
+        togglePassword.addEventListener('click', function () {
+            const type = password.getAttribute('type') === 'password' ? 'text' : 'password';
+            password.setAttribute('type', type);
+            this.classList.toggle('fa-eye');
+            this.classList.toggle('fa-eye-slash');
+        });
+
+        // Enable/disable sign-in button based on checkbox state
+        checkbox.addEventListener('change', function () {
+            signinButton.disabled = !checkbox.checked;
+        });
+
+        // Show alert when hovering over sign-in button if terms are not checked
+        signinButton.addEventListener('mouseover', function (e) {
+            if (!checkbox.checked) {
+                alert('Please agree to the Terms and Conditions before signing in.');
+            }
+        });
+
+        // Prevent form submission if checkbox is not checked
+        document.getElementById('signin-form').addEventListener('submit', function (e) {
+            if (!checkbox.checked) {
+                e.preventDefault();
+                alert('You must agree to the terms and conditions before signing in.');
+            }
+        });
+    </script>
+    <script src="{% static 'user/js/jquery-3.3.1.min.js' %}"></script>
+		<script src="{% static 'user/js/main.js' %}"></script>
+</body>
+</html>

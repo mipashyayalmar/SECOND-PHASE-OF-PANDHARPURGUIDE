@@ -1,0 +1,491 @@
+{% block content %}
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{%static 'profile/profile.css'%}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.8/css/intlTelInput.min.css">
+    
+    <style>
+        .container {
+            max-width: 1170px;
+            padding: 20px;
+        }
+        /* Phone input styling */
+        .phone-input-container {
+            position: relative;
+            width: 100%;
+        }
+        .phone-input-container .iti {
+            width: 100%;
+        }
+        .phone-input-container .iti__selected-flag {
+            padding: 0 6px 0 8px;
+            border-radius: 4px 0 0 4px;
+        }
+        .phone-input-container input {
+            padding-left: 52px;
+            width: 100%;
+        }
+        /* Error popup styles */
+        .phone-error-popup {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #fff;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 5px 25px rgba(0,0,0,0.2);
+            z-index: 1000;
+            max-width: 350px;
+            width: 90%;
+            text-align: center;
+            display: none;
+            animation: fadeIn 0.3s;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .phone-error-popup h3 {
+            color: #e74c3c;
+            margin-top: 0;
+        }
+        .phone-error-popup p {
+            margin-bottom: 20px;
+            color: #555;
+        }
+        .phone-error-popup button {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.3s;
+        }
+        .phone-error-popup button:hover {
+            background: #c0392b;
+        }
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 999;
+            display: none;
+            animation: fadeIn 0.3s;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="header">
+        <h1>Hotel Staff Account Information</h1>
+        <div class="breadcrumb">
+            <a href="#button">Home</a>
+            <span class="separator">•</span>
+            <span>Hotel Staff Account Information</span>
+        </div>
+    </div>   
+    
+    <div class="container">
+        
+        <div class="content-area">
+                      
+            <!-- Phone Error Popup -->
+            <div class="overlay" id="phoneErrorOverlay"></div>
+            <div class="phone-error-popup" id="phoneErrorPopup">
+                <h3>Invalid Phone Number</h3>
+                <p id="phoneErrorMessage">Please enter a valid Indian phone number with country code (+91).</p>
+                <button onclick="closePhoneError()">OK</button>
+            </div>
+
+            <div class="main-content">
+                <div class="profile-section">
+                    <!-- Profile Image -->
+                    {% if staff.shop_main_image %}
+                        <img src="{{ staff.shop_main_image.url }}" alt="Profile" class="round-img" onclick="openImage(this)">
+                    {% else %}
+                        <img src="https://img.freepik.com/premium-vector/avatar-profile-icon-flat-style-male-user-profile-vector-illustration-isolated-background-man-profile-sign-business-concept_157943-38764.jpg" 
+                             alt="Profile" class="round-img">
+                    {% endif %}
+                    <h2>Edit Staff Profile</h2>
+        
+                    <!-- Messages -->
+                    {% if messages %}
+                        {% for message in messages %}
+                            <div class="message-{% if message.tags %}{{ message.tags }}{% else %}success{% endif %}">
+                                {{ message }}
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+        
+                    <!-- Profile Form and Details -->
+                    <form method="post" enctype="multipart/form-data" class="profile-form" id="profileForm">
+                        {% csrf_token %}
+                        <div class="profile-details">
+                            <!-- Account Information -->
+                            <div class="detail-card">
+                                <div class="detail-header">
+                                    <h3>Account Information</h3>
+                                </div>
+                                <div class="detail-content">
+                                    <div class="detail-row">
+                                        <span class="detail-label">Username</span>
+                                        <span class="detail-value">{{ user.username }}</span>
+                                    </div>
+                                    <div class="detail-row">
+                                        <span class="detail-label">Verified</span>
+                                        <span class="detail-value status-indicator {% if user.is_verified %}verified{% else %}not-verified{% endif %}">
+                                            {{ user.is_verified|yesno:'Yes,No' }}
+                                        </span>
+                                    </div>
+                                    <div class="detail-row">
+                                        <span class="detail-label">Staff ID</span>
+                                        <span class="detail-value">{{ staff.staff_id }}</span>
+                                    </div>
+                                    <div class="detail-row">
+                                        <span class="detail-label">Active Staff</span>
+                                        <span class="detail-value status-indicator {% if staff.is_active_staff %}verified{% else %}not-verified{% endif %}">
+                                            {{ staff.is_active_staff|yesno:'Yes,No' }}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+        
+                            <!-- Personal Information with Edit -->
+                            <div class="detail-card">
+                                <div class="detail-header">
+                                    <h3>Personal Information</h3>
+                                </div>
+                                <div class="detail-content edit-section">
+                                    <div class="form-row">
+                                        <div class="form-group">
+                                            <label for="id_first_name"><span style="color: red;">*</span>First Name</label>
+                                            <input type="text" id="id_first_name" name="first_name" value="{{ user.first_name }}" placeholder="Enter Your first name" required>
+                                        </div>
+
+                                        <div class="form-group">
+                                            <label for="id_last_name"><span style="color: red;">*</span>Last Name</label>
+                                            <input type="text" id="id_last_name" name="last_name" value="{{ user.last_name }}" placeholder="Enter Your last name" required>
+                                        </div>
+
+                                        <div class="form-group">
+                                            <label for="id_phone"><span style="color: red;">*</span>Phone Number</label>
+                                            <div class="phone-input-container">
+                                                <input type="tel" name="phone" id="id_phone" value="{{ user.phone }}" placeholder="Enter Your Mobile Number" required>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="form-row">
+                                        <div class="form-group">
+                                            <label for="id_email">Email</label>
+                                            <input type="email" name="email" id="id_email" value="{{ user.email }}" placeholder="Enter Your Email" required readonly>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+        
+                            <!-- Staff Information with Edit -->
+                            <div class="detail-card">
+                                <div class="detail-header">
+                                    <h3>Staff Information</h3>
+                                </div>
+                                <div class="detail-content edit-section">
+
+                                    <div class="form-row">
+                                        <div class="form-group">
+                                            <label for="id_alternate_mobile_no">Alternate Mobile</label>
+                                            <div class="phone-input-container">
+                                                <input type="tel" name="alternate_mobile_no" id="id_alternate_mobile_no" value="{{ staff.alternate_mobile_no|default:'' }}" placeholder="Enter Alternate Mobile">
+                                            </div>
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="id_landline_no">Landline No</label>
+                                            <div class="phone-input-container">
+                                                <input type="tel" name="landline_no" id="id_landline_no" value="{{ staff.landline_no|default:'' }}" placeholder="Enter Landline No">
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="form-row">
+                                        <div class="form-group">
+                                            <label for="id_department">Department</label>
+                                            <select name="department" id="id_department" required>
+                                                <option value="reception" {% if staff.department == 'reception' %}selected{% endif %}>Reception</option>
+                                                <option value="housekeeping" {% if staff.department == 'housekeeping' %}selected{% endif %}>Housekeeping</option>
+                                                <option value="management" {% if staff.department == 'management' %}selected{% endif %}>Management</option>
+                                                <option value="kitchen" {% if staff.department == 'kitchen' %}selected{% endif %}>Kitchen</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    
+                                </div>
+                            </div>
+
+                            <div class="detail-card">
+                                <div class="detail-header">
+                                    <h3>Hotel Information</h3>
+                                </div>
+                                <div class="detail-content edit-section">
+                                    <div class="form-row">
+                                        <div class="form-group">
+                                            <label for="id_hotel_name"><span style="color: red;">*</span>Hotel Name</label>
+                                            <input type="text" id="id_hotel_name" name="hotel_name" value="{{ staff.hotel_name }}" placeholder="Enter Your Hotel Name" required>
+                                        </div>
+
+                                        <div class="form-group">
+                                            <label for="id_location"><span style="color: red;">*</span>Locations</label>
+                                            <input type="text" id="id_location" name="location" value="{{ staff.location }}" placeholder="Enter Your location" required>
+                                        </div>
+
+                                        <div class="form-group">
+                                            <label for="id_state"><span style="color: red;">*</span>Hotel State</label>
+                                            <input type="text" name="state" id="id_state" value="{{ staff.state }}" placeholder="Enter Your State" required>
+                                        </div>
+                                    </div>
+                                    <div class="form-row">
+                                        <div class="form-group">
+                                            <label for="id_country"><span style="color: red;">*</span>Country</label>
+                                            <input type="text" name="country" id="id_country" value="{{ staff.country }}" placeholder="Enter Your country" required readonly>
+                                        </div>
+                                    </div>
+
+                                    <div class="form-row">
+                                        <div class="form-group">
+                                            <label for="id_hotel_gst_no"><span style="color: red;">*</span>Hotel GST No</label>
+                                            <input type="text" name="hotel_gst_no" id="id_hotel_gst_no" value="{{ staff.hotel_gst_no|default:'' }}" placeholder="Enter Your hotel_gst_no" required>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+        
+                            <!-- Verification Documents with Edit -->
+                            <div class="detail-card">
+                                <div class="detail-header">
+                                    <h3>Verification Documents</h3>
+                                </div>
+                                <div class="detail-content document-gallery edit-section">
+                                    <div class="form-row">
+                                        <div class="form-group">
+                                            <label for="id_shop_main_image"><span style="color: red;">*</span>Shop Main Image</label>
+                                            <input type="file" name="shop_main_image" id="id_shop_main_image" accept="image/*" {% if not staff.shop_main_image %}required{% endif %}>
+                                            {% if staff.shop_main_image %}
+                                                <div class="document-preview">
+                                                    <img src="{{ staff.shop_main_image.url }}" alt="Shop Main Image" class="document-thumbnail" onclick="openImage(this)">
+                                                    <div class="document-overlay">
+                                                        <a href="{{ staff.shop_main_image.url }}"><span class="view-icon">⬇</span></a>
+                                                    </div>
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="id_shop_license_image"><span style="color: red;">*</span>Shop License Image</label>
+                                            <input type="file" name="shop_license_image" id="id_shop_license_image" accept="image/*" {% if not staff.shop_license_image %}required{% endif %}>
+                                            {% if staff.shop_license_image %}
+                                                <div class="document-preview">
+                                                    <img src="{{ staff.shop_license_image.url }}" alt="Shop License Image" class="document-thumbnail" onclick="openImage(this)">
+                                                    <div class="document-overlay">
+                                                        <a href="{{ staff.shop_license_image.url }}"><span class="view-icon">⬇</span></a>
+                                                    </div>
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                
+                                    <div class="form-row">
+                                        <div class="form-group">
+                                            <label for="id_shop_aadhar_image"><span style="color: red;">*</span>Shop Aadhar Image</label>
+                                            <input type="file" name="shop_aadhar_image" id="id_shop_aadhar_image" accept="image/*" {% if not staff.shop_aadhar_image %}required{% endif %}>
+                                            {% if staff.shop_aadhar_image %}
+                                                <div class="document-preview">
+                                                    <img src="{{ staff.shop_aadhar_image.url }}" alt="Shop Aadhar Image" class="document-thumbnail" onclick="openImage(this)">
+                                                    <div class="document-overlay">
+                                                        <a href="{{ staff.shop_aadhar_image.url }}"><span class="view-icon">⬇</span></a>
+                                                    </div>
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="id_owner_pan_image"><span style="color: red;">*</span>Owner PAN Image</label>
+                                            <input type="file" name="owner_pan_image" id="id_owner_pan_image" accept="image/*" {% if not staff.owner_pan_image %}required{% endif %}>
+                                            {% if staff.owner_pan_image %}
+                                                <div class="document-preview">
+                                                    <img src="{{ staff.owner_pan_image.url }}" alt="Owner PAN Image" class="document-thumbnail" onclick="openImage(this)">
+                                                    <div class="document-overlay">
+                                                        <a href="{{ staff.owner_pan_image.url }}"><span class="view-icon">⬇</span></a>
+                                                    </div>
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                
+                                    <div class="form-row">
+                                        <div class="form-group">
+                                            <label for="id_owner_aadhar_image"><span style="color: red;">*</span>Owner Aadhar Image</label>
+                                            <input type="file" name="owner_aadhar_image" id="id_owner_aadhar_image" accept="image/*" {% if not staff.owner_aadhar_image %}required{% endif %}>
+                                            {% if staff.owner_aadhar_image %}
+                                                <div class="document-preview">
+                                                    <img src="{{ staff.owner_aadhar_image.url }}" alt="Owner Aadhar Image" class="document-thumbnail" onclick="openImage(this)">
+                                                    <div class="document-overlay">
+                                                        <a href="{{ staff.owner_aadhar_image.url }}"><span class="view-icon">⬇</span></a>
+                                                    </div>
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                            </div>
+                        </div>
+                       <center>
+                        <a href="">
+                            <button class="button-92" role="button"type="submit"> <i class="fas fa-user-circle" id="button"></i>Save Profile</button>
+                        </a>
+                       </center>
+                    </form> 
+                    <br>
+                    
+                </div>
+            </div>
+        </div>        
+    </div>
+    
+    <a href="#" class="whatsapp-btn">
+        <i class="fab fa-whatsapp fa-2x"></i>
+    </a>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.8/js/intlTelInput.min.js"></script>
+    <script>
+        // Function to open image in new tab
+        function openImage(element) {
+            window.open(element.src, '_blank');
+        }
+
+        // Initialize phone inputs with intl-tel-input
+        const phoneInput = document.querySelector("#id_phone");
+        const alternatePhoneInput = document.querySelector("#id_alternate_mobile_no");
+        const landlineInput = document.querySelector("#id_landline_no");
+        
+        const itiPhone = window.intlTelInput(phoneInput, {
+            initialCountry: "in",
+            separateDialCode: true,
+            utilsScript: "https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.8/js/utils.js",
+        });
+
+        const itiAlternatePhone = window.intlTelInput(alternatePhoneInput, {
+            initialCountry: "in",
+            separateDialCode: true,
+            utilsScript: "https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.8/js/utils.js",
+        });
+
+        const itiLandline = window.intlTelInput(landlineInput, {
+            initialCountry: "in",
+            separateDialCode: true,
+            utilsScript: "https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.8/js/utils.js",
+        });
+
+        // Function to validate phone number
+        function validatePhoneNumber(input, isAlternate = false, isLandline = false) {
+            const phoneNumber = input.value.trim();
+            let countryData, isValid;
+            
+            if (isLandline) {
+                countryData = itiLandline.getSelectedCountryData();
+                isValid = itiLandline.isValidNumber();
+            } else if (isAlternate) {
+                countryData = itiAlternatePhone.getSelectedCountryData();
+                isValid = itiAlternatePhone.isValidNumber();
+            } else {
+                countryData = itiPhone.getSelectedCountryData();
+                isValid = itiPhone.isValidNumber();
+            }
+            
+            // Skip validation if alternate phone or landline is empty (not required)
+            if ((isAlternate || isLandline) && !phoneNumber) return true;
+            
+            // Check if the number is valid for the selected country
+            if (!isValid) {
+                showPhoneError("Please enter a valid phone number for " + countryData.name);
+                return false;
+            }
+            
+            // Specific validation for India
+            if (countryData.iso2 === "in") {
+                const fullNumber = isLandline ? itiLandline.getNumber() : 
+                                  isAlternate ? itiAlternatePhone.getNumber() : 
+                                  itiPhone.getNumber();
+                
+                if (!fullNumber.startsWith("+91")) {
+                    showPhoneError("Indian numbers must start with +91 country code");
+                    return false;
+                }
+                
+                const nationalNumber = phoneNumber.replace(/^\+91/, '').replace(/\D/g, '');
+                if (nationalNumber.length !== 10) {
+                    showPhoneError("Indian phone numbers must be 10 digits (excluding country code)");
+                    return false;
+                }
+            }
+            
+            return true;
+        }
+
+        // Function to show phone error popup
+        function showPhoneError(message) {
+            document.getElementById("phoneErrorMessage").textContent = message;
+            document.getElementById("phoneErrorPopup").style.display = "block";
+            document.getElementById("phoneErrorOverlay").style.display = "block";
+        }
+
+        // Function to close phone error popup
+        function closePhoneError() {
+            document.getElementById("phoneErrorPopup").style.display = "none";
+            document.getElementById("phoneErrorOverlay").style.display = "none";
+        }
+
+        // Form submission handler
+        document.getElementById("profileForm").addEventListener("submit", function(e) {
+            // Validate primary phone
+            if (!validatePhoneNumber(phoneInput)) {
+                e.preventDefault();
+                return;
+            }
+            
+            // Validate alternate phone if provided
+            if (alternatePhoneInput.value.trim() && !validatePhoneNumber(alternatePhoneInput, true)) {
+                e.preventDefault();
+                return;
+            }
+            
+            // Validate landline if provided
+            if (landlineInput.value.trim() && !validatePhoneNumber(landlineInput, false, true)) {
+                e.preventDefault();
+                return;
+            }
+            
+            // Format the phone numbers properly before submission
+            phoneInput.value = itiPhone.getNumber();
+            if (alternatePhoneInput.value.trim()) {
+                alternatePhoneInput.value = itiAlternatePhone.getNumber();
+            }
+            if (landlineInput.value.trim()) {
+                landlineInput.value = itiLandline.getNumber();
+            }
+        });
+
+        // Close popup when clicking overlay
+        document.getElementById("phoneErrorOverlay").addEventListener("click", closePhoneError);
+    </script>
+</body>
+</html>
+{% endblock %}
