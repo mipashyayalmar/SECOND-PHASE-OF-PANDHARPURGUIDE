@@ -237,6 +237,10 @@ class Replies(models.Model):
     def __str__(self):
         return f"Reply by {self.user.username} on {self.comment}"
 
+
+
+
+
 class Reservation(models.Model):
     check_in = models.DateField()
     check_out = models.DateField()
@@ -244,6 +248,10 @@ class Reservation(models.Model):
     guest = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     booking_id = models.CharField(max_length=100, default="null")
     booking_time = models.DateTimeField(default=timezone.now)
+    is_cancelled = models.BooleanField(default=False)
+    cancelled_at = models.DateTimeField(null=True, blank=True)
+    cancellation_reason = models.TextField(null=True, blank=True)  # New field for cancellation reason
+    spy = models.CharField(max_length=100, null=True, blank=True)
 
     @property
     def nights(self):

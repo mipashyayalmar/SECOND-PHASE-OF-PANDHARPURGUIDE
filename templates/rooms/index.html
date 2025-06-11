@@ -559,11 +559,27 @@
         </div>
       </div>
     </div>
-    
+    <style>
+      .alert-info {
+    background-color: #d1ecf1;
+    color: #0c5460;
+    border-color: #bee5eb;
+    padding: 10px;
+    border-radius: 4px;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+}
+
+.alert-info i {
+    margin-right: 8px;
+}
+    </style>
     <!-- Hotel Results -->
       <div class="col-lg-9 col-md-8">
             <div class="row" id="hotel">
                 {% for hotel_data in hotels %}
+                 
                 <div class="col-lg-6 col-xl-4 hotel-card">
                     <div class="card h-100">
                         <div class="img-container">
@@ -595,6 +611,11 @@
                         </div>
                         
                         <div class="card-footer bg-white border-0 text-center pb-3">
+                          {% if hotel_data.has_recently_cancelled %}
+                          <div class="alert alert-info" style="margin-top: 10px;">
+                              <i class="fas fa-bolt"></i> Recently available due to cancellations!
+                          </div>
+                          {% endif %}
                             <a href="#" 
                                class="btn btn-primary view-rooms-btn" 
                                data-hotel-id="{{ hotel_data.hotel.id }}"

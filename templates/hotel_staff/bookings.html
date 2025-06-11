@@ -327,6 +327,8 @@
 </style>
 
 <div class="booking-container">
+    {%  if user.is_employee %}
+    {% else %}
     <div class="booking-card">
         <div class="booking-header">
             <h1 class="booking-title">
@@ -395,6 +397,7 @@
                     <option value="past" {% if booking_status == 'past' %}selected{% endif %}>Past Bookings</option>
                     <option value="current" {% if booking_status == 'current' %}selected{% endif %}>Current Bookings</option>
                     <option value="future" {% if booking_status == 'future' %}selected{% endif %}>Future Bookings</option>
+                    <option value="cancelled" {% if booking_status == 'cancelled' %}selected{% endif %}>Cancelled Bookings</option>
                 </select>
             </div>
                 
@@ -498,6 +501,7 @@
             </div>
             <div id="bookingCalendar"></div>
         </div>
+        {% endif %}
 
         <div class="table-responsive">
             <div id="bookingTableContainer">

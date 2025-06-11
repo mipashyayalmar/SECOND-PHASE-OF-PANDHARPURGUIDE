@@ -948,11 +948,6 @@ document.addEventListener('DOMContentLoaded', function() {
     </center>
 </div>
 
-<!-- Buttons for Adding New Room and Location -->
-<div class="d-flex justify-content-between my-3"id="table-responsive">
-    <Button class="btn btn-primary" data-toggle="modal" data-target="#newroom">Add New Room</Button>
-    <Button class="btn btn-primary" data-toggle="modal" data-target="#newlocation">Add New Location</Button>
-</div>
 
 <!-- Filter Form -->
 <div class="card mb-4">
@@ -987,12 +982,14 @@ document.addEventListener('DOMContentLoaded', function() {
     </div>
 </div>
 
+{%  if user.is_employee %}
+{% else %}
 <!-- Buttons for Adding New Room and Location -->
-<div class="d-flex justify-content-between my-3">
+<div class="d-flex justify-content-between my-3"id="table-responsive">
     <Button class="btn btn-primary" data-toggle="modal" data-target="#newroom">Add New Room</Button>
     <Button class="btn btn-primary" data-toggle="modal" data-target="#newlocation">Add New Location</Button>
 </div>
-
+{% endif%}
 <!-- Rest of your existing table code -->
 
 <div class="table-responsive" >
@@ -1012,7 +1009,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 <th>Extra Person Charges (₹)</th>
                 <th>Check-in Time</th>
                 <th>Check-out Time</th>
+                {%  if user.is_employee %}
+                {% else %}
                 <th colspan="2" class="text-center">Room Actions</th>
+                {% endif %}
             </tr>
         </thead>
         <tbody>
@@ -1034,6 +1034,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 <td>₹{{ each_room.extra_person_charges|floatformat:2|default_if_none:"0.00" }}</td>
                 <td>{{ each_room.check_in_time|default_if_none:"N/A" }}</td>
                 <td>{{ each_room.check_out_time|default_if_none:"N/A" }}</td>
+                {%  if user.is_employee %}
+                {% else %}
                 <td>
                     <a href="{% url 'editroom' each_room.id %}" class="btn btn-warning btn-sm">
                         <i class="fas fa-edit"></i> Edit
@@ -1044,6 +1046,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         <i class="fas fa-eye"></i> View
                     </a>
                 </td>
+                {% endif %}
             </tr>
             {% endfor %}
             {% else %}
