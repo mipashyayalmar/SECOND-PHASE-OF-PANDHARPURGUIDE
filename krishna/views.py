@@ -1254,16 +1254,27 @@ def hotel_staff_panel(request):
 
 
 
+from django.shortcuts import render, redirect
+from django.contrib.auth.decorators import login_required
+from django.http import JsonResponse
+from django.views.decorators.http import require_POST
+from django.contrib import messages
+from datetime import datetime, timedelta
+from .models import Hotels, Rooms, Reservation
+from decimal import Decimal
 
 @login_required(login_url='user:signin')
 def rooms_status(request):
     """
-    Displays the rooms status dashboard with filtering capabilities
+    Displays the rooms status dashboard with filtering capabilities and handles direct room booking.
+    Supports GET for dashboard rendering and POST for booking submissions.
     """
     if not hasattr(request.user, 'hotel_staff_profile'):
         return render(request, 'hotel_staff/panel.html', {
             'error_title': 'Access Denied',
-            'error_message': 'This page is only accessible to hotel staff members.'
+            'error_message': 'This page is only accessible to hotel staff members.',
+            'current_date': datetime.now().date(),
+            'tomorrow_date': (datetime.now().date() + timedelta(days=1))
         }, status=403)
     
     try:
@@ -1271,10 +1282,89 @@ def rooms_status(request):
         assigned_hotels = Hotels.objects.filter(assigned_staff=staff)
         
         if not assigned_hotels.exists():
-            messages.warning(request, 'Hello, you need to add your hotel and rooms to increase your business.')
-            return redirect('add_hotel') 
-            
-        # Get filter parameters from GET request
+            messages.warning(request, 'Please add your hotel and rooms to manage bookings.')
+            return redirect('add_hotel')
+        
+        # Handle POST request for booking
+        if request.method == 'POST':
+            try:
+                room_id = request.POST.get('room_id')
+                check_in_str = request.POST.get('check_in')
+                check_out_str = request.POST.get('check_out')
+                person = request.POST.get('person')
+                
+                if not all([room_id, check_in_str, check_out_str, person]):
+                    messages.error(request, 'All fields are required.')
+                    return redirect(request.get_full_path())
+                
+                room = Rooms.objects.get(id=int(room_id))
+                if room.hotel.assigned_staff != staff:
+                    messages.error(request, 'Permission denied to book this room.')
+                    return redirect(request.get_full_path())
+                
+                # Validate dates
+                check_in = datetime.strptime(check_in_str, '%Y-%m-%d').date()
+                check_out = datetime.strptime(check_out_str, '%Y-%m-%d').date()
+                current_date = datetime.now().date()
+                
+                if check_in < current_date:
+                    messages.error(request, 'Check-in date cannot be in the past.')
+                    return redirect(request.get_full_path())
+                
+                if check_out <= check_in:
+                    messages.error(request, 'Check-out date must be after check-in date.')
+                    return redirect(request.get_full_path())
+                
+                # Validate guest count
+                person = int(person)
+                if person <= 0 or person > room.capacity:
+                    messages.error(request, f'Guest count must be between 1 and {room.capacity}.')
+                    return redirect(request.get_full_path())
+                
+                # Check room availability
+                conflicting_bookings = Reservation.objects.filter(
+                    room=room,
+                    check_in__lt=check_out,
+                    check_out__gt=check_in
+                ).exists()
+                
+                if conflicting_bookings or room.status == '2':
+                    messages.error(request, 'Room is not available for the selected dates.')
+                    return redirect(request.get_full_path())
+                
+                # Calculate price
+                stay_days = max((check_out - check_in).days, 1)
+                room_price_per_night = Decimal(room.price_per_day)
+                base_price = room_price_per_night * stay_days
+                
+                # Get GST rate
+                gst_percentage = Decimal(room.hotel.gst_rate) if room.hotel.gst_rate else Decimal('0.0')
+                gst_amount = (base_price * gst_percentage) / Decimal('100')
+                total_price = base_price + gst_amount
+                
+                # Create reservation
+                reservation = Reservation(
+                    room=room,
+                    guest=request.user,
+                    check_in=check_in,
+                    check_out=check_out,
+                    total_price=total_price,
+                    number_of_guests=person
+                )
+                reservation.save()
+                
+                messages.success(request, 'Room booked successfully!')
+                return redirect(request.get_full_path())
+                
+            except (ValueError, Rooms.DoesNotExist) as e:
+                messages.error(request, f'Invalid booking request: {str(e)}')
+                return redirect(request.get_full_path())
+            except Exception as e:
+                messages.error(request, f'An error occurred during booking: {str(e)}')
+                return redirect(request.get_full_path())
+        
+        # Handle GET request for dashboard
+        # Get filter parameters
         hotel_filter = request.GET.get('hotel_filter', 'all')
         status_filter = request.GET.get('status_filter', 'all')
         date_filter = request.GET.get('date_filter')
@@ -1285,50 +1375,58 @@ def rooms_status(request):
         except ValueError:
             selected_date = datetime.now().date()
         
-        # Fetch rooms for assigned hotels with optional filters
+        # Fetch rooms
         rooms = Rooms.objects.filter(hotel__in=assigned_hotels).select_related('hotel')
         
         # Apply hotel filter
         if hotel_filter != 'all':
             rooms = rooms.filter(hotel__name=hotel_filter)
         
-        # Apply status filter and get current bookings
+        # Process rooms
+        current_date = datetime.now().date()
+        tomorrow_date = current_date + timedelta(days=1)
+        processed_rooms = []
         for room in rooms:
+            # Fetch reservations individually
             room.current_booking = Reservation.objects.filter(
                 room=room,
                 check_in__lte=selected_date,
-                check_out__gte=selected_date
-            ).first()
+                check_out__gt=selected_date
+            ).select_related('guest').first()
             
-            # Determine room status based on booking and maintenance
-            if room.status == '2':  # Unavailable
-                room.display_status = '2'
-            elif room.current_booking:  # Booked
-                room.display_status = '3'
-            else:  # Available
-                room.display_status = '1'
+            # Determine display status
+            if room.status == '2':
+                room.display_status = '2'  # Unavailable
+            elif room.current_booking:
+                room.display_status = '3'  # Booked
+            else:
+                room.display_status = '1'  # Available
+            
+            room.is_past_date = selected_date < current_date
+            processed_rooms.append(room)
         
-        # Apply status filter after determining display status
+        # Apply status filter
         if status_filter == 'available':
-            rooms = [room for room in rooms if room.display_status == '1']
+            processed_rooms = [room for room in processed_rooms if room.display_status == '1']
         elif status_filter == 'booked':
-            rooms = [room for room in rooms if room.display_status == '3']
+            processed_rooms = [room for room in processed_rooms if room.display_status == '3']
         elif status_filter == 'unavailable':
-            rooms = [room for room in rooms if room.display_status == '2']
+            processed_rooms = [room for room in processed_rooms if room.display_status == '2']
         
-        # Count rooms by status
-        total_rooms = len(rooms)
-        available_rooms = len([room for room in rooms if room.display_status == '1'])
-        booked_rooms = len([room for room in rooms if room.display_status == '3'])
-        unavailable_rooms = len([room for room in rooms if room.display_status == '2'])
+        # Calculate summary statistics
+        total_rooms = len(processed_rooms)
+        available_rooms = len([room for room in processed_rooms if room.display_status == '1'])
+        booked_rooms = len([room for room in processed_rooms if room.display_status == '3'])
+        unavailable_rooms = len([room for room in processed_rooms if room.display_status == '2'])
         
         context = {
             'hotels': assigned_hotels,
-            'rooms': rooms,
+            'rooms': processed_rooms,  # Always a list, empty if no rooms
             'selected_hotel': hotel_filter,
             'selected_status': status_filter,
             'selected_date': selected_date,
-            'current_date': datetime.now().date(),
+            'current_date': current_date,
+            'tomorrow_date': tomorrow_date,
             'total_rooms': total_rooms,
             'available_rooms': available_rooms,
             'booked_rooms': booked_rooms,
@@ -1338,19 +1436,19 @@ def rooms_status(request):
         return render(request, 'hotel_staff/rooms_status.html', context)
         
     except Exception as e:
-        return render(request, 'hotel_staff/panel.html', {
-            'error_title': 'An error occurred',
-            'error_message': f'An unexpected error occurred: {str(e)}'
+        return render(request, 'hotel_staff/rooms_status.html', {
+            'error_title': 'An Error Occurred',
+            'error_message': f'An unexpected error occurred: {str(e)}',
+            'current_date': datetime.now().date(),
+            'tomorrow_date': (datetime.now().date() + timedelta(days=1))
         }, status=500)
-
-
-from django.views.decorators.http import require_POST
 
 @login_required
 @require_POST
 def update_room_status(request, room_id):
     """
-    AJAX view to update room status (available/unavailable)
+    AJAX view to update room status (Available/Unavailable).
+    Validates staff permission and ensures no booking conflicts.
     """
     try:
         room = Rooms.objects.get(id=room_id)
@@ -1358,21 +1456,36 @@ def update_room_status(request, room_id):
             return JsonResponse({'error': 'Permission denied'}, status=403)
         
         new_status = request.POST.get('status')
-        if new_status in ('1', '2'):  # Only allow setting to available (1) or unavailable (2)
-            room.status = new_status
-            room.save()
-            return JsonResponse({'success': True, 'new_status': room.get_status_display()})
-        else:
+        if new_status not in ('1', '2'):
             return JsonResponse({'error': 'Invalid status'}, status=400)
+        
+        # Check for bookings if marking unavailable
+        if new_status == '2':
+            selected_date = request.POST.get('selected_date', datetime.now().date())
+            try:
+                selected_date = datetime.strptime(selected_date, '%Y-%m-%d').date() if isinstance(selected_date, str) else selected_date
+            except ValueError:
+                selected_date = datetime.now().date()
+            
+            booking = Reservation.objects.filter(
+                room=room,
+                check_in__lte=selected_date,
+                check_out__gt=selected_date
+            ).exists()
+            if booking:
+                return JsonResponse({'error': 'Cannot mark a booked room as unavailable'}, status=400)
+        
+        room.status = new_status
+        room.save()
+        return JsonResponse({
+            'success': True,
+            'new_status': 'Available' if new_status == '1' else 'Unavailable'
+        })
             
     except Rooms.DoesNotExist:
         return JsonResponse({'error': 'Room not found'}, status=404)
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
-
-
-
-
 # def hotel_staff_edit_location(request):
 #     if not hasattr(request.user, 'hotel_staff_profile'):
 #         return HttpResponse('Access Denied - Not a Hotel Staff')

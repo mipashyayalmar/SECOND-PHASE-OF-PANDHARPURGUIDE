@@ -354,6 +354,10 @@
                 <a href="?view_type=check_out&day={{ current_date|date:'Y-m-d' }}" class="quick-filter-btn {% if view_type == 'check_out' %}active{% endif %}">
                     Today's Check-outs
                 </a>
+
+                <a href="{% url 'dashboard' %}"class="quick-filter-btn">
+                   My Bookings 
+                </a>
             </div>
             
             <div class="date-range-filters">

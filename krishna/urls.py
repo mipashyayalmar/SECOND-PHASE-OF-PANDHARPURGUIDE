@@ -30,6 +30,11 @@ urlpatterns = [
     path('hotel_staff/panel/view-hotel', views.hotel_view_hotels, name='viewhotel'),
     path('staff/rooms/', views.list_rooms, name='listrooms'),
     path('contact/', views.contactpage, name='contact'),
+    
+    # New Rooms Status Dashboard URLs
+    path('hotel/hotel_staff/panel/rooms-status/', views.rooms_status, name='rooms_status'),
+    path('hotel/update-room-status/<int:room_id>/', views.update_room_status, name='update_room_status'),
+
 
     # Maintainer URLs
     path('maintainer/panel/', views.maintainer_panel, name='maintainer_panel'),
@@ -50,10 +55,6 @@ urlpatterns = [
     # Admin
     path('i18n/', include('django.conf.urls.i18n')),
     path('hotel/hotel/<int:hotel_id>/rooms/', views.view_hotel_rooms, name='view_hotel_rooms'),
-
-    path('hotel_staff/panel/room-status/', views.rooms_status, name='rooms_status'),
-    path('update-room-status/<int:room_id>/', views.update_room_status, name='update_room_status'),
-
 ]
 
 if settings.DEBUG:
