@@ -188,7 +188,7 @@
 
             <!-- Available Rooms -->
             <div class="col-xl-3 col-lg-6 col-sm-12 mb-4">
-                <a href="{% url 'allbookings' %}?view_type=active&day={{ current_date|date:'Y-m-d' }}" class="text-decoration-none">
+                <a href="{% url 'rooms_status' %}" class="text-decoration-none">
                     <div class="rounded-lg p-4 shadow stat-card h-100 hover:bg-gray-100 transition duration-200">
                         <h2 class="h6 font-weight-bold text-center mb-4">Available Rooms</h2>
                         <div class="progress mx-auto" data-value="{{ available_percent|floatformat:'0' }}">

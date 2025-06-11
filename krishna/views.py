@@ -1251,6 +1251,128 @@ def hotel_staff_panel(request):
             'error_message': f'An unexpected error occurred: {str(e)}'
         }, status=500)
     
+
+
+
+
+@login_required(login_url='user:signin')
+def rooms_status(request):
+    """
+    Displays the rooms status dashboard with filtering capabilities
+    """
+    if not hasattr(request.user, 'hotel_staff_profile'):
+        return render(request, 'hotel_staff/panel.html', {
+            'error_title': 'Access Denied',
+            'error_message': 'This page is only accessible to hotel staff members.'
+        }, status=403)
+    
+    try:
+        staff = request.user.hotel_staff_profile
+        assigned_hotels = Hotels.objects.filter(assigned_staff=staff)
+        
+        if not assigned_hotels.exists():
+            messages.warning(request, 'Hello, you need to add your hotel and rooms to increase your business.')
+            return redirect('add_hotel') 
+            
+        # Get filter parameters from GET request
+        hotel_filter = request.GET.get('hotel_filter', 'all')
+        status_filter = request.GET.get('status_filter', 'all')
+        date_filter = request.GET.get('date_filter')
+        
+        # Parse date filter or use today
+        try:
+            selected_date = datetime.strptime(date_filter, '%Y-%m-%d').date() if date_filter else datetime.now().date()
+        except ValueError:
+            selected_date = datetime.now().date()
+        
+        # Fetch rooms for assigned hotels with optional filters
+        rooms = Rooms.objects.filter(hotel__in=assigned_hotels).select_related('hotel')
+        
+        # Apply hotel filter
+        if hotel_filter != 'all':
+            rooms = rooms.filter(hotel__name=hotel_filter)
+        
+        # Apply status filter and get current bookings
+        for room in rooms:
+            room.current_booking = Reservation.objects.filter(
+                room=room,
+                check_in__lte=selected_date,
+                check_out__gte=selected_date
+            ).first()
+            
+            # Determine room status based on booking and maintenance
+            if room.status == '2':  # Unavailable
+                room.display_status = '2'
+            elif room.current_booking:  # Booked
+                room.display_status = '3'
+            else:  # Available
+                room.display_status = '1'
+        
+        # Apply status filter after determining display status
+        if status_filter == 'available':
+            rooms = [room for room in rooms if room.display_status == '1']
+        elif status_filter == 'booked':
+            rooms = [room for room in rooms if room.display_status == '3']
+        elif status_filter == 'unavailable':
+            rooms = [room for room in rooms if room.display_status == '2']
+        
+        # Count rooms by status
+        total_rooms = len(rooms)
+        available_rooms = len([room for room in rooms if room.display_status == '1'])
+        booked_rooms = len([room for room in rooms if room.display_status == '3'])
+        unavailable_rooms = len([room for room in rooms if room.display_status == '2'])
+        
+        context = {
+            'hotels': assigned_hotels,
+            'rooms': rooms,
+            'selected_hotel': hotel_filter,
+            'selected_status': status_filter,
+            'selected_date': selected_date,
+            'current_date': datetime.now().date(),
+            'total_rooms': total_rooms,
+            'available_rooms': available_rooms,
+            'booked_rooms': booked_rooms,
+            'unavailable_rooms': unavailable_rooms,
+        }
+
+        return render(request, 'hotel_staff/rooms_status.html', context)
+        
+    except Exception as e:
+        return render(request, 'hotel_staff/panel.html', {
+            'error_title': 'An error occurred',
+            'error_message': f'An unexpected error occurred: {str(e)}'
+        }, status=500)
+
+
+from django.views.decorators.http import require_POST
+
+@login_required
+@require_POST
+def update_room_status(request, room_id):
+    """
+    AJAX view to update room status (available/unavailable)
+    """
+    try:
+        room = Rooms.objects.get(id=room_id)
+        if room.hotel.assigned_staff != request.user.hotel_staff_profile:
+            return JsonResponse({'error': 'Permission denied'}, status=403)
+        
+        new_status = request.POST.get('status')
+        if new_status in ('1', '2'):  # Only allow setting to available (1) or unavailable (2)
+            room.status = new_status
+            room.save()
+            return JsonResponse({'success': True, 'new_status': room.get_status_display()})
+        else:
+            return JsonResponse({'error': 'Invalid status'}, status=400)
+            
+    except Rooms.DoesNotExist:
+        return JsonResponse({'error': 'Room not found'}, status=404)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+
+
 # def hotel_staff_edit_location(request):
 #     if not hasattr(request.user, 'hotel_staff_profile'):
 #         return HttpResponse('Access Denied - Not a Hotel Staff')

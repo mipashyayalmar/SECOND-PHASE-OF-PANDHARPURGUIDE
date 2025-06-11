@@ -50,6 +50,10 @@ urlpatterns = [
     # Admin
     path('i18n/', include('django.conf.urls.i18n')),
     path('hotel/hotel/<int:hotel_id>/rooms/', views.view_hotel_rooms, name='view_hotel_rooms'),
+
+    path('hotel_staff/panel/room-status/', views.rooms_status, name='rooms_status'),
+    path('update-room-status/<int:room_id>/', views.update_room_status, name='update_room_status'),
+
 ]
 
 if settings.DEBUG:
