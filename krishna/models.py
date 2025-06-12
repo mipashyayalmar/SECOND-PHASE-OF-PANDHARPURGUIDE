@@ -237,6 +237,9 @@ class Replies(models.Model):
     def __str__(self):
         return f"Reply by {self.user.username} on {self.comment}"
 
+
+
+
 class Reservation(models.Model):
     check_in = models.DateField()
     check_out = models.DateField()
@@ -244,16 +247,23 @@ class Reservation(models.Model):
     guest = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     booking_id = models.CharField(max_length=100, default="null")
     booking_time = models.DateTimeField(default=timezone.now)
+    is_cancelled = models.BooleanField(default=False)
+    cancelled_at = models.DateTimeField(null=True, blank=True)
+    cancellation_reason = models.TextField(null=True, blank=True)
+    spy = models.CharField(max_length=100, null=True, blank=True)
+    number_of_guests = models.PositiveIntegerField(validators=[MinValueValidator(1)], default=1)  # Added
+    base_price_value = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)  # Renamed field
+    gst_amount_value = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)  # Renamed field
 
     @property
     def nights(self):
         """Calculate the number of nights for the stay."""
-        return (self.check_out - self.check_in).days
+        return max((self.check_out - self.check_in).days, 1)
 
     @property
     def base_price(self):
         """Calculate base price for the stay, including extra person charges."""
-        return (self.room.discounted_price() * self.nights) + (self.room.extra_person_charges or Decimal('0'))
+        return (self.room.discounted_price() * self.nights) + (self.room.extra_person_charges or Decimal('0')) * (self.number_of_guests - 1)
 
     @property
     def gst_rate(self):
@@ -269,3 +279,12 @@ class Reservation(models.Model):
     def total_price(self):
         """Calculate total price including GST."""
         return self.base_price + self.gst_amount
+
+    def save(self, *args, **kwargs):
+        """Override save to compute and store base_price_value and gst_amount_value."""
+        self.base_price_value = self.base_price
+        self.gst_amount_value = self.gst_amount
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"Reservation for {self.room} by {self.guest.username} ({self.check_in} to {self.check_out})"

@@ -155,11 +155,28 @@ def homepage(request):
 
     if check_in_date and check_out_date:
         try:
+            # Get active reservations
             reserved_rooms = Reservation.objects.filter(
                 check_in__lt=check_out_date,
-                check_out__gt=check_in_date
+                check_out__gt=check_in_date,
+                is_cancelled=False  # Only consider non-cancelled bookings
             ).values_list('room_id', flat=True)
-            rooms_query = rooms_query.exclude(id__in=reserved_rooms)
+            
+            # Get recently cancelled reservations (within last 30 minutes)
+            recently_cancelled = Reservation.objects.filter(
+                check_in__lt=check_out_date,
+                check_out__gt=check_in_date,
+                is_cancelled=True,
+                cancelled_at__gte=timezone.now() - timedelta(minutes=30)
+            ).values_list('room_id', flat=True)
+            
+            # Exclude rooms with active reservations but include recently cancelled ones
+            rooms_query = rooms_query.exclude(
+                id__in=reserved_rooms
+            ).filter(
+                Q(id__in=recently_cancelled) | ~Q(id__in=reserved_rooms)
+            )
+            
         except Exception as e:
             logger.error(f"Error filtering rooms by date: {str(e)}")
             messages.error(request, f"Error filtering rooms by date: {str(e)}")
@@ -197,19 +214,32 @@ def homepage(request):
     hotels = Hotels.objects.filter(id__in=available_hotel_ids)
     logger.debug(f"Hotels after filtering: {hotels.count()}")
 
+    # Highlight recently cancelled rooms
+    recently_cancelled_rooms = []
+    if check_in_date and check_out_date:
+        recently_cancelled_reservations = Reservation.objects.filter(
+            check_in__lt=check_out_date,
+            check_out__gt=check_in_date,
+            is_cancelled=True,
+            cancelled_at__gte=timezone.now() - timedelta(minutes=30))
+            
+        recently_cancelled_rooms = [r.room_id for r in recently_cancelled_reservations]
+
     for hotel in hotels:
-        available_rooms_count = rooms_query.filter(hotel=hotel).count()
+        available_rooms = rooms_query.filter(hotel=hotel)
+        available_rooms_count = available_rooms.count()
+        
+        # Get recently cancelled rooms for this hotel
+        hotel_recently_cancelled = [
+            room for room in available_rooms 
+            if room.id in recently_cancelled_rooms
+        ]
+        
         hotels_with_counts.append({
             'hotel': hotel,
-            'available_rooms_count': available_rooms_count
+            'available_rooms_count': available_rooms_count,
+            'has_recently_cancelled': len(hotel_recently_cancelled) > 0
         })
-
-    # Provide feedback if no hotels are found
-    if not hotels.exists():
-        if hotel_type:
-            messages.info(request, f"No available rooms for {dict(Hotels.HOTEL_TYPE_CHOICES).get(hotel_type, 'selected type')}.")
-        else:
-            messages.warning(request, "No hotels have available rooms for the selected criteria.")
 
     context = {
         'hotels': hotels_with_counts,
@@ -225,10 +255,10 @@ def homepage(request):
         'max_price': max_price,
         'hotel_type': hotel_type,
         'hotel_type_label': dict(Hotels.HOTEL_TYPE_CHOICES).get(hotel_type, 'All Types') if hotel_type else 'All Types',
-        'active_amenities': active_amenities
+        'active_amenities': active_amenities,
+        'show_recently_available': True  # Flag to enable the "Recently Available" display
     }
     return render(request, 'rooms/index.html', context)
-
 def view_rooms(request, hotel_id):
     """
     Display rooms for a specific hotel, respecting applied filters.
@@ -416,18 +446,18 @@ from decimal import Decimal
 import logging
 
 logger = logging.getLogger(__name__)
-
 def view_hotel_rooms(request, hotel_id):
     """
     Display available rooms for a specific hotel with full filtering capabilities.
     Supports date changes, capacity, price range, and amenity filters from GET or session.
     Identifies the cheapest room and computes facilities available in at least one room.
+    Shows recently cancelled rooms as available.
     """
     logger.debug(f"Processing view_hotel_rooms for hotel_id={hotel_id}, request.GET={request.GET}")
 
     try:
         hotel = Hotels.objects.get(id=hotel_id)
-        logger.debug(f"Found hotel: {hotel.name} (ID:case {hotel_id})")
+        logger.debug(f"Found hotel: {hotel.name} (ID: {hotel_id})")
 
         # Get filter criteria from GET parameters, falling back to session
         check_in = request.GET.get('cin', request.session.get('check_in'))
@@ -437,18 +467,14 @@ def view_hotel_rooms(request, hotel_id):
         max_price = request.GET.get('max_price', request.session.get('max_price', '10000'))
         location = request.GET.get('search_location', request.session.get('location'))
 
-        # Amenity filters: Check for '1' in GET parameters
+        # Amenity filters
         amenities = ['ac', 'fan', 'wifi', 'parking', 'heater', 'food_facility', 'convenient_location',
-                     'comfortable_bed', 'private_bathroom', 'cleanliness', 'safety_security',
-                     'entertainment_options', 'laundry_facility', 'outdoor_balcony', 'concierge_service']
+                    'comfortable_bed', 'private_bathroom', 'cleanliness', 'safety_security',
+                    'entertainment_options', 'laundry_facility', 'outdoor_balcony', 'concierge_service']
         active_amenities = {
             amenity: '1' if request.GET.get(amenity) == '1' else '0'
             for amenity in amenities
         }
-
-        logger.debug(f"Filters - check_in: {check_in}, check_out: {check_out}, capacity: {capacity}, "
-                     f"min_price: {min_price}, max_price: {max_price}, location: {location}, "
-                     f"amenities: {active_amenities}")
 
         # Initialize default dates if none provided
         today = timezone.now().date()
@@ -466,7 +492,6 @@ def view_hotel_rooms(request, hotel_id):
             if check_in:
                 check_in_date = datetime.strptime(check_in, '%Y-%m-%d').date()
                 if check_in_date < today:
-                    logger.warning(f"Check-in date {check_in_date} is in the past")
                     messages.warning(request, "Check-in date cannot be in the past.")
                     check_in_date = default_check_in
                     check_in = default_check_in.strftime('%Y-%m-%d')
@@ -479,7 +504,6 @@ def view_hotel_rooms(request, hotel_id):
             if check_out:
                 check_out_date = datetime.strptime(check_out, '%Y-%m-%d').date()
                 if check_out_date <= check_in_date:
-                    logger.warning(f"Check-out date {check_out_date} is not after check-in date {check_in_date}")
                     messages.warning(request, "Check-out date must be after check-in date.")
                     check_out_date = default_check_out
                     check_out = default_check_out.strftime('%Y-%m-%d')
@@ -490,7 +514,6 @@ def view_hotel_rooms(request, hotel_id):
             formatted_check_out = check_out_date.strftime('%d %B %Y')
 
         except ValueError as e:
-            logger.error(f"Invalid date format - check_in: {check_in}, check_out: {check_out}, error: {str(e)}")
             messages.warning(request, "Invalid date format. Please select valid dates.")
             check_in_date = default_check_in
             check_out_date = default_check_out
@@ -505,19 +528,38 @@ def view_hotel_rooms(request, hotel_id):
 
         # Apply location filter
         if location and str(hotel.id) != location:
-            logger.warning(f"Location filter {location} does not match hotel_id={hotel_id}")
             messages.warning(request, "Selected location does not match the hotel.")
             rooms = rooms.none()
         else:
             # Apply date-based availability filter
             if check_in_date and check_out_date:
                 try:
+                    # Get rooms with active reservations
                     reserved_rooms = Reservation.objects.filter(
                         check_in__lt=check_out_date,
-                        check_out__gt=check_in_date
+                        check_out__gt=check_in_date,
+                        is_cancelled=False
                     ).values_list('room_id', flat=True)
-                    rooms = rooms.exclude(id__in=reserved_rooms)
-                    logger.debug(f"Rooms after excluding reserved: {rooms.count()}")
+                    
+                    # Get rooms with recently cancelled reservations (within last 30 minutes)
+                    recently_cancelled_rooms = Reservation.objects.filter(
+                        check_in__lt=check_out_date,
+                        check_out__gt=check_in_date,
+                        is_cancelled=True,
+                        cancelled_at__gte=timezone.now() - timedelta(minutes=30)
+                    ).values_list('room_id', flat=True)
+                    
+                    # Exclude rooms with active reservations but include recently cancelled ones
+                    rooms = rooms.exclude(
+                        id__in=reserved_rooms
+                    ).filter(
+                        Q(id__in=recently_cancelled_rooms) | ~Q(id__in=reserved_rooms)
+                    )
+                    
+                    logger.debug(f"Rooms after availability filtering: {rooms.count()}")
+                    
+                    # Get list of recently cancelled room IDs for highlighting
+                    recently_cancelled_room_ids = list(recently_cancelled_rooms)
                 except Exception as e:
                     logger.error(f"Error filtering rooms by date: {str(e)}")
                     messages.error(request, f"Error filtering rooms by date: {str(e)}")
@@ -529,7 +571,7 @@ def view_hotel_rooms(request, hotel_id):
                     if capacity <= 0:
                         raise ValueError("Capacity must be positive")
                     rooms = rooms.filter(capacity__gte=capacity)
-                    logger.debug(f"Rooms after capacity filter (>= {capacity}): {rooms.count()}")
+                    logger.debug(f"Rooms after capacity filter: {rooms.count()}")
                 except ValueError as e:
                     logger.error(f"Invalid capacity value: {capacity}, error: {str(e)}")
                     messages.error(request, "Invalid capacity value.")
@@ -542,7 +584,7 @@ def view_hotel_rooms(request, hotel_id):
                     if min_price_decimal < 0 or max_price_decimal < min_price_decimal:
                         raise ValueError("Invalid price range")
                     rooms = rooms.filter(price__gte=min_price_decimal, price__lte=max_price_decimal)
-                    logger.debug(f"Rooms after price filter ({min_price_decimal} to {max_price_decimal}): {rooms.count()}")
+                    logger.debug(f"Rooms after price filter: {rooms.count()}")
                 except ValueError as e:
                     logger.error(f"Invalid price range - min: {min_price}, max: {max_price}, error: {str(e)}")
                     messages.error(request, "Invalid price range.")
@@ -559,42 +601,10 @@ def view_hotel_rooms(request, hotel_id):
             cheapest_room = rooms.order_by('price').first()
             logger.debug(f"Cheapest room: ID={cheapest_room.id}, Price={cheapest_room.price}")
 
-        # Compute available facilities (amenities available in at least one room)
+        # Compute available facilities
         available_facilities = {
-            'wifi': rooms.count() > 0 and any(room.wifi for room in rooms),
-            'ac': rooms.count() > 0 and any(room.ac for room in rooms),
-            'parking': rooms.count() > 0 and any(room.parking for room in rooms),
-            'convenient_location': rooms.count() > 0 and any(room.convenient_location for room in rooms),
-            'food_facility': rooms.count() > 0 and any(room.food_facility for room in rooms),
-            'comfortable_bed': rooms.count() > 0 and any(room.comfortable_bed for room in rooms),
-            'private_bathroom': rooms.count() > 0 and any(room.private_bathroom for room in rooms),
-            'fan': rooms.count() > 0 and any(room.fan for room in rooms),
-            'heater': rooms.count() > 0 and any(room.heater for room in rooms),
-            'cleanliness': rooms.count() > 0 and any(room.cleanliness for room in rooms),
-            'safety_security': rooms.count() > 0 and any(room.safety_security for room in rooms),
-            'entertainment_options': rooms.count() > 0 and any(room.entertainment_options for room in rooms),
-            'laundry_facility': rooms.count() > 0 and any(room.laundry_facility for room in rooms),
-            'outdoor_balcony': rooms.count() > 0 and any(room.outdoor_balcony for room in rooms),
-            'concierge_service': rooms.count() > 0 and any(room.concierge_service for room in rooms),
-        }
-
-        # Optionally, retain common facilities (amenities available in all rooms)
-        common_facilities = {
-            'wifi': rooms.count() > 0 and all(room.wifi for room in rooms),
-            'ac': rooms.count() > 0 and all(room.ac for room in rooms),
-            'parking': rooms.count() > 0 and all(room.parking for room in rooms),
-            'convenient_location': rooms.count() > 0 and all(room.convenient_location for room in rooms),
-            'food_facility': rooms.count() > 0 and all(room.food_facility for room in rooms),
-            'comfortable_bed': rooms.count() > 0 and all(room.comfortable_bed for room in rooms),
-            'private_bathroom': rooms.count() > 0 and all(room.private_bathroom for room in rooms),
-            'fan': rooms.count() > 0 and all(room.fan for room in rooms),
-            'heater': rooms.count() > 0 and all(room.heater for room in rooms),
-            'cleanliness': rooms.count() > 0 and all(room.cleanliness for room in rooms),
-            'safety_security': rooms.count() > 0 and all(room.safety_security for room in rooms),
-            'entertainment_options': rooms.count() > 0 and all(room.entertainment_options for room in rooms),
-            'laundry_facility': rooms.count() > 0 and all(room.laundry_facility for room in rooms),
-            'outdoor_balcony': rooms.count() > 0 and all(room.outdoor_balcony for room in rooms),
-            'concierge_service': rooms.count() > 0 and all(room.concierge_service for room in rooms),
+            amenity: rooms.count() > 0 and any(getattr(room, amenity) for room in rooms
+            for amenity in amenities)
         }
 
         # Update session with current filters
@@ -606,13 +616,6 @@ def view_hotel_rooms(request, hotel_id):
         request.session['max_price'] = str(max_price) if max_price else '10000'
         request.session['amenities'] = {k: v for k, v in active_amenities.items() if v == '1'}
         request.session.modified = True
-
-        logger.debug(f"Final room count for hotel_id={hotel_id}: {rooms.count()}")
-        logger.debug(f"Available facilities: {available_facilities}")
-        logger.debug(f"Common facilities: {common_facilities}")
-
-        total_hotels = Hotels.objects.count()
-        total_rooms = Rooms.objects.filter(hotel=hotel).count()
 
         # Prepare context
         context = {
@@ -629,10 +632,8 @@ def view_hotel_rooms(request, hotel_id):
             'max_price': max_price or '10000',
             'location': location,
             'active_amenities': active_amenities,
-            'total_hotels': total_hotels,
-            'total_rooms': total_rooms,
-            'common_facilities': common_facilities,
-            'available_facilities': available_facilities,  # Add available facilities to context
+            'available_facilities': available_facilities,
+            'recently_cancelled_room_ids': recently_cancelled_room_ids if 'recently_cancelled_room_ids' in locals() else [],
         }
 
         return render(request, 'rooms/hotel_rooms.html', context)
@@ -1250,6 +1251,510 @@ def hotel_staff_panel(request):
             'error_message': f'An unexpected error occurred: {str(e)}'
         }, status=500)
     
+
+
+
+
+
+from django.db.models import Q
+from decimal import Decimal
+from datetime import datetime, timedelta
+from django.contrib.auth.decorators import login_required
+from django.shortcuts import render, redirect
+from django.contrib import messages
+from django.http import JsonResponse
+from django.views.decorators.http import require_POST
+from .models import Hotels, Rooms, Reservation
+
+@login_required(login_url='user:signin')
+def rooms_status(request):
+    """
+    Displays the rooms status dashboard with filtering capabilities and handles direct room booking.
+    Shows detailed pricing information including base price, discount, and GST.
+    Includes all bookings (past, current, and future) for the bookings section.
+    """
+    if not hasattr(request.user, 'hotel_staff_profile'):
+        return render(request, 'hotel_staff/panel.html', {
+            'error_title': 'Access Denied',
+            'error_message': 'This page is only accessible to hotel staff members.',
+            'current_date': datetime.now().date(),
+            'tomorrow_date': (datetime.now().date() + timedelta(days=1))
+        }, status=403)
+    
+    try:
+        staff = request.user.hotel_staff_profile
+        assigned_hotels = Hotels.objects.filter(assigned_staff=staff)
+        
+        if not assigned_hotels.exists():
+            messages.warning(request, 'Please add your hotel and rooms to manage bookings.')
+            return redirect('add_hotel')
+        
+        # Handle POST request for booking
+        if request.method == 'POST':
+            try:
+                room_id = request.POST.get('room_id')
+                check_in_str = request.POST.get('check_in')
+                check_out_str = request.POST.get('check_out')
+                person = request.POST.get('person')
+                
+                if not all([room_id, check_in_str, check_out_str, person]):
+                    messages.error(request, 'All fields are required.')
+                    return redirect(request.get_full_path())
+                
+                room = Rooms.objects.get(id=int(room_id))
+                if not assigned_hotels.filter(id=room.hotel.id).exists():
+                    messages.error(request, 'Permission denied to book this room.')
+                    return redirect(request.get_full_path())
+                
+                # Validate dates
+                check_in = datetime.strptime(check_in_str, '%Y-%m-%d').date()
+                check_out = datetime.strptime(check_out_str, '%Y-%m-%d').date()
+                current_date = datetime.now().date()
+                
+                if check_in < current_date:
+                    messages.error(request, 'Check-in date cannot be in the past.')
+                    return redirect(request.get_full_path())
+                
+                if check_out <= check_in:
+                    messages.error(request, 'Check-out date must be after check-in date.')
+                    return redirect(request.get_full_path())
+                
+                # Validate guest count
+                person = int(person)
+                if person <= 0 or person > room.capacity:
+                    messages.error(request, f'Guest count must be between 1 and {room.capacity}.')
+                    return redirect(request.get_full_path())
+                
+                # Check room availability
+                conflicting_bookings = Reservation.objects.filter(
+                    room=room,
+                    check_in__lt=check_out,
+                    check_out__gt=check_in,
+                    is_cancelled=False
+                ).exists()
+                
+                if conflicting_bookings or room.status == '2':
+                    messages.error(request, 'Room is not available for the selected dates.')
+                    return redirect(request.get_full_path())
+                
+                # Calculate pricing with discount and GST
+                stay_days = max((check_out - check_in).days, 1)
+                discounted_price_per_night = room.discounted_price()
+                base_price = discounted_price_per_night * stay_days
+                
+                # Add extra person charges if applicable
+                if person > 1 and room.extra_person_charges:
+                    base_price += room.extra_person_charges * (person - 1)
+                
+                # Calculate GST
+                gst_percentage = room.hotel.gst_rate if room.hotel.gst_rate else Decimal('12.00')
+                gst_amount = (base_price * gst_percentage) / Decimal('100')
+                total_price = base_price + gst_amount
+                
+                # Create reservation
+                reservation = Reservation(
+                    room=room,
+                    guest=request.user,
+                    check_in=check_in,
+                    check_out=check_out,
+                    number_of_guests=person,
+                    base_price_value=base_price,  # Store the calculated base price
+                    gst_amount_value=gst_amount   # Store the calculated GST
+                )
+                reservation.save()
+                
+                messages.success(request, 'Room booked successfully!')
+                return redirect(request.get_full_path())
+                
+            except (ValueError, Rooms.DoesNotExist) as e:
+                messages.error(request, f'Invalid booking request: {str(e)}')
+                return redirect(request.get_full_path())
+            except Exception as e:
+                messages.error(request, f'An error occurred during booking: {str(e)}')
+                return redirect(request.get_full_path())
+        
+        # Handle GET request for dashboard
+        hotel_filter = request.GET.get('hotel_filter', 'all')
+        status_filter = request.GET.get('status_filter', 'all')
+        date_filter = request.GET.get('date_filter')
+        
+        # Parse date filter or use today
+        try:
+            selected_date = datetime.strptime(date_filter, '%Y-%m-%d').date() if date_filter else datetime.now().date()
+        except ValueError:
+            selected_date = datetime.now().date()
+        
+        # Fetch rooms
+        rooms = Rooms.objects.filter(hotel__in=assigned_hotels).select_related('hotel')
+        
+        # Apply hotel filter
+        if hotel_filter != 'all':
+            rooms = rooms.filter(hotel__name=hotel_filter)
+        
+        # Fetch all reservations for the assigned hotels
+        reservations = Reservation.objects.filter(
+            room__hotel__in=assigned_hotels
+        ).select_related('guest', 'room').order_by('-check_in')
+        
+        # Process rooms with pricing information
+        current_date = datetime.now().date()
+        tomorrow_date = current_date + timedelta(days=1)
+        processed_rooms = []
+        for room in rooms:
+            room.current_booking = Reservation.objects.filter(
+                room=room,
+                check_in__lte=selected_date,
+                check_out__gt=selected_date,
+                is_cancelled=False
+            ).select_related('guest').first()
+            
+            # Determine display status
+            if room.status == '2':
+                room.display_status = '2'  # Unavailable
+            elif room.current_booking:
+                room.display_status = '3'  # Booked
+            else:
+                room.display_status = '1'  # Available
+            
+            # Calculate pricing information
+            room.discounted_price_value = room.discounted_price()
+            room.saved_amount = room.saved_money()
+            room.gst_rate = room.hotel.gst_rate if room.hotel.gst_rate else Decimal('12.00')
+            
+            if room.display_status == '3' and room.current_booking:
+                room.gst_amount = room.current_booking.gst_amount
+                room.total_price = room.current_booking.total_price
+            else:
+                room.gst_amount = (room.discounted_price_value * room.gst_rate) / Decimal('100')
+                room.total_price = room.discounted_price_value + room.gst_amount
+            
+            room.is_past_date = selected_date < current_date
+            processed_rooms.append(room)
+        
+        # Apply status filter
+        if status_filter == 'available':
+            processed_rooms = [room for room in processed_rooms if room.display_status == '1']
+        elif status_filter == 'booked':
+            processed_rooms = [room for room in processed_rooms if room.display_status == '3']
+        elif status_filter == 'unavailable':
+            processed_rooms = [room for room in processed_rooms if room.display_status == '2']
+        
+        # Calculate summary statistics
+        total_rooms = len(processed_rooms)
+        available_rooms = len([room for room in processed_rooms if room.display_status == '1'])
+        booked_rooms = len([room for room in processed_rooms if room.display_status == '3'])
+        unavailable_rooms = len([room for room in processed_rooms if room.display_status == '2'])
+        
+        context = {
+            'hotels': assigned_hotels,
+            'rooms': processed_rooms,
+            'reservations': reservations,
+            'selected_hotel': hotel_filter,
+            'selected_status': status_filter,
+            'selected_date': selected_date,
+            'current_date': current_date,
+            'tomorrow_date': tomorrow_date,
+            'total_rooms': total_rooms,
+            'available_rooms': available_rooms,
+            'booked_rooms': booked_rooms,
+            'unavailable_rooms': unavailable_rooms,
+        }
+
+        return render(request, 'hotel_staff/rooms_status.html', context)
+        
+    except Exception as e:
+        return render(request, 'hotel_staff/rooms_status.html', {
+            'error_title': 'An Error Occurred',
+            'error_message': f'An unexpected error occurred: {str(e)}',
+            'current_date': datetime.now().date(),
+            'tomorrow_date': (datetime.now().date() + timedelta(days=1))
+        }, status=500)
+
+@login_required
+@require_POST
+def update_room_status(request, room_id):
+    """
+    AJAX view to update room status (Available/Unavailable).
+    Validates staff permission and ensures no booking conflicts.
+    """
+    try:
+        room = Rooms.objects.get(id=room_id)
+        if not Hotels.objects.filter(assigned_staff=request.user.hotel_staff_profile, id=room.hotel.id).exists():
+            return JsonResponse({'error': 'Permission denied'}, status=403)
+        
+        new_status = request.POST.get('status')
+        if new_status not in ('1', '2'):
+            return JsonResponse({'error': 'Invalid status'}, status=400)
+        
+        # Check for bookings if marking unavailable
+        if new_status == '2':
+            selected_date = request.POST.get('selected_date', datetime.now().date())
+            try:
+                selected_date = datetime.strptime(selected_date, '%Y-%m-%d').date() if isinstance(selected_date, str) else selected_date
+            except ValueError:
+                selected_date = datetime.now().date()
+            
+            booking = Reservation.objects.filter(
+                room=room,
+                check_in__lte=selected_date,
+                check_out__gt=selected_date,
+                is_cancelled=False
+            ).exists()
+            if booking:
+                return JsonResponse({'error': 'Cannot mark a booked room as unavailable'}, status=400)
+        
+        room.status = new_status
+        room.save()
+        return JsonResponse({
+            'success': True,
+            'new_status': 'Available' if new_status == '1' else 'Unavailable'
+        })
+            
+    except Rooms.DoesNotExist:
+        return JsonResponse({'error': 'Room not found'}, status=404)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+
+
+from django.shortcuts import render, redirect
+from django.contrib.auth.decorators import login_required
+from django.http import JsonResponse
+from django.views.decorators.http import require_POST
+from django.contrib import messages
+from datetime import datetime, timedelta
+from .models import Hotels, Rooms, Reservation
+from decimal import Decimal
+
+@login_required(login_url='user:signin')
+def maintainer_rooms_status(request):
+    """
+    Displays the rooms status dashboard for maintainers with full access to all hotels.
+    Shows detailed pricing information including base price, discount, and GST.
+    """
+    if not hasattr(request.user, 'maintainer_profile'):
+        return render(request, 'maintainer/panel.html', {
+            'error_title': 'Access Denied',
+            'error_message': 'This page is only accessible to maintainers.',
+            'current_date': datetime.now().date(),
+            'tomorrow_date': (datetime.now().date() + timedelta(days=1))
+        }, status=403)
+    
+    try:
+        # Maintainers have access to all hotels
+        all_hotels = Hotels.objects.all()
+        
+        # Handle POST request for booking
+        if request.method == 'POST':
+            try:
+                room_id = request.POST.get('room_id')
+                check_in_str = request.POST.get('check_in')
+                check_out_str = request.POST.get('check_out')
+                person = request.POST.get('person')
+                
+                if not all([room_id, check_in_str, check_out_str, person]):
+                    messages.error(request, 'All fields are required.')
+                    return redirect(request.get_full_path())
+                
+                room = Rooms.objects.get(id=int(room_id))
+                
+                # Validate dates
+                check_in = datetime.strptime(check_in_str, '%Y-%m-%d').date()
+                check_out = datetime.strptime(check_out_str, '%Y-%m-%d').date()
+                current_date = datetime.now().date()
+                
+                if check_in < current_date:
+                    messages.error(request, 'Check-in date cannot be in the past.')
+                    return redirect(request.get_full_path())
+                
+                if check_out <= check_in:
+                    messages.error(request, 'Check-out date must be after check-in date.')
+                    return redirect(request.get_full_path())
+                
+                # Validate guest count
+                person = int(person)
+                if person <= 0 or person > room.capacity:
+                    messages.error(request, f'Guest count must be between 1 and {room.capacity}.')
+                    return redirect(request.get_full_path())
+                
+                # Check room availability
+                conflicting_bookings = Reservation.objects.filter(
+                    room=room,
+                    check_in__lt=check_out,
+                    check_out__gt=check_in
+                ).exists()
+                
+                if conflicting_bookings or room.status == '2':
+                    messages.error(request, 'Room is not available for the selected dates.')
+                    return redirect(request.get_full_path())
+                
+                # Calculate pricing with discount and GST
+                stay_days = max((check_out - check_in).days, 1)
+                
+                # Get discounted price
+                discounted_price_per_night = room.discounted_price()
+                base_price = discounted_price_per_night * stay_days
+                
+                # Add extra person charges if applicable
+                if person > 1 and room.extra_person_charges:
+                    base_price += room.extra_person_charges * (person - 1)
+                
+                # Calculate GST
+                gst_percentage = Decimal(room.hotel.gst_rate) if room.hotel.gst_rate else Decimal('12.00')
+                gst_amount = (base_price * gst_percentage) / Decimal('100')
+                total_price = base_price + gst_amount
+                
+                # Create reservation
+                reservation = Reservation(
+                    room=room,
+                    guest=request.user,
+                    check_in=check_in,
+                    check_out=check_out,
+                    total_price=total_price,
+                    number_of_guests=person
+                )
+                reservation.save()
+                
+                messages.success(request, 'Room booked successfully!')
+                return redirect(request.get_full_path())
+                
+            except (ValueError, Rooms.DoesNotExist) as e:
+                messages.error(request, f'Invalid booking request: {str(e)}')
+                return redirect(request.get_full_path())
+            except Exception as e:
+                messages.error(request, f'An error occurred during booking: {str(e)}')
+                return redirect(request.get_full_path())
+        
+        # Handle GET request for dashboard
+        # Get filter parameters
+        hotel_filter = request.GET.get('hotel_filter', 'all')
+        status_filter = request.GET.get('status_filter', 'all')
+        date_filter = request.GET.get('date_filter')
+        
+        # Parse date filter or use today
+        try:
+            selected_date = datetime.strptime(date_filter, '%Y-%m-%d').date() if date_filter else datetime.now().date()
+        except ValueError:
+            selected_date = datetime.now().date()
+        
+        # Fetch all rooms (maintainer has access to all)
+        rooms = Rooms.objects.all().select_related('hotel')
+        
+        # Apply hotel filter
+        if hotel_filter != 'all':
+            rooms = rooms.filter(hotel__name=hotel_filter)
+        
+        # Process rooms with pricing information
+        current_date = datetime.now().date()
+        tomorrow_date = current_date + timedelta(days=1)
+        processed_rooms = []
+        for room in rooms:
+            # Fetch reservations individually
+            room.current_booking = Reservation.objects.filter(
+                room=room,
+                check_in__lte=selected_date,
+                check_out__gt=selected_date
+            ).select_related('guest').first()
+            
+            # Determine display status
+            if room.status == '2':
+                room.display_status = '2'  # Unavailable
+            elif room.current_booking:
+                room.display_status = '3'  # Booked
+            else:
+                room.display_status = '1'  # Available
+            
+            # Calculate and attach pricing information
+            room.discounted_price_value = room.discounted_price()
+            room.saved_amount = room.saved_money()
+            room.gst_rate = room.hotel.gst_rate if room.hotel.gst_rate else Decimal('12.00')
+            
+            room.is_past_date = selected_date < current_date
+            processed_rooms.append(room)
+        
+        # Apply status filter
+        if status_filter == 'available':
+            processed_rooms = [room for room in processed_rooms if room.display_status == '1']
+        elif status_filter == 'booked':
+            processed_rooms = [room for room in processed_rooms if room.display_status == '3']
+        elif status_filter == 'unavailable':
+            processed_rooms = [room for room in processed_rooms if room.display_status == '2']
+        
+        # Calculate summary statistics
+        total_rooms = len(processed_rooms)
+        available_rooms = len([room for room in processed_rooms if room.display_status == '1'])
+        booked_rooms = len([room for room in processed_rooms if room.display_status == '3'])
+        unavailable_rooms = len([room for room in processed_rooms if room.display_status == '2'])
+        
+        context = {
+            'hotels': all_hotels,
+            'rooms': processed_rooms,
+            'selected_hotel': hotel_filter,
+            'selected_status': status_filter,
+            'selected_date': selected_date,
+            'current_date': current_date,
+            'tomorrow_date': tomorrow_date,
+            'total_rooms': total_rooms,
+            'available_rooms': available_rooms,
+            'booked_rooms': booked_rooms,
+            'unavailable_rooms': unavailable_rooms,
+        }
+
+        return render(request, 'maintainer/rooms_status.html', context)
+        
+    except Exception as e:
+        return render(request, 'maintainer/rooms_status.html', {
+            'error_title': 'An Error Occurred',
+            'error_message': f'An unexpected error occurred: {str(e)}',
+            'current_date': datetime.now().date(),
+            'tomorrow_date': (datetime.now().date() + timedelta(days=1))
+        }, status=500)
+
+@login_required
+@require_POST
+def maintainer_update_room_status(request, room_id):
+    """
+    AJAX view for maintainers to update room status (Available/Unavailable).
+    """
+    try:
+        if not hasattr(request.user, 'maintainer_profile'):
+            return JsonResponse({'error': 'Permission denied'}, status=403)
+        
+        room = Rooms.objects.get(id=room_id)
+        new_status = request.POST.get('status')
+        if new_status not in ('1', '2'):
+            return JsonResponse({'error': 'Invalid status'}, status=400)
+        
+        # Check for bookings if marking unavailable
+        if new_status == '2':
+            selected_date = request.POST.get('selected_date', datetime.now().date())
+            try:
+                selected_date = datetime.strptime(selected_date, '%Y-%m-%d').date() if isinstance(selected_date, str) else selected_date
+            except ValueError:
+                selected_date = datetime.now().date()
+            
+            booking = Reservation.objects.filter(
+                room=room,
+                check_in__lte=selected_date,
+                check_out__gt=selected_date
+            ).exists()
+            if booking:
+                return JsonResponse({'error': 'Cannot mark a booked room as unavailable'}, status=400)
+        
+        room.status = new_status
+        room.save()
+        return JsonResponse({
+            'success': True,
+            'new_status': 'Available' if new_status == '1' else 'Unavailable'
+        })
+            
+    except Rooms.DoesNotExist:
+        return JsonResponse({'error': 'Room not found'}, status=404)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
 # def hotel_staff_edit_location(request):
 #     if not hasattr(request.user, 'hotel_staff_profile'):
 #         return HttpResponse('Access Denied - Not a Hotel Staff')
@@ -1550,6 +2055,9 @@ def hotel_staff_edit_location(request):
 #             return redirect("staffpanel")
 
 #     return render(request, 'hotel_staff/viewroom.html')
+
+
+
 @login_required(login_url='user:signin')
 def hotel_staff_bookings(request):
     if not hasattr(request.user, 'hotel_staff_profile'):
@@ -1570,25 +2078,43 @@ def hotel_staff_bookings(request):
     # Combine both querysets and remove duplicates
     all_accessible_hotels = (owner_hotels | assigned_hotels).distinct()
     
-    # Get all bookings for all accessible hotels
-    all_bookings = Reservation.objects.filter(room__hotel__in=all_accessible_hotels).order_by('-booking_time')
+    # Get all bookings for all accessible hotels, including cancelled
+    all_bookings = Reservation.objects.filter(
+        room__hotel__in=all_accessible_hotels
+    ).select_related('guest', 'room', 'room__hotel').order_by('-booking_time')
     
     # Calculate booking statistics for display
     total_bookings = all_bookings.count()
     bookings_today = all_bookings.filter(booking_time__date=current_date).count()
-    bookings_this_month = all_bookings.filter(booking_time__month=current_month, booking_time__year=current_year).count()
-    active_bookings = all_bookings.filter(check_in__lte=current_date, check_out__gte=current_date).count()
-    check_ins_today = all_bookings.filter(check_in=current_date).count()
-    check_outs_today = all_bookings.filter(check_out=current_date).count()
-    check_ins_this_month = all_bookings.filter(check_in__month=current_month, check_in__year=current_year).count()
-    check_outs_this_month = all_bookings.filter(check_out__month=current_month, check_out__year=current_year).count()
+    bookings_this_month = all_bookings.filter(
+        booking_time__month=current_month, booking_time__year=current_year
+    ).count()
+    active_bookings = all_bookings.filter(
+        check_in__lte=current_date, check_out__gte=current_date, is_cancelled=False
+    ).count()
+    check_ins_today = all_bookings.filter(check_in=current_date, is_cancelled=False).count()
+    check_outs_today = all_bookings.filter(check_out=current_date, is_cancelled=False).count()
+    check_ins_this_month = all_bookings.filter(
+        check_in__month=current_month, check_in__year=current_year, is_cancelled=False
+    ).count()
+    check_outs_this_month = all_bookings.filter(
+        check_out__month=current_month, check_out__year=current_year, is_cancelled=False
+    ).count()
+    cancelled_bookings = all_bookings.filter(is_cancelled=True).count()
     
-    # Calculate revenues
-    total_revenue = sum(reservation.total_price for reservation in all_bookings)
+    # Calculate revenues (exclude cancelled bookings)
+    total_revenue = sum(reservation.total_price for reservation in all_bookings if not reservation.is_cancelled)
     today_revenue = sum(
         reservation.total_price 
         for reservation in all_bookings 
-        if reservation.booking_time.date() == current_date
+        if reservation.booking_time.date() == current_date and not reservation.is_cancelled
+    )
+    this_month_revenue = sum(
+        reservation.total_price 
+        for reservation in all_bookings 
+        if reservation.booking_time.month == current_month and 
+           reservation.booking_time.year == current_year and 
+           not reservation.is_cancelled
     )
     
     # Initialize filter variables
@@ -1612,38 +2138,54 @@ def hotel_staff_bookings(request):
     
     # Apply hotel filter if selected
     if hotel_filter:
-        bookings = bookings.filter(room__hotel__id=hotel_filter)
+        try:
+            bookings = bookings.filter(room__hotel__id=int(hotel_filter))
+        except (ValueError, TypeError):
+            messages.warning(request, "Invalid hotel filter selected.")
     
     # Apply booking status filter if selected
     if booking_status:
         if booking_status == 'past':
-            bookings = bookings.filter(check_out__lt=current_date)
+            bookings = bookings.filter(check_out__lt=current_date, is_cancelled=False)
         elif booking_status == 'current':
-            bookings = bookings.filter(check_in__lte=current_date, check_out__gte=current_date)
+            bookings = bookings.filter(check_in__lte=current_date, check_out__gte=current_date, is_cancelled=False)
         elif booking_status == 'future':
-            bookings = bookings.filter(check_in__gt=current_date)
+            bookings = bookings.filter(check_in__gt=current_date, is_cancelled=False)
+        elif booking_status == 'cancelled':
+            bookings = bookings.filter(is_cancelled=True)
     
     if view_type == 'check_in':
-        bookings = bookings.filter(check_in=day) if day else bookings
-        filter_type = 'check_in'
+        if day:
+            try:
+                day_date = datetime.strptime(day, '%Y-%m-%d').date()
+                bookings = bookings.filter(check_in=day_date)
+                filter_type = 'check_in'
+            except ValueError:
+                messages.warning(request, "Invalid day format.")
+        else:
+            bookings = bookings.filter(check_in=current_date)
+            filter_type = 'check_in'
     elif view_type == 'check_out':
-        bookings = bookings.filter(check_out=day) if day else bookings
-        filter_type = 'check_out'
+        if day:
+            try:
+                day_date = datetime.strptime(day, '%Y-%m-%d').date()
+                bookings = bookings.filter(check_out=day_date)
+                filter_type = 'check_out'
+            except ValueError:
+                messages.warning(request, "Invalid day format.")
+        else:
+            bookings = bookings.filter(check_out=current_date)
+            filter_type = 'check_out'
     elif view_type == 'active':
         if day:
             try:
                 day_date = datetime.strptime(day, '%Y-%m-%d').date()
-                bookings = bookings.filter(
-                    check_in__lte=day_date, check_out__gte=day_date
-                )
+                bookings = bookings.filter(check_in__lte=day_date, check_out__gte=day_date, is_cancelled=False)
                 filter_type = 'active'
             except ValueError:
                 messages.warning(request, "Invalid day format.")
-                bookings = bookings
         else:
-            bookings = bookings.filter(
-                check_in__lte=current_date, check_out__gte=current_date
-            )
+            bookings = bookings.filter(check_in__lte=current_date, check_out__gte=current_date, is_cancelled=False)
             filter_type = 'active'
     
     if start_date:
@@ -1667,9 +2209,7 @@ def hotel_staff_bookings(request):
     if month:
         try:
             month_num = datetime.strptime(month, '%B').month
-            bookings = bookings.filter(
-                Q(check_in__month=month_num) | Q(check_out__month=month_num)
-            )
+            bookings = bookings.filter(Q(check_in__month=month_num) | Q(check_out__month=month_num))
             filter_type = 'month'
         except ValueError:
             messages.warning(request, "Invalid month selected.")
@@ -1677,9 +2217,7 @@ def hotel_staff_bookings(request):
     if week:
         try:
             week_num = int(week)
-            bookings = bookings.filter(
-                Q(check_in__week=week_num) | Q(check_out__week=week_num)
-            )
+            bookings = bookings.filter(Q(check_in__week=week_num) | Q(check_out__week=week_num))
             filter_type = 'week'
         except ValueError:
             messages.warning(request, "Invalid week number.")
@@ -1700,16 +2238,19 @@ def hotel_staff_bookings(request):
             Q(guest__username__icontains=search_name)
         )
 
+    # Assign status to bookings
     for booking in bookings:
-        if booking.check_out < current_date:
+        if booking.is_cancelled:
+            booking.status = 'cancelled'
+        elif booking.check_out < current_date:
             booking.status = 'past'
         elif booking.check_in <= current_date <= booking.check_out:
             booking.status = 'current'
         else:
             booking.status = 'future'
 
-    # Calculate filtered revenue
-    filtered_revenue = sum(reservation.total_price for reservation in bookings)
+    # Calculate filtered revenue (exclude cancelled bookings)
+    filtered_revenue = sum(reservation.total_price for reservation in bookings if not reservation.is_cancelled)
     
     months = ['January', 'February', 'March', 'April', 'May', 'June', 
               'July', 'August', 'September', 'October', 'November', 'December']
@@ -1748,15 +2289,93 @@ def hotel_staff_bookings(request):
         'check_outs_today': check_outs_today,
         'check_ins_this_month': check_ins_this_month,
         'check_outs_this_month': check_outs_this_month,
+        'cancelled_bookings': cancelled_bookings,
         'all_accessible_hotels': all_accessible_hotels,
         'total_revenue': total_revenue,
         'today_revenue': today_revenue,
+        'this_month_revenue': this_month_revenue,
         'filtered_revenue': filtered_revenue,
     }
     
     if request.headers.get('x-requested-with') == 'XMLHttpRequest':
         action = request.GET.get('action', 'table')
-        if action == 'calendar':
+        if action == 'events':
+            events = []
+            for booking in bookings:
+                room_type_name = booking.room.room_type if isinstance(booking.room.room_type, str) else getattr(booking.room.room_type, 'name', 'N/A')
+                events.extend([
+                    {
+                        'title': f'{booking.room.hotel.name}: {booking.room.room_number} - {booking.guest.get_full_name or booking.guest.username}',
+                        'start': booking.booking_time.strftime('%Y-%m-%d'),
+                        'url': reverse('user:user_profile_detail', kwargs={'username': booking.guest.username}),
+                        'extendedProps': {
+                            'type': 'booking',
+                            'status': booking.status,
+                            'guest': booking.guest.get_full_name or booking.guest.username,
+                            'room': f'{room_type_name} (Room {booking.room.room_number})',
+                            'hotel': booking.room.hotel.name,
+                            'check_in': booking.check_in.strftime('%Y-%m-%d'),
+                            'check_in_display': booking.check_in.strftime('%b %d, %Y'),
+                            'check_out': booking.check_out.strftime('%Y-%m-%d'),
+                            'check_out_display': booking.check_out.strftime('%b %d, %Y'),
+                            'nights': booking.nights,
+                            'amount': f'₹{booking.total_price:.2f}',
+                            'booking_date': booking.booking_time.strftime('%b %d, %Y %I:%M %p'),
+                            'cancellation_reason': booking.cancellation_reason or 'N/A',
+                        },
+                        'className': 'fc-event-booking',
+                        'backgroundColor': '#DC3545' if booking.status == 'cancelled' else '#3B82F6',
+                        'textColor': 'white'
+                    },
+                    {
+                        'title': f'Check-in: {booking.room.hotel.name} - {booking.room.room_number}',
+                        'start': booking.check_in.strftime('%Y-%m-%d'),
+                        'url': reverse('user:user_profile_detail', kwargs={'username': booking.guest.username}),
+                        'extendedProps': {
+                            'type': 'check-in',
+                            'status': booking.status,
+                            'guest': booking.guest.get_full_name() or booking.guest.username,
+                            'room': f'{room_type_name} (Room {booking.room.room_number})',
+                            'hotel': booking.room.hotel.name,
+                            'check_in': booking.check_in.strftime('%Y-%m-%d'),
+                            'check_in_display': booking.check_in.strftime('%b %d, %Y'),
+                            'check_out': booking.check_out.strftime('%Y-%m-%d'),
+                            'check_out_display': booking.check_out.strftime('%b %d, %Y'),
+                            'nights': booking.nights,
+                            'amount': f'₹{booking.total_price:.2f}',
+                            'booking_date': booking.booking_time.strftime('%b %d, %Y %I:%M %p'),
+                            'cancellation_reason': booking.cancellation_reason or 'N/A',
+                        },
+                        'className': 'fc-event-check-in',
+                        'backgroundColor': '#DC3545' if booking.status == 'cancelled' else '#10B981',
+                        'textColor': 'white'
+                    },
+                    {
+                        'title': f'Check-out: {booking.room.hotel.name} - {booking.room.room_number}',
+                        'start': booking.check_out.strftime('%Y-%m-%d'),
+                        'url': reverse('user:user_profile_detail', kwargs={'username': booking.guest.username}),
+                        'extendedProps': {
+                            'type': 'check-out',
+                            'status': booking.status,
+                            'guest': booking.guest.get_full_name or booking.guest.username,
+                            'room': f'{room_type_name} (Room {booking.room.room_number})',
+                            'hotel': booking.room.hotel.name,
+                            'check_in': booking.check_in.strftime('%Y-%m-%d'),
+                            'check_in_display': booking.check_in.strftime('%b %d, %Y'),
+                            'check_out': booking.check_out.strftime('%Y-%m-%d'),
+                            'check_out_display': booking.check_out.strftime('%b %d, %Y'),
+                            'nights': booking.nights,
+                            'amount': f'₹{booking.total_price:.2f}',
+                            'booking_date': booking.booking_time.strftime('%b %d, %Y %I:%M %p'),
+                            'cancellation_reason': booking.cancellation_reason or 'N/A',
+                        },
+                        'className': 'fc-event-check-out',
+                        'backgroundColor': '#DC3545' if booking.status == 'cancelled' else '#F59E0B',
+                        'textColor': 'white'
+                    }
+                ])
+            return JsonResponse({'events': events})
+        elif action == 'calendar':
             return render(request, 'hotel_staff/booking_calendar.html', context)
         return render(request, 'hotel_staff/booking_table.html', context)
         
@@ -2238,36 +2857,39 @@ def maintainer_all_bookings(request):
     # Get all hotels for the hotel filter dropdown
     all_hotels = Hotels.objects.all()
     
-    # Get all bookings across all hotels
+    # Get all bookings, including cancelled ones
     all_bookings = Reservation.objects.all().select_related(
         'guest', 'room', 'room__hotel'
     ).order_by('-booking_time')
     
-    # Calculate total revenue for all bookings
-    total_revenue = sum(booking.total_price for booking in all_bookings)
+    # Calculate total revenue for all non-cancelled bookings
+    total_revenue = sum(booking.total_price for booking in all_bookings if not booking.is_cancelled)
     today_revenue = sum(
         booking.total_price 
         for booking in all_bookings 
-        if booking.booking_time.date() == current_date
+        if booking.booking_time.date() == current_date and not booking.is_cancelled
     )
     this_month_revenue = sum(
         booking.total_price 
         for booking in all_bookings 
-        if booking.booking_time.month == current_month and booking.booking_time.year == current_year
+        if booking.booking_time.month == current_month and 
+           booking.booking_time.year == current_year and 
+           not booking.is_cancelled
     )
     
-    # Initialize bookings with a safe default
+    # Initialize bookings
     bookings = all_bookings if all_bookings.exists() else Reservation.objects.none()
     
     # Calculate booking statistics for display
     total_bookings = all_bookings.count()
     bookings_today = all_bookings.filter(booking_time__date=current_date).count()
     bookings_this_month = all_bookings.filter(booking_time__month=current_month, booking_time__year=current_year).count()
-    active_bookings = all_bookings.filter(check_in__lte=current_date, check_out__gte=current_date).count()
-    check_ins_today = all_bookings.filter(check_in=current_date).count()
-    check_outs_today = all_bookings.filter(check_out=current_date).count()
-    check_ins_this_month = all_bookings.filter(check_in__month=current_month, check_in__year=current_year).count()
-    check_outs_this_month = all_bookings.filter(check_out__month=current_month, check_out__year=current_year).count()
+    active_bookings = all_bookings.filter(check_in__lte=current_date, check_out__gte=current_date, is_cancelled=False).count()
+    check_ins_today = all_bookings.filter(check_in=current_date, is_cancelled=False).count()
+    check_outs_today = all_bookings.filter(check_out=current_date, is_cancelled=False).count()
+    check_ins_this_month = all_bookings.filter(check_in__month=current_month, check_in__year=current_year, is_cancelled=False).count()
+    check_outs_this_month = all_bookings.filter(check_out__month=current_month, check_out__year=current_year, is_cancelled=False).count()
+    cancelled_bookings = all_bookings.filter(is_cancelled=True).count()
     
     # Initialize filter variables
     start_date = request.GET.get('start_date')
@@ -2297,11 +2919,13 @@ def maintainer_all_bookings(request):
     # Apply booking status filter if selected
     if booking_status:
         if booking_status == 'past':
-            bookings = bookings.filter(check_out__lt=current_date)
+            bookings = bookings.filter(check_out__lt=current_date, is_cancelled=False)
         elif booking_status == 'current':
-            bookings = bookings.filter(check_in__lte=current_date, check_out__gte=current_date)
+            bookings = bookings.filter(check_in__lte=current_date, check_out__gte=current_date, is_cancelled=False)
         elif booking_status == 'future':
-            bookings = bookings.filter(check_in__gt=current_date)
+            bookings = bookings.filter(check_in__gt=current_date, is_cancelled=False)
+        elif booking_status == 'cancelled':
+            bookings = bookings.filter(is_cancelled=True)
     
     if view_type == 'check_in':
         if day:
@@ -2318,7 +2942,7 @@ def maintainer_all_bookings(request):
         if day:
             try:
                 day_date = datetime.strptime(day, '%Y-%m-%d').date()
-                bookings = bookings.filter(check_out=day_date)
+                bookings = bookings(check_out=day_date)
                 filter_type = 'check_out'
             except ValueError:
                 messages.warning(request, "Invalid day format.")
@@ -2329,12 +2953,12 @@ def maintainer_all_bookings(request):
         if day:
             try:
                 day_date = datetime.strptime(day, '%Y-%m-%d').date()
-                bookings = bookings.filter(check_in__lte=day_date, check_out__gte=day_date)
+                bookings = bookings(check_in__lte=day_date, check_out__gte=day_date, is_cancelled=False)
                 filter_type = 'active'
             except ValueError:
                 messages.warning(request, "Invalid day format.")
         else:
-            bookings = bookings.filter(check_in__lte=current_date, check_out__gte=current_date)
+            bookings = bookings.filter(check_in__lte=current_date, check_out__gte=current_date, is_cancelled=False)
             filter_type = 'active'
     
     if start_date:
@@ -2388,12 +3012,14 @@ def maintainer_all_bookings(request):
             Q(room__hotel__name__icontains=search_name)
         )
 
-    # Calculate filtered revenue
-    filtered_revenue = sum(booking.total_price for booking in bookings)
+    # Calculate filtered revenue (exclude cancelled bookings)
+    filtered_revenue = sum(booking.total_price for booking in bookings if not booking.is_cancelled)
     
     # Assign status to bookings
     for booking in bookings:
-        if booking.check_out < current_date:
+        if booking.is_cancelled:
+            booking.status = 'cancelled'
+        elif booking.check_out < current_date:
             booking.status = 'past'
         elif booking.check_in <= current_date <= booking.check_out:
             booking.status = 'current'
@@ -2437,6 +3063,7 @@ def maintainer_all_bookings(request):
         'check_outs_today': check_outs_today,
         'check_ins_this_month': check_ins_this_month,
         'check_outs_this_month': check_outs_this_month,
+        'cancelled_bookings': cancelled_bookings,
         'all_hotels': all_hotels,
         'total_revenue': total_revenue,
         'today_revenue': today_revenue,
@@ -2467,10 +3094,11 @@ def maintainer_all_bookings(request):
                             'check_out_display': booking.check_out.strftime('%b %d, %Y'),
                             'nights': booking.nights,
                             'amount': f'₹{booking.total_price:.2f}',
-                            'booking_date': booking.booking_time.strftime('%b %d, %Y %I:%M %p')
+                            'booking_date': booking.booking_time.strftime('%b %d, %Y %I:%M %p'),
+                            'cancellation_reason': booking.cancellation_reason or 'N/A',
                         },
                         'className': 'fc-event-booking',
-                        'backgroundColor': '#3B82F6',
+                        'backgroundColor': '#DC3545' if booking.status == 'cancelled' else '#3B82F6',
                         'textColor': 'white'
                     },
                     {
@@ -2489,10 +3117,11 @@ def maintainer_all_bookings(request):
                             'check_out_display': booking.check_out.strftime('%b %d, %Y'),
                             'nights': booking.nights,
                             'amount': f'₹{booking.total_price:.2f}',
-                            'booking_date': booking.booking_time.strftime('%b %d, %Y %I:%M %p')
+                            'booking_date': booking.booking_time.strftime('%b %d, %Y %I:%M %p'),
+                            'cancellation_reason': booking.cancellation_reason or 'N/A',
                         },
                         'className': 'fc-event-check-in',
-                        'backgroundColor': '#10B981',
+                        'backgroundColor': '#DC3545' if booking.status == 'cancelled' else '#10B981',
                         'textColor': 'white'
                     },
                     {
@@ -2511,10 +3140,11 @@ def maintainer_all_bookings(request):
                             'check_out_display': booking.check_out.strftime('%b %d, %Y'),
                             'nights': booking.nights,
                             'amount': f'₹{booking.total_price:.2f}',
-                            'booking_date': booking.booking_time.strftime('%b %d, %Y %I:%M %p')
+                            'booking_date': booking.booking_time.strftime('%b %d, %Y %I:%M %p'),
+                            'cancellation_reason': booking.cancellation_reason or 'N/A',
                         },
                         'className': 'fc-event-check-out',
-                        'backgroundColor': '#F59E0B',
+                        'backgroundColor': '#DC3545' if booking.status == 'cancelled' else '#F59E0B',
                         'textColor': 'white'
                     }
                 ])
@@ -2886,50 +3516,124 @@ def book_room_page(request):
         messages.error(request, "Invalid room selection")
         return redirect('homepage')
     
+# Existing user_bookings view
+@login_required(login_url='user:signin')
+def user_bookings(request):
+    if not request.user.is_authenticated:
+        return redirect('userloginpage')
+    
+    user = User.objects.get(id=request.user.id)
+    bookings = Reservation.objects.filter(guest=user)
 
-@login_required_with_message(message="You have to login first.", login_url='user:signin')
-def book_room(request):
-     
-    if request.method == "POST":
+    # Get the current date
+    current_date = datetime.now().date()
 
-        room_id = request.POST['room_id']
-        
-        room = Rooms.objects.all().get(id=room_id)
-        #for finding the reserved rooms on this time period for excluding from the query set
-        for each_reservation in Reservation.objects.all().filter(room=room):
-            if str(each_reservation.check_in) < str(request.POST['check_in']) and str(each_reservation.check_out) < str(request.POST['check_out']):
-                pass
-            elif str(each_reservation.check_in) > str(request.POST['check_in']) and str(each_reservation.check_out) > str(request.POST['check_out']):
-                pass
+    if not bookings:
+        messages.warning(request, "No Bookings Found")
+
+    return render(request, 'user/mybookings.html', {'bookings': bookings, 'current_date': current_date})
+
+# Existing cancel_booking view
+@login_required(login_url='user:signin')
+def cancel_booking(request, booking_id):
+    if request.method == 'POST':
+        try:
+            booking = Reservation.objects.get(id=booking_id, guest=request.user)
+            if booking.is_cancelled:
+                messages.error(request, "This booking is already cancelled.")
+            elif booking.check_out < datetime.now().date():
+                messages.error(request, "Cannot cancel an expired booking.")
             else:
-                messages.warning(request,"Sorry This Room is unavailable for Booking")
-                return redirect("homepage")
-            
-        current_user = request.user
-        total_person = int(request.POST['person'])
-        booking_id = str(room_id) + str(datetime.now())  # using datetime.now() after import
+                cancellation_reason = request.POST.get('cancellation_reason')
+                if not cancellation_reason:
+                    messages.error(request, "Please provide a reason for cancellation.")
+                else:
+                    booking.is_cancelled = True
+                    booking.cancelled_at = timezone.now()
+                    booking.cancellation_reason = cancellation_reason
+                    booking.save()
+                    messages.success(request, "Booking cancelled successfully.")
+                    # Store booking details for rebooking
+                    request.session['rebook_data'] = {
+                        'room_id': booking.room.id,
+                        'check_in': booking.check_in.strftime('%Y-%m-%d'),
+                        'check_out': booking.check_out.strftime('%Y-%m-%d'),
+                    }
+        except Reservation.DoesNotExist:
+            messages.error(request, "Booking not found or you don't have permission to cancel it.")
+    else:
+        messages.error(request, "Invalid request method.")
+    
+    return redirect('dashboard')
 
-        reservation = Reservation()
-        room_object = Rooms.objects.all().get(id=room_id)
-        room_object.status = '2'
-        
-        user_object = User.objects.all().get(username=current_user)
 
-        reservation.guest = user_object
-        reservation.room = room_object
-        person = total_person
-        reservation.check_in = request.POST['check_in']
-        reservation.check_out = request.POST['check_out']
+# Updated book_room view
+@login_required(login_url='user:signin')
+def book_room(request):
+    if request.method == "POST":
+        room_id = request.POST.get('room_id')
+        check_in = request.POST.get('check_in')
+        check_out = request.POST.get('check_out')
+        total_person = request.POST.get('person', 1)  # Default to 1 if not provided
 
-        reservation.save()
+        try:
+            room = Rooms.objects.get(id=room_id)
+            check_in_date = datetime.strptime(check_in, '%Y-%m-%d').date()
+            check_out_date = datetime.strptime(check_out, '%Y-%m-%d').date()
 
-        messages.success(request,"Congratulations! Booking Successfull")
+            # Validate dates
+            if check_in_date >= check_out_date:
+                messages.error(request, "Check-out date must be after check-in date.")
+                room_id = request.session.get('rebook_data', {}).get('room_id')
+                return redirect('bookroompage')
+                # return redirect('bookroompage', room_id=room_id)
 
-        return redirect("homepage")
+            # Check for overlapping active bookings (exclude cancelled)
+            for each_reservation in Reservation.objects.filter(room=room, is_cancelled=False):
+                if each_reservation.check_in < check_out_date and each_reservation.check_out > check_in_date:
+                    messages.warning(request, "Sorry, this room is unavailable for the selected dates.")
+                    room_id = request.session.get('rebook_data', {}).get('room_id')
+                    return redirect('bookroompage')
+                    # return redirect('bookroompage', room_id=room_id)
+
+            current_user = request.user
+            booking_id = f"{room_id}_{timezone.now().strftime('%Y%m%d%H%M%S')}"  # Improved booking_id format
+
+            # Create reservation
+            reservation = Reservation()
+            room_object = Rooms.objects.get(id=room_id)
+            room_object.status = '2'  # Update room status
+            user_object = User.objects.get(username=current_user)
+
+            reservation.guest = user_object
+            reservation.room = room_object
+            reservation.check_in = check_in_date
+            reservation.check_out = check_out_date
+            reservation.booking_id = booking_id
+            reservation.booking_time = timezone.now()
+            reservation.spy = "user_booking"  # Set spy field
+            reservation.save()
+
+            messages.success(request, "Congratulations! Booking Successful")
+
+            # Clean up session data if rebooking
+            if 'rebook_data' in request.session:
+                del request.session['rebook_data']
+
+            return redirect('dashboard')
+        except Rooms.DoesNotExist:
+            messages.error(request, "Room not found.")
+            room_id = request.session.get('rebook_data', {}).get('room_id')
+            return redirect('bookroompage')
+            # return redirect('bookroompage', room_id=room_id)
+        except User.DoesNotExist:
+            messages.error(request, "User not found.")
+            return redirect('bookroompage')
+        except ValueError:
+            messages.error(request, "Invalid date format.")
+            return redirect('bookroompage')
     else:
         return HttpResponse('Access Denied')
-
-
 
 #about
 def aboutpage(request):
