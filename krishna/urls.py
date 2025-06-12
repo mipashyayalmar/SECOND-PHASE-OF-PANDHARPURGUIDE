@@ -35,6 +35,8 @@ urlpatterns = [
     path('hotel/hotel_staff/panel/rooms-status/', views.rooms_status, name='rooms_status'),
     path('hotel/update-room-status/<int:room_id>/', views.update_room_status, name='update_room_status'),
 
+    path('maintainer/panel/rooms-status/', views.maintainer_rooms_status, name='maintainer_rooms_status'),
+    path('maintainer/update-room-status/<int:room_id>/', views.maintainer_update_room_status, name='maintainer_update_room_status'),
 
     # Maintainer URLs
     path('maintainer/panel/', views.maintainer_panel, name='maintainer_panel'),

@@ -1254,20 +1254,24 @@ def hotel_staff_panel(request):
 
 
 
-from django.shortcuts import render, redirect
+
+
+from django.db.models import Q
+from decimal import Decimal
+from datetime import datetime, timedelta
 from django.contrib.auth.decorators import login_required
+from django.shortcuts import render, redirect
+from django.contrib import messages
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST
-from django.contrib import messages
-from datetime import datetime, timedelta
 from .models import Hotels, Rooms, Reservation
-from decimal import Decimal
 
 @login_required(login_url='user:signin')
 def rooms_status(request):
     """
     Displays the rooms status dashboard with filtering capabilities and handles direct room booking.
-    Supports GET for dashboard rendering and POST for booking submissions.
+    Shows detailed pricing information including base price, discount, and GST.
+    Includes all bookings (past, current, and future) for the bookings section.
     """
     if not hasattr(request.user, 'hotel_staff_profile'):
         return render(request, 'hotel_staff/panel.html', {
@@ -1298,9 +1302,262 @@ def rooms_status(request):
                     return redirect(request.get_full_path())
                 
                 room = Rooms.objects.get(id=int(room_id))
-                if room.hotel.assigned_staff != staff:
+                if not assigned_hotels.filter(id=room.hotel.id).exists():
                     messages.error(request, 'Permission denied to book this room.')
                     return redirect(request.get_full_path())
+                
+                # Validate dates
+                check_in = datetime.strptime(check_in_str, '%Y-%m-%d').date()
+                check_out = datetime.strptime(check_out_str, '%Y-%m-%d').date()
+                current_date = datetime.now().date()
+                
+                if check_in < current_date:
+                    messages.error(request, 'Check-in date cannot be in the past.')
+                    return redirect(request.get_full_path())
+                
+                if check_out <= check_in:
+                    messages.error(request, 'Check-out date must be after check-in date.')
+                    return redirect(request.get_full_path())
+                
+                # Validate guest count
+                person = int(person)
+                if person <= 0 or person > room.capacity:
+                    messages.error(request, f'Guest count must be between 1 and {room.capacity}.')
+                    return redirect(request.get_full_path())
+                
+                # Check room availability
+                conflicting_bookings = Reservation.objects.filter(
+                    room=room,
+                    check_in__lt=check_out,
+                    check_out__gt=check_in,
+                    is_cancelled=False
+                ).exists()
+                
+                if conflicting_bookings or room.status == '2':
+                    messages.error(request, 'Room is not available for the selected dates.')
+                    return redirect(request.get_full_path())
+                
+                # Calculate pricing with discount and GST
+                stay_days = max((check_out - check_in).days, 1)
+                discounted_price_per_night = room.discounted_price()
+                base_price = discounted_price_per_night * stay_days
+                
+                # Add extra person charges if applicable
+                if person > 1 and room.extra_person_charges:
+                    base_price += room.extra_person_charges * (person - 1)
+                
+                # Calculate GST
+                gst_percentage = room.hotel.gst_rate if room.hotel.gst_rate else Decimal('12.00')
+                gst_amount = (base_price * gst_percentage) / Decimal('100')
+                total_price = base_price + gst_amount
+                
+                # Create reservation
+                reservation = Reservation(
+                    room=room,
+                    guest=request.user,
+                    check_in=check_in,
+                    check_out=check_out,
+                    number_of_guests=person,
+                    base_price_value=base_price,  # Store the calculated base price
+                    gst_amount_value=gst_amount   # Store the calculated GST
+                )
+                reservation.save()
+                
+                messages.success(request, 'Room booked successfully!')
+                return redirect(request.get_full_path())
+                
+            except (ValueError, Rooms.DoesNotExist) as e:
+                messages.error(request, f'Invalid booking request: {str(e)}')
+                return redirect(request.get_full_path())
+            except Exception as e:
+                messages.error(request, f'An error occurred during booking: {str(e)}')
+                return redirect(request.get_full_path())
+        
+        # Handle GET request for dashboard
+        hotel_filter = request.GET.get('hotel_filter', 'all')
+        status_filter = request.GET.get('status_filter', 'all')
+        date_filter = request.GET.get('date_filter')
+        
+        # Parse date filter or use today
+        try:
+            selected_date = datetime.strptime(date_filter, '%Y-%m-%d').date() if date_filter else datetime.now().date()
+        except ValueError:
+            selected_date = datetime.now().date()
+        
+        # Fetch rooms
+        rooms = Rooms.objects.filter(hotel__in=assigned_hotels).select_related('hotel')
+        
+        # Apply hotel filter
+        if hotel_filter != 'all':
+            rooms = rooms.filter(hotel__name=hotel_filter)
+        
+        # Fetch all reservations for the assigned hotels
+        reservations = Reservation.objects.filter(
+            room__hotel__in=assigned_hotels
+        ).select_related('guest', 'room').order_by('-check_in')
+        
+        # Process rooms with pricing information
+        current_date = datetime.now().date()
+        tomorrow_date = current_date + timedelta(days=1)
+        processed_rooms = []
+        for room in rooms:
+            room.current_booking = Reservation.objects.filter(
+                room=room,
+                check_in__lte=selected_date,
+                check_out__gt=selected_date,
+                is_cancelled=False
+            ).select_related('guest').first()
+            
+            # Determine display status
+            if room.status == '2':
+                room.display_status = '2'  # Unavailable
+            elif room.current_booking:
+                room.display_status = '3'  # Booked
+            else:
+                room.display_status = '1'  # Available
+            
+            # Calculate pricing information
+            room.discounted_price_value = room.discounted_price()
+            room.saved_amount = room.saved_money()
+            room.gst_rate = room.hotel.gst_rate if room.hotel.gst_rate else Decimal('12.00')
+            
+            if room.display_status == '3' and room.current_booking:
+                room.gst_amount = room.current_booking.gst_amount
+                room.total_price = room.current_booking.total_price
+            else:
+                room.gst_amount = (room.discounted_price_value * room.gst_rate) / Decimal('100')
+                room.total_price = room.discounted_price_value + room.gst_amount
+            
+            room.is_past_date = selected_date < current_date
+            processed_rooms.append(room)
+        
+        # Apply status filter
+        if status_filter == 'available':
+            processed_rooms = [room for room in processed_rooms if room.display_status == '1']
+        elif status_filter == 'booked':
+            processed_rooms = [room for room in processed_rooms if room.display_status == '3']
+        elif status_filter == 'unavailable':
+            processed_rooms = [room for room in processed_rooms if room.display_status == '2']
+        
+        # Calculate summary statistics
+        total_rooms = len(processed_rooms)
+        available_rooms = len([room for room in processed_rooms if room.display_status == '1'])
+        booked_rooms = len([room for room in processed_rooms if room.display_status == '3'])
+        unavailable_rooms = len([room for room in processed_rooms if room.display_status == '2'])
+        
+        context = {
+            'hotels': assigned_hotels,
+            'rooms': processed_rooms,
+            'reservations': reservations,
+            'selected_hotel': hotel_filter,
+            'selected_status': status_filter,
+            'selected_date': selected_date,
+            'current_date': current_date,
+            'tomorrow_date': tomorrow_date,
+            'total_rooms': total_rooms,
+            'available_rooms': available_rooms,
+            'booked_rooms': booked_rooms,
+            'unavailable_rooms': unavailable_rooms,
+        }
+
+        return render(request, 'hotel_staff/rooms_status.html', context)
+        
+    except Exception as e:
+        return render(request, 'hotel_staff/rooms_status.html', {
+            'error_title': 'An Error Occurred',
+            'error_message': f'An unexpected error occurred: {str(e)}',
+            'current_date': datetime.now().date(),
+            'tomorrow_date': (datetime.now().date() + timedelta(days=1))
+        }, status=500)
+
+@login_required
+@require_POST
+def update_room_status(request, room_id):
+    """
+    AJAX view to update room status (Available/Unavailable).
+    Validates staff permission and ensures no booking conflicts.
+    """
+    try:
+        room = Rooms.objects.get(id=room_id)
+        if not Hotels.objects.filter(assigned_staff=request.user.hotel_staff_profile, id=room.hotel.id).exists():
+            return JsonResponse({'error': 'Permission denied'}, status=403)
+        
+        new_status = request.POST.get('status')
+        if new_status not in ('1', '2'):
+            return JsonResponse({'error': 'Invalid status'}, status=400)
+        
+        # Check for bookings if marking unavailable
+        if new_status == '2':
+            selected_date = request.POST.get('selected_date', datetime.now().date())
+            try:
+                selected_date = datetime.strptime(selected_date, '%Y-%m-%d').date() if isinstance(selected_date, str) else selected_date
+            except ValueError:
+                selected_date = datetime.now().date()
+            
+            booking = Reservation.objects.filter(
+                room=room,
+                check_in__lte=selected_date,
+                check_out__gt=selected_date,
+                is_cancelled=False
+            ).exists()
+            if booking:
+                return JsonResponse({'error': 'Cannot mark a booked room as unavailable'}, status=400)
+        
+        room.status = new_status
+        room.save()
+        return JsonResponse({
+            'success': True,
+            'new_status': 'Available' if new_status == '1' else 'Unavailable'
+        })
+            
+    except Rooms.DoesNotExist:
+        return JsonResponse({'error': 'Room not found'}, status=404)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+
+
+from django.shortcuts import render, redirect
+from django.contrib.auth.decorators import login_required
+from django.http import JsonResponse
+from django.views.decorators.http import require_POST
+from django.contrib import messages
+from datetime import datetime, timedelta
+from .models import Hotels, Rooms, Reservation
+from decimal import Decimal
+
+@login_required(login_url='user:signin')
+def maintainer_rooms_status(request):
+    """
+    Displays the rooms status dashboard for maintainers with full access to all hotels.
+    Shows detailed pricing information including base price, discount, and GST.
+    """
+    if not hasattr(request.user, 'maintainer_profile'):
+        return render(request, 'maintainer/panel.html', {
+            'error_title': 'Access Denied',
+            'error_message': 'This page is only accessible to maintainers.',
+            'current_date': datetime.now().date(),
+            'tomorrow_date': (datetime.now().date() + timedelta(days=1))
+        }, status=403)
+    
+    try:
+        # Maintainers have access to all hotels
+        all_hotels = Hotels.objects.all()
+        
+        # Handle POST request for booking
+        if request.method == 'POST':
+            try:
+                room_id = request.POST.get('room_id')
+                check_in_str = request.POST.get('check_in')
+                check_out_str = request.POST.get('check_out')
+                person = request.POST.get('person')
+                
+                if not all([room_id, check_in_str, check_out_str, person]):
+                    messages.error(request, 'All fields are required.')
+                    return redirect(request.get_full_path())
+                
+                room = Rooms.objects.get(id=int(room_id))
                 
                 # Validate dates
                 check_in = datetime.strptime(check_in_str, '%Y-%m-%d').date()
@@ -1332,13 +1589,19 @@ def rooms_status(request):
                     messages.error(request, 'Room is not available for the selected dates.')
                     return redirect(request.get_full_path())
                 
-                # Calculate price
+                # Calculate pricing with discount and GST
                 stay_days = max((check_out - check_in).days, 1)
-                room_price_per_night = Decimal(room.price_per_day)
-                base_price = room_price_per_night * stay_days
                 
-                # Get GST rate
-                gst_percentage = Decimal(room.hotel.gst_rate) if room.hotel.gst_rate else Decimal('0.0')
+                # Get discounted price
+                discounted_price_per_night = room.discounted_price()
+                base_price = discounted_price_per_night * stay_days
+                
+                # Add extra person charges if applicable
+                if person > 1 and room.extra_person_charges:
+                    base_price += room.extra_person_charges * (person - 1)
+                
+                # Calculate GST
+                gst_percentage = Decimal(room.hotel.gst_rate) if room.hotel.gst_rate else Decimal('12.00')
                 gst_amount = (base_price * gst_percentage) / Decimal('100')
                 total_price = base_price + gst_amount
                 
@@ -1375,14 +1638,14 @@ def rooms_status(request):
         except ValueError:
             selected_date = datetime.now().date()
         
-        # Fetch rooms
-        rooms = Rooms.objects.filter(hotel__in=assigned_hotels).select_related('hotel')
+        # Fetch all rooms (maintainer has access to all)
+        rooms = Rooms.objects.all().select_related('hotel')
         
         # Apply hotel filter
         if hotel_filter != 'all':
             rooms = rooms.filter(hotel__name=hotel_filter)
         
-        # Process rooms
+        # Process rooms with pricing information
         current_date = datetime.now().date()
         tomorrow_date = current_date + timedelta(days=1)
         processed_rooms = []
@@ -1402,6 +1665,11 @@ def rooms_status(request):
             else:
                 room.display_status = '1'  # Available
             
+            # Calculate and attach pricing information
+            room.discounted_price_value = room.discounted_price()
+            room.saved_amount = room.saved_money()
+            room.gst_rate = room.hotel.gst_rate if room.hotel.gst_rate else Decimal('12.00')
+            
             room.is_past_date = selected_date < current_date
             processed_rooms.append(room)
         
@@ -1420,8 +1688,8 @@ def rooms_status(request):
         unavailable_rooms = len([room for room in processed_rooms if room.display_status == '2'])
         
         context = {
-            'hotels': assigned_hotels,
-            'rooms': processed_rooms,  # Always a list, empty if no rooms
+            'hotels': all_hotels,
+            'rooms': processed_rooms,
             'selected_hotel': hotel_filter,
             'selected_status': status_filter,
             'selected_date': selected_date,
@@ -1433,10 +1701,10 @@ def rooms_status(request):
             'unavailable_rooms': unavailable_rooms,
         }
 
-        return render(request, 'hotel_staff/rooms_status.html', context)
+        return render(request, 'maintainer/rooms_status.html', context)
         
     except Exception as e:
-        return render(request, 'hotel_staff/rooms_status.html', {
+        return render(request, 'maintainer/rooms_status.html', {
             'error_title': 'An Error Occurred',
             'error_message': f'An unexpected error occurred: {str(e)}',
             'current_date': datetime.now().date(),
@@ -1445,16 +1713,15 @@ def rooms_status(request):
 
 @login_required
 @require_POST
-def update_room_status(request, room_id):
+def maintainer_update_room_status(request, room_id):
     """
-    AJAX view to update room status (Available/Unavailable).
-    Validates staff permission and ensures no booking conflicts.
+    AJAX view for maintainers to update room status (Available/Unavailable).
     """
     try:
-        room = Rooms.objects.get(id=room_id)
-        if room.hotel.assigned_staff != request.user.hotel_staff_profile:
+        if not hasattr(request.user, 'maintainer_profile'):
             return JsonResponse({'error': 'Permission denied'}, status=403)
         
+        room = Rooms.objects.get(id=room_id)
         new_status = request.POST.get('status')
         if new_status not in ('1', '2'):
             return JsonResponse({'error': 'Invalid status'}, status=400)
@@ -1486,6 +1753,8 @@ def update_room_status(request, room_id):
         return JsonResponse({'error': 'Room not found'}, status=404)
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
+
+
 # def hotel_staff_edit_location(request):
 #     if not hasattr(request.user, 'hotel_staff_profile'):
 #         return HttpResponse('Access Denied - Not a Hotel Staff')

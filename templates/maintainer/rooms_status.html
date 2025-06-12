@@ -4,9 +4,6 @@
 {% block content %}
 
 <style>
-    a{
-        text-decoration: none;
-    }
     :root {
         --available: #10B981;
         --booked: #F59E0B;
@@ -434,6 +431,7 @@
                                 <th>Room No.</th>
                                 <th>Type</th>
                                 <th>Price Details</th>
+                                <th>GST</th>
                                 <th>Status</th>
                                 <th>Booking Details</th>
                                 <th>Actions</th>
@@ -442,18 +440,26 @@
                         <tbody>
                             {% for room in rooms %}
                             <tr class="{% if room.display_status == '1' %}{% if room.is_past_date %}table-past{% else %}table-available{% endif %}{% elif room.display_status == '2' %}table-unavailable{% else %}table-booked{% endif %}">
-                                <td><a href="{% url 'viewhotel' %}" class="text-decoration-none">{{ room.hotel.name }}</a></td>
-                                
-                                <td><a href="{% url 'viewroom' room.id %}" class="text-decoration-none">{{ room.room_number }}</a></td>
-                               
-                                <td>{{ room.get_room_type_display }}</td>
-                                 <td>
+                                <td>{{ room.hotel.name }}</td>
+                                <td>{{ room.room_number }}</td>
+                                <td>{{ room.get_room_type_display }}( {{ room.capacity }})</td>
+                                <td>
                                     <div class="price-details">
                                        <span class="original-price" style="text-decoration: line-through;">₹{{ room.price }}</span>
                                      <span class="discounted-price">₹{{ room.discounted_price_value }}</span><br>
                                      <span class="discount-badge">Save ₹{{ room.saved_amount }} ({{ room.discount }}%)</span>
                                      </td>
                                 <td>{{ room.gst_rate }}% GST</td>
+                               
+                                        {% if room.price_details.has_gst %}
+                                        <div><strong>GST ({{ room.price_details.gst_percentage }}%):</strong> ₹{{ room.price_details.gst_amount }}</div>
+                                        <div><strong>Total:</strong> ₹{{ room.price_details.total_price|floatformat:2 }}</div>
+                                        {% endif %}
+                                        {% if room.price_details.extra_person_charge > 0 %}
+                                        <div><strong>Extra Person:</strong> ₹{{ room.price_details.extra_person_charge }}/night</div>
+                                        {% endif %}
+                                    </div>
+                                </td>
                                 <td>
                                     {% if room.display_status == '1' %}
                                         {% if room.is_past_date %}
@@ -468,15 +474,13 @@
                                     {% endif %}
                                 </td>
                                 <td>
+                                    
                                     {% if room.current_booking %}
                                     <div class="booking-details">
-                                        <a href="{% url 'user:user_profile_detail' username=room.current_booking.guest.username %}" 
-                                        class="text-primary text-decoration-none">
-                                            {{ room.current_booking.guest.get_full_name|default:room.current_booking.guest.username }}
-                                        </a><br>
+                                        <strong>Guest:</strong> {{ room.current_booking.guest.get_full_name }}<br>
                                         <strong>Check-in:</strong> {{ room.current_booking.check_in|date:"M d, Y" }}<br>
                                         <strong>Check-out:</strong> {{ room.current_booking.check_out|date:"M d, Y" }}<br>
-                                        <strong>Total:</strong> ₹{{ room.current_booking.total_price }}
+                                        <strong>Total:</strong> ₹{{ room.current_booking.total_price|floatformat:2 }}
                                     </div>
                                     {% else %}
                                         {% if room.is_past_date %}
@@ -507,6 +511,7 @@
                                             data-check-out="{{ room.current_booking.check_out|date:'Y-m-d' }}"
                                             data-total-price="{{ room.current_booking.total_price }}"
                                             {% endif %}>
+                                            
                                             <i class="fas fa-eye"></i> View
                                         </button>
                                         
@@ -517,17 +522,14 @@
                                                     data-room-id="{{ room.id }}"
                                                     data-room-number="{{ room.room_number }}"
                                                     data-room-type="{{ room.get_room_type_display }}"
-                                                    data-room-price="{{ room.price }}"
-                                                    data-room-discount="{{ room.discount }}"
+                                                    data-room-price="{{ room.price_details.price_per_night }}"
                                                     data-hotel-name="{{ room.hotel.name }}"
+                                                    data-hotel-location="{{ room.hotel.location }}"
                                                     data-room-capacity="{{ room.capacity }}"
-                                                    data-check-in="{{ selected_date|date:'Y-m-d' }}"
-                                                    data-gst-rate="{{ room.gst_rate|default:'12.0' }}"
-                                                    data-extra-person-charge="{{ room.extra_person_charges|default:'0.0' }}">
-                                                    <i class="fas fa-calendar-plus"></i> Book Now
-                                                </button>
-                                                <button type="button" class="btn btn-sm btn-outline-danger mark-unavailable" data-room-id="{{ room.id }}">
-                                                    <i class="fas fa-times"></i> Unavailable
+                                                    data-check-in="{{ tomorrow_date|date:'Y-m-d' }}"
+                                                    data-gst-rate="{{ room.hotel.gst_rate|default:'0.0' }}"
+                                                    data-extra-person-charge="{{ room.price_details.extra_person_charge }}">
+                                                   <a href="{% url 'bookroompage' %}?roomid={{ room.id }}&cin={{ check_in|urlencode }}&cout={{ check_out|urlencode }}"><i class="fas fa-calendar-plus"></i> Book Now</a> 
                                                 </button>
                                             {% else %}
                                                 <button class="btn btn-sm btn-secondary" disabled>
@@ -639,80 +641,6 @@
                         <input type="text" class="form-control" id="booking-hotel" name="hotel" readonly>
                     </div>
                     <div class="form-group mb-3">
-                        <label for="booking-room-number" class="form-label">Room Number:</label>
-                        <input type="text" class="form-control" id="booking-room-number" name="room_number" readonly>
-                    </div>
-                    <div class="form-group mb-3">
-                        <label for="booking-room-type" class="form-label">Room Type:</label>
-                        <input type="text" class="form-control" id="booking-room-type" name="room_type" readonly>
-                    </div>
-                    <div class="form-group mb-3">
-                        <label for="booking-username" class="form-label">Username:</label>
-                        <input type="text" class="form-control" id="booking-username" name="username" readonly value="{{ request.user.username }}">
-                    </div>
-                    <div class="form-group mb-3">
-                        <label for="booking-person" class="form-label">Guests (Max: <span id="booking-max-capacity"></span>):</label>
-                        <input type="number" class="form-control" id="booking-person" name="person" min="1" required>
-                    </div>
-                    <div class="row mb-3">
-                        <div class="col-md-6">
-                            <label for="booking-check-in" class="form-label">Check-in:</label>
-                            <input type="date" class="form-control" id="booking-check-in" name="check_in" required>
-                        </div>
-                        <div class="col-md-6">
-                            <label for="booking-check-out" class="form-label">Check-out:</label>
-                            <input type="date" class="form-control" id="booking-check-out" name="check_out" required>
-                        </div>
-                    </div>
-                    <div class="form-group mb-3">
-                        <label class="form-label">Price Breakdown:</label>
-                        <div class="price-breakdown" id="booking-price-breakdown">
-                            <div class="d-flex justify-content-between">
-                                <span>Base Price <span id="booking-room-info"></span>:</span>
-                                <span id="booking-base-price">₹0.00</span>
-                            </div>
-                            <div class="d-flex justify-content-between" id="booking-discount-row">
-                                <span>Discount (<span id="booking-discount-rate"></span>%):</span>
-                                <span id="booking-discount-amount">₹0.00</span>
-                            </div>
-                            <div class="d-flex justify-content-between" id="booking-extra-person-row">
-                                <span>Extra Person Charge:</span>
-                                <span id="booking-extra-person-amount">₹0.00</span>
-                            </div>
-                            <div class="d-flex justify-content-between" id="booking-gst-row">
-                                <span>GST (<span id="booking-gst-rate"></span>%):</span>
-                                <span id="booking-gst-amount">₹0.00</span>
-                            </div>
-                            <hr>
-                            <div class="d-flex justify-content-between fw-bold">
-                                <span>Total Amount:</span>
-                                <span id="booking-total-price">₹0.00</span>
-                            </div>
-                        </div>
-                    </div>
-                    <input type="hidden" id="booking-room-id" name="room_id">
-                    <div class="d-grid gap-2">
-                        <button type="submit" class="btn btn-primary btn-lg">Confirm Booking</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-</div><div class="modal fade" id="bookingModal" tabindex="-1" aria-labelledby="bookingModalLabel" aria-hidden="true">
-    <div class="modal-dialog booking-modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="bookingModalLabel">Confirm Your Booking</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <form id="bookingForm" method="POST">
-                    {% csrf_token %}
-                    <div class="form-group mb-3">
-                        <label for="booking-hotel" class="form-label">Hotel:</label>
-                        <input type="text" class="form-control" id="booking-hotel" name="hotel" readonly>
-                    </div>
-                    <div class="form-group mb-3">
                         <label for="booking-location" class="form-label">Location:</label>
                         <input type="text" class="form-control" id="booking-location" name="location" readonly>
                     </div>
@@ -776,7 +704,6 @@
     <h3 id="popup-room-title">Room Details</h3>
     <div id="popup-room-content"></div>
 </div>
-
 
 
 <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
@@ -1066,4 +993,6 @@ $(document).ready(function() {
     });
 });
 </script>
+
 {% endblock %}
+
