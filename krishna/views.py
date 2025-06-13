@@ -5,7 +5,7 @@ from django.http import Http404,HttpResponse, HttpResponseForbidden, HttpRespons
 import pytz
 from django.contrib.auth import authenticate,login,logout
 from django.contrib.auth import get_user_model
-from django.db.models import Q
+from django.db.models import Q, F
 from django.shortcuts import render, redirect, get_object_or_404
 from user.models import HotelStaff
 from .forms import HotelAssignmentForm, RoomForm
@@ -186,7 +186,10 @@ def homepage(request):
             capacity = int(capacity)
             if capacity <= 0:
                 raise ValueError("Capacity must be positive")
-            rooms_query = rooms_query.filter(capacity__gte=capacity)
+            # Filter rooms where total capacity (base + extra) is >= requested capacity
+            rooms_query = rooms_query.annotate(
+                total_capacity=F('capacity') + F('extra_capacity')
+            ).filter(total_capacity__gte=capacity)
         except ValueError:
             logger.error(f"Invalid capacity value: {capacity}")
             messages.error(request, "Invalid capacity value")
@@ -444,12 +447,12 @@ from django.utils import timezone
 from datetime import timedelta, datetime
 from decimal import Decimal
 import logging
-
 logger = logging.getLogger(__name__)
+
 def view_hotel_rooms(request, hotel_id):
     """
     Display available rooms for a specific hotel with full filtering capabilities.
-    Supports date changes, capacity, price range, and amenity filters from GET or session.
+    Supports date changes, capacity (including extra capacity), price range, and amenity filters.
     Identifies the cheapest room and computes facilities available in at least one room.
     Shows recently cancelled rooms as available.
     """
@@ -522,8 +525,10 @@ def view_hotel_rooms(request, hotel_id):
             formatted_check_in = default_check_in.strftime('%d %B %Y')
             formatted_check_out = default_check_out.strftime('%d %B %Y')
 
-        # Initialize rooms query
-        rooms = Rooms.objects.filter(hotel=hotel, status='1')
+        # Initialize rooms query with annotation for total capacity
+        rooms = Rooms.objects.filter(hotel=hotel, status='1').annotate(
+            total_capacity=F('capacity') + F('extra_capacity')
+        )
         logger.debug(f"Initial room count for hotel_id={hotel_id}: {rooms.count()}")
 
         # Apply location filter
@@ -564,13 +569,13 @@ def view_hotel_rooms(request, hotel_id):
                     logger.error(f"Error filtering rooms by date: {str(e)}")
                     messages.error(request, f"Error filtering rooms by date: {str(e)}")
 
-            # Apply capacity filter
+            # Apply capacity filter - now using total_capacity (base + extra)
             if capacity:
                 try:
                     capacity = int(capacity)
                     if capacity <= 0:
                         raise ValueError("Capacity must be positive")
-                    rooms = rooms.filter(capacity__gte=capacity)
+                    rooms = rooms.filter(total_capacity__gte=capacity)
                     logger.debug(f"Rooms after capacity filter: {rooms.count()}")
                 except ValueError as e:
                     logger.error(f"Invalid capacity value: {capacity}, error: {str(e)}")
@@ -595,17 +600,39 @@ def view_hotel_rooms(request, hotel_id):
                     rooms = rooms.filter(**{amenity: True})
                     logger.debug(f"Rooms after {amenity} filter: {rooms.count()}")
 
+        # Prepare room data with capacity display information
+        room_list = []
+        for room in rooms:
+            room_data = {
+                'id': room.id,
+                'room_number': room.room_number,
+                'room_type': room.get_room_type_display(),
+                'base_capacity': room.capacity,
+                'extra_capacity': room.extra_capacity,
+                'total_capacity': room.total_capacity,
+                'capacity_display': f"{room.capacity}+{room.extra_capacity}" if room.extra_capacity > 0 else str(room.capacity),
+                'extra_person_charges': room.extra_person_charges,
+                'price': room.price,
+                'discount': room.discount,
+                'discounted_price': room.discounted_price(),
+                'image1': room.image1,
+                'heading': room.heading,
+                'description': room.description,
+                'amenities': {amenity: getattr(room, amenity) for amenity in amenities},
+                'is_recently_available': room.id in recently_cancelled_room_ids if 'recently_cancelled_room_ids' in locals() else False
+            }
+            room_list.append(room_data)
+
         # Identify the cheapest room
         cheapest_room = None
-        if rooms.exists():
-            cheapest_room = rooms.order_by('price').first()
-            logger.debug(f"Cheapest room: ID={cheapest_room.id}, Price={cheapest_room.price}")
+        if room_list:
+            cheapest_room = min(room_list, key=lambda x: x['discounted_price'])
+            logger.debug(f"Cheapest room: ID={cheapest_room['id']}, Price={cheapest_room['discounted_price']}")
 
         # Compute available facilities
-        available_facilities = {
-            amenity: rooms.count() > 0 and any(getattr(room, amenity) for room in rooms
-            for amenity in amenities)
-        }
+        available_facilities = {}
+        for amenity in amenities:
+            available_facilities[amenity] = any(room['amenities'][amenity] for room in room_list)
 
         # Update session with current filters
         request.session['check_in'] = check_in
@@ -620,7 +647,7 @@ def view_hotel_rooms(request, hotel_id):
         # Prepare context
         context = {
             'hotel': hotel,
-            'rooms': rooms,
+            'rooms': room_list,  # Now using our prepared room data
             'cheapest_room': cheapest_room,
             'all_rooms': True,
             'check_in': check_in,
@@ -1345,6 +1372,14 @@ def rooms_status(request):
                 # Add extra person charges if applicable
                 if person > 1 and room.extra_person_charges:
                     base_price += room.extra_person_charges * (person - 1)
+
+                # In your booking view
+                if person > room.total_capacity():
+                    messages.error(request, 
+                        f"This room can accommodate {room.capacity} guests (with {room.extra_capacity} extra). "
+                        f"Please select a different room or reduce your guest count."
+                    )
+                    return redirect('index', room_id=room.id)
                 
                 # Calculate GST
                 gst_percentage = room.hotel.gst_rate if room.hotel.gst_rate else Decimal('12.00')
@@ -2942,7 +2977,7 @@ def maintainer_all_bookings(request):
         if day:
             try:
                 day_date = datetime.strptime(day, '%Y-%m-%d').date()
-                bookings = bookings(check_out=day_date)
+                bookings = bookings.filter(check_out=day_date)
                 filter_type = 'check_out'
             except ValueError:
                 messages.warning(request, "Invalid day format.")
@@ -2953,7 +2988,7 @@ def maintainer_all_bookings(request):
         if day:
             try:
                 day_date = datetime.strptime(day, '%Y-%m-%d').date()
-                bookings = bookings(check_in__lte=day_date, check_out__gte=day_date, is_cancelled=False)
+                bookings = bookings.filter(check_in__lte=day_date, check_out__gte=day_date, is_cancelled=False)
                 filter_type = 'active'
             except ValueError:
                 messages.warning(request, "Invalid day format.")
@@ -3026,6 +3061,12 @@ def maintainer_all_bookings(request):
         else:
             booking.status = 'future'
 
+        # Calculate extra person charges
+        extra_persons = max(0, booking.number_of_guests - booking.room.capacity)
+        booking.extra_persons = extra_persons
+        booking.extra_charges = extra_persons * booking.room.extra_person_charges * booking.nights
+        booking.total_price_with_extras = booking.total_price
+
     months = ['January', 'February', 'March', 'April', 'May', 'June', 
               'July', 'August', 'September', 'October', 'November', 'December']
     weeks = [(i, f"Week {i}") for i in range(1, 53)]
@@ -3075,8 +3116,15 @@ def maintainer_all_bookings(request):
         action = request.GET.get('action', 'table')
         if action == 'events':
             events = []
+            # In the view where you process bookings
             for booking in bookings:
-                room_type_name = booking.room.room_type if isinstance(booking.room.room_type, str) else getattr(booking.room.room_type, 'name', 'N/A')
+                # Calculate extra person charges
+                room_capacity = booking.room.capacity
+                extra_persons = max(0, booking.number_of_guests - booking.room.capacity)
+                booking.extra_persons = extra_persons
+                booking.extra_charges = extra_persons * booking.room.extra_person_charges * booking.nights
+                booking.total_price_with_extras = booking.total_price + booking.extra_charges
+                
                 events.extend([
                     {
                         'title': f'{booking.room.hotel.name}: {booking.room.room_number} - {booking.guest.get_full_name or booking.guest.username}',
@@ -3094,6 +3142,10 @@ def maintainer_all_bookings(request):
                             'check_out_display': booking.check_out.strftime('%b %d, %Y'),
                             'nights': booking.nights,
                             'amount': f'₹{booking.total_price:.2f}',
+                            'base_price': f'₹{(booking.total_price - booking.gst_amount):.2f}',
+                            'gst_amount': f'₹{booking.gst_amount:.2f}',
+                            'extra_charges': f'₹{extra_charges:.2f}',
+                            'extra_persons': extra_persons,
                             'booking_date': booking.booking_time.strftime('%b %d, %Y %I:%M %p'),
                             'cancellation_reason': booking.cancellation_reason or 'N/A',
                         },
@@ -3117,6 +3169,10 @@ def maintainer_all_bookings(request):
                             'check_out_display': booking.check_out.strftime('%b %d, %Y'),
                             'nights': booking.nights,
                             'amount': f'₹{booking.total_price:.2f}',
+                            'base_price': f'₹{(booking.total_price - booking.gst_amount):.2f}',
+                            'gst_amount': f'₹{booking.gst_amount:.2f}',
+                            'extra_charges': f'₹{extra_charges:.2f}',
+                            'extra_persons': extra_persons,
                             'booking_date': booking.booking_time.strftime('%b %d, %Y %I:%M %p'),
                             'cancellation_reason': booking.cancellation_reason or 'N/A',
                         },
@@ -3140,6 +3196,10 @@ def maintainer_all_bookings(request):
                             'check_out_display': booking.check_out.strftime('%b %d, %Y'),
                             'nights': booking.nights,
                             'amount': f'₹{booking.total_price:.2f}',
+                            'base_price': f'₹{(booking.total_price - booking.gst_amount):.2f}',
+                            'gst_amount': f'₹{booking.gst_amount:.2f}',
+                            'extra_charges': f'₹{extra_charges:.2f}',
+                            'extra_persons': extra_persons,
                             'booking_date': booking.booking_time.strftime('%b %d, %Y %I:%M %p'),
                             'cancellation_reason': booking.cancellation_reason or 'N/A',
                         },
@@ -3413,6 +3473,10 @@ def user_bookings(request):
 #         messages.error(request, "Room not found")
 #         return redirect('homepage')
 
+
+
+from decimal import Decimal
+
 def book_room_page(request):
     try:
         room_id = request.GET.get('roomid')
@@ -3424,35 +3488,35 @@ def book_room_page(request):
         # Get the hotel associated with the room to access its GST rate
         try:
             hotel = room.hotel
-            gst_percentage = float(hotel.gst_rate) if hotel.gst_rate else 0.0
+            gst_percentage = Decimal(hotel.gst_rate) if hotel.gst_rate else Decimal('0.0')
         except Exception as e:
-            gst_percentage = 0.0  # Default to 0% if hotel or GST rate not available
+            gst_percentage = Decimal('0.0')  # Default to 0% if hotel or GST rate not available
         
         # Check if the current user is the hotel owner
-        # Compare usernames directly since owner is stored as a string
         is_owner_booking = False
         if request.user.is_authenticated:
-            is_owner_booking = (request.user.username == hotel.owner)  # Compare with string
+            is_owner_booking = (request.user.username == hotel.owner)
         
         # Retrieve form data from session
         check_in_str = request.session.get('check_in', '')
         check_out_str = request.session.get('check_out', '')
-        capacity = request.session.get('capacity', '')
+        capacity = int(request.session.get('capacity', room.capacity))
 
-        # Initialize price variables with default values
+        # Initialize price variables with Decimal
         stay_days = 0
-        base_price = 0
-        gst_amount = 0
-        total_price = 0
+        base_price = Decimal('0.0')
+        extra_person_charges = Decimal('0.0')
+        gst_amount = Decimal('0.0')
+        total_price = Decimal('0.0')
         
-        # Get room price (handle both method and property cases)
+        # Get room price as Decimal
         if hasattr(room, 'discounted_price'):
             if callable(room.discounted_price):
-                room_price_per_night = float(room.discounted_price())
+                room_price_per_night = Decimal(str(room.discounted_price()))
             else:
-                room_price_per_night = float(room.discounted_price)
+                room_price_per_night = Decimal(str(room.discounted_price))
         else:
-            room_price_per_night = 0.0
+            room_price_per_night = Decimal('0.0')
 
         if check_in_str and check_out_str:
             try:
@@ -3462,10 +3526,20 @@ def book_room_page(request):
                 # Calculate stay duration (minimum 1 day)
                 stay_days = max((check_out - check_in).days, 1)
                 
-                # Calculate prices
-                base_price = room_price_per_night * stay_days
-                gst_amount = (base_price * gst_percentage) / 100 if gst_percentage > 0 else 0
-                total_price = base_price + gst_amount
+                # Calculate base price
+                base_price = room_price_per_night * Decimal(str(stay_days))
+                
+                # Calculate extra person charges if applicable
+                extra_persons = max(0, capacity - room.capacity)
+                if extra_persons > 0 and room.extra_capacity > 0:
+                    # Don't allow more extra persons than the room allows
+                    extra_persons = min(extra_persons, room.extra_capacity)
+                    extra_person_charges = Decimal(str(room.extra_person_charges)) * Decimal(str(extra_persons)) * Decimal(str(stay_days))
+                
+                # Calculate GST and total price
+                taxable_amount = base_price + extra_person_charges
+                gst_amount = (taxable_amount * gst_percentage) / Decimal('100') if gst_percentage > Decimal('0.0') else Decimal('0.0')
+                total_price = taxable_amount + gst_amount
                 
             except (ValueError, TypeError) as e:
                 messages.error(request, f"Invalid date format: {str(e)}")
@@ -3475,23 +3549,7 @@ def book_room_page(request):
         reservations = Reservation.objects.filter(room=room).order_by('-booking_time')
         current_date = datetime.now().date()
 
-        # Check if the current user is the hotel owner
-        is_owner_booking = request.user.is_authenticated and (request.user.username == hotel.owner)
-        
-        # Get all hotels owned by the user if they are the owner
-        owner_hotels = []
-        if is_owner_booking:
-            owner_hotels = Hotels.objects.filter(owner=request.user.username)
-
-        for reservation in reservations:
-            reservation.status = (
-                'past' if reservation.check_out < current_date else
-                'current' if reservation.check_in <= current_date <= reservation.check_out else
-                'future'
-            )
-            # Check if the guest is the hotel owner
-            reservation.is_owner_booking = (reservation.guest.username == hotel.owner)
-
+        # Prepare context with Decimal values converted to float for template
         context = {
             'room': room,
             'hotel': hotel,
@@ -3501,21 +3559,32 @@ def book_room_page(request):
             'reservations': reservations,
             'current_date': current_date,
             'stay_days': stay_days,
-            'base_price': round(float(base_price), 2),
-            'gst_percentage': gst_percentage,
-            'gst_amount': round(float(gst_amount), 2),
-            'total_price': round(float(total_price), 2),
-            'room_price_per_night': round(float(room_price_per_night), 2),
-            'has_gst': gst_percentage > 0,
+            'base_price': float(base_price),
+            'extra_person_charges': float(extra_person_charges),
+            'extra_persons': max(0, min(capacity - room.capacity, room.extra_capacity)),
+            'gst_percentage': float(gst_percentage),
+            'gst_amount': float(gst_amount),
+            'total_price': float(total_price),
+            'room_price_per_night': float(room_price_per_night),
+            'has_gst': gst_percentage > Decimal('0.0'),
             'is_owner_booking': is_owner_booking,
+            'max_capacity': room.capacity + room.extra_capacity,
         }
         
         return render(request, 'user/bookroom.html', context)
-        
-    except (ValueError, Rooms.DoesNotExist) as e:
-        messages.error(request, "Invalid room selection")
+
+    except Hotels.DoesNotExist:
+        messages.error(request, "Hotel not found.")
         return redirect('homepage')
-    
+    except Rooms.DoesNotExist:
+        messages.error(request, "Room not found.")
+        return redirect('homepage')
+    except Exception as e:
+        logger.exception(f"Error in book_room_page: {str(e)}")
+        messages.error(request, "An error occurred while processing your request.")
+        return redirect('homepage')
+
+
 # Existing user_bookings view
 @login_required(login_url='user:signin')
 def user_bookings(request):

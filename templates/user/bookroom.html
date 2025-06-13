@@ -609,18 +609,18 @@
                             
                             <div class="form-group mb-3">
                                 <label for="person" class="form-label">Guests:</label>
-                                <input type="number" class="form-control" id="person" name="person"  value="{{ capacity|default:room.capacity }}">
+                                <input type="number" class="form-control" id="person"  readonly name="person"  value="{{ capacity|default:room.capacity }}">
                             </div>
 
                             
                             <div class="row mb-3">
                                 <div class="col-md-6">
                                     <label for="cin" class="form-label">Check-in:</label>
-                                    <input type="date" class="form-control" id="cin" name="check_in" value="{{ check_in }}">
+                                    <input type="date" class="form-control" id="cin"  readonly name="check_in" value="{{ check_in }}">
                                 </div>
                                 <div class="col-md-6">
                                     <label for="cout" class="form-label">Check-out:</label>
-                                    <input type="date" class="form-control" id="cout" name="check_out"  value="{{ check_out }}">
+                                    <input type="date" class="form-control" id="cout"  readonly name="check_out"  value="{{ check_out }}">
                                 </div>
                             </div>
                             
@@ -650,7 +650,15 @@
                 </span>
                 <span>₹{{ base_price|floatformat:2 }}</span>
             </div>
-            
+              {% if extra_person_charges > 0 %}
+                            <div class="d-flex justify-content-between">
+                                <span>
+                                    Extra {{ extra_persons }} person{{ extra_persons|pluralize }} 
+                                    ({{ stay_days }} night{{ stay_days|pluralize }} × ₹{{ room.extra_person_charges|floatformat:2 }}):
+                                </span>
+                                <span>₹{{ extra_person_charges|floatformat:2 }}</span>
+                            </div>
+                            {% endif %}
             <!-- GST (only shown if applicable) -->
             {% if has_gst %}
             <div class="d-flex justify-content-between">

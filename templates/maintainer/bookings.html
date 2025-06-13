@@ -361,58 +361,58 @@
 </style>
 
 <style>
-    /* Event styles */
-.fc-event-booking {
-    border-left: 4px solid #3B82F6;
-    background-color: transparent;
-    color: #333;
-    border-radius: 6px;
-    padding: 2px 5px;
-    font-size: 0.9rem;
-    margin-bottom: 2px;
-}
+                /* Event styles */
+            .fc-event-booking {
+                border-left: 4px solid #3B82F6;
+                background-color: transparent;
+                color: #333;
+                border-radius: 6px;
+                padding: 2px 5px;
+                font-size: 0.9rem;
+                margin-bottom: 2px;
+            }
 
-.fc-event-check-in {
-    border-left: 4px solid #2a9d8f;
-    background-color: #2a9d8f;
-    color: white;
-    border-radius: 6px;
-    padding: 2px 5px;
-    font-size: 0.85rem;
-}
+            .fc-event-check-in {
+                border-left: 4px solid #2a9d8f;
+                background-color: #2a9d8f;
+                color: white;
+                border-radius: 6px;
+                padding: 2px 5px;
+                font-size: 0.85rem;
+            }
 
-.fc-event-check-out {
-    border-left: 4px solid #e76f51;
-    background-color: #e76f51;
-    color: white;
-    border-radius: 6px;
-    padding: 2px 5px;
-    font-size: 0.85rem;
-}
+            .fc-event-check-out {
+                border-left: 4px solid #e76f51;
+                background-color: #e76f51;
+                color: white;
+                border-radius: 6px;
+                padding: 2px 5px;
+                font-size: 0.85rem;
+            }
 
-/* Multi-day event styling */
-.fc-daygrid-event {
-    white-space: normal;
-    line-height: 1.2;
-}
+            /* Multi-day event styling */
+            .fc-daygrid-event {
+                white-space: normal;
+                line-height: 1.2;
+            }
 
-/* Event dot for single-day events */
-.fc-daygrid-event-dot {
-    border-color: #3B82F6;
-}
+            /* Event dot for single-day events */
+            .fc-daygrid-event-dot {
+                border-color: #3B82F6;
+            }
 
-/* Ensure space for multiple events */
-.fc-daygrid-day-events {
-    min-height: 50px;
-}
+            /* Ensure space for multiple events */
+            .fc-daygrid-day-events {
+                min-height: 50px;
+            }
 
-/* Responsive adjustments */
-@media (max-width: 768px) {
-    .fc-event-booking, .fc-event-check-in, .fc-event-check-out {
-        font-size: 0.8rem;
-        padding: 1px 3px;
-    }
-}
+            /* Responsive adjustments */
+            @media (max-width: 768px) {
+                .fc-event-booking, .fc-event-check-in, .fc-event-check-out {
+                    font-size: 0.8rem;
+                    padding: 1px 3px;
+                }
+            }
 </style>
 <!-- bookings.html Content -->
 <div class="booking-container">
@@ -433,6 +433,7 @@
                     <div class="card-body">
                         <h5 class="card-title">Total Revenue</h5>
                         <p class="card-text h4">₹{{ total_revenue|floatformat:2 }}</p>
+                        <p class="card-text small text-muted">From all bookings</p>
                     </div>
                 </div>
             </div>
@@ -441,6 +442,7 @@
                     <div class="card-body">
                         <h5 class="card-title">Today's Revenue</h5>
                         <p class="card-text h4">₹{{ today_revenue|floatformat:2 }}</p>
+                        <p class="card-text small text-muted">From {{ bookings_today }} bookings</p>
                     </div>
                 </div>
             </div>
@@ -449,6 +451,7 @@
                     <div class="card-body">
                         <h5 class="card-title">Filtered Revenue</h5>
                         <p class="card-text h4">₹{{ filtered_revenue|floatformat:2 }}</p>
+                        <p class="card-text small text-muted">From {{ bookings.count }} bookings</p>
                     </div>
                 </div>
             </div>

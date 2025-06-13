@@ -1054,39 +1054,81 @@
             </form>
         </div>
 
-        <!-- Room Listings -->
-        <div class="main-content">
-            <div class="room-grid">
-                {% for room in rooms %}
-                <div class="room-card animate__animated animate__fadeInUp">
-                    {% if room.image1 %}
-                    <img src="{{ room.image1.url }}" alt="Room Image">
-                    {% else %}
-                    <img src="{% static 'assets/img/no-img.png' %}" alt="Room Placeholder">
+       <div class="main-content">
+    <div class="room-grid">
+        {% for room in rooms %}
+        <div class="room-card animate__animated animate__fadeInUp {% if room.id in recently_cancelled_room_ids %}recently-available{% endif %}">
+            {% if room.image1 %}
+            <img src="{{ room.image1.url }}" alt="Room Image">
+            {% else %}
+            <img src="{% static 'assets/img/no-img.png' %}" alt="Room Placeholder">
+            {% endif %}
+            
+            <div class="content">
+                <h5>{{ room.heading|title|default:room.room_number }}</h5>
+                <p>{{ room.description|truncatewords:20 }}</p>
+                
+                <ul class="room-details">
+                    <li>
+                        <strong>Room Type:</strong> 
+                        <span class="badge bg-primary">{{ room.get_room_type_display|title }}</span>
+                    </li>
+                    <li>
+                        <strong>Capacity:</strong> 
+                        <span class="capacity-display">
+                            {{ room.display_capacity }} persons
+                            {% if room.extra_capacity > 0 %}
+                            <span class="extra-capacity-info">
+                                (Base: {{ room.capacity }}, Extra: +{{ room.extra_capacity }})
+                            </span>
+                            {% endif %}
+                        </span>
+                    </li>
+                    <li>
+                        <strong>Price:</strong> 
+                        <span class="price">Rp{{ room.price }} per night</span>
+                        {% if room.discount > 0 %}
+                        <span class="discount-badge">-{{ room.discount }}% OFF</span>
+                        {% endif %}
+                    </li>
+                    {% if room.extra_capacity > 0 %}
+                    <li class="extra-person-charges">
+                        <i class="fas fa-info-circle"></i>
+                        Extra person charge: Rp{{ room.extra_person_charges }} per person
+                    </li>
                     {% endif %}
-                    <div class="content">
-                        <h5>{{ room.heading|title|default:room.room_number }}</h5>
-                        <p>{{ room.description|truncatewords:20 }}</p>
-                        <ul>
-                            <li><strong>Room Type:</strong> {{ room.get_room_type_display|title }}</li>
-                            <li><strong>Capacity:</strong> {{ room.capacity }} person(s)</li>
-                            <li><strong>Price:</strong> Rp{{ room.price }} per night</li>
-                            <li><strong>Amenities:</strong>
-                                <span class="amenity-tag">{{ room.ac|yesno:"AC,No AC" }}</span>
-                                <span class="amenity-tag">{{ room.wifi|yesno:"WiFi,No WiFi" }}</span>
-                                <span class="amenity-tag">{{ room.food_facility|yesno:"Food,No Food" }}</span>
-                            </li>
-                        </ul>
+                    <li class="amenities-list">
+                        <strong>Amenities:</strong>
+                        <div class="amenity-tags">
+                            {% if room.ac %}<span class="amenity-tag">AC</span>{% endif %}
+                            {% if room.wifi %}<span class="amenity-tag">WiFi</span>{% endif %}
+                            {% if room.food_facility %}<span class="amenity-tag">Food</span>{% endif %}
+                            {% if room.parking %}<span class="amenity-tag">Parking</span>{% endif %}
+                            {% if room.heater %}<span class="amenity-tag">Heater</span>{% endif %}
+                        </div>
+                    </li>
+                </ul>
+                
+                <div class="room-actions">
+                    <a href="{% url 'bookroompage' %}?roomid={{ room.id }}&cin={{ check_in|urlencode }}&cout={{ check_out|urlencode }}" 
+                       class="btn btn-primary book-btn">
+                        Book Now
+                    </a>
+                    {% if room.id in recently_cancelled_room_ids %}
+                    <div class="recently-available-badge">
+                        <i class="fas fa-bolt"></i> Recently Available
                     </div>
-                    <a href="{% url 'bookroompage' %}?roomid={{ room.id }}&cin={{ check_in|urlencode }}&cout={{ check_out|urlencode }}">Book Rooms</a>
+                    {% endif %}
                 </div>
-                {% empty %}
-                <div class="no-rooms animate__animated animate__fadeIn">
-                    No rooms available for the selected criteria. Please adjust the check-in/check-out dates, guest count, or filters.
-                </div>
-                {% endfor %}
             </div>
         </div>
+        {% empty %}
+        <div class="no-rooms animate__animated animate__fadeIn">
+            No rooms available for the selected criteria. Please adjust the check-in/check-out dates, guest count, or filters.
+        </div>
+        {% endfor %}
+    </div>
+</div>
     </div>
 </div>
 
