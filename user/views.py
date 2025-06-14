@@ -275,31 +275,6 @@ def signup(request):
 
     return render(request, 'user_login/signup.html')
 
-def verify_email(request, uidb64, token):
-    try:
-        uid = force_str(urlsafe_base64_decode(uidb64))
-        user = User.objects.get(pk=uid)
-        if default_token_generator.check_token(user, token):
-            user.is_active = True
-            user.save()
-
-            # Automatically log the user in after email verification
-            authenticated_user = authenticate(request, username=user.username, password=user.password)
-            if authenticated_user is not None:
-                login(request, authenticated_user)
-
-            # Optional: Log the time when the user is logged in
-            ist = pytz.timezone('Asia/Kolkata')
-            signin_time = timezone.now().astimezone(ist).strftime('%Y-%m-%d %H:%M:%S')
-            messages.success(request, f'Account verified successfully and logged in at {signin_time}')
-
-            return redirect('user:signin')  # Redirect to a page after successful login
-
-        else:
-            return render(request, 'user_login/verification_failure.html')
-    except (TypeError, ValueError, OverflowError, User.DoesNotExist):
-        return render(request, 'user_login/verification_failure.html')
-
 from django.shortcuts import render, redirect
 from django.contrib.auth import authenticate, login
 from django.contrib import messages
@@ -346,94 +321,8 @@ def signin(request):
         return render(request, 'user_login/signin.html', {'message': 'Incorrect username or password'})
 
     return render(request, 'user_login/signin.html')
-# User Logout
-def logout_view(request):
-    if request.user.is_authenticated:
-        logout(request)
-        request.session.flush()
-        
-        messages.warning(request, 'Logged out successfully')
-        
-        return redirect('user:signin')  
-    return redirect('user:signin') 
-
-class CustomPasswordResetView(PasswordResetView):
-    template_name = 'user_login/password_reset.html'
-    success_url = reverse_lazy('user:password_reset_done')
-    email_template_name = 'user_login/reset_password.txt'
-    html_email_template_name = 'user_login/reset_password.html'
-
-    def form_valid(self, form): 
-        email = form.cleaned_data['email']
-        if not User.objects.filter(email=email, is_maintainer=False, is_staff=False).exists():
-            messages.error(self.request, 'No account found with this email.')
-            return self.render_to_response(self.get_context_data(form=form))
-
-        user = User.objects.get(email=email)
-        if user.is_staff:
-            messages.error(self.request, 'This is a staff account. Please use the staff password reset page.')
-            return self.render_to_response(self.get_context_data(form=form))
-
-        if not user.is_active:
-            return render(self.request, 'user_login/verification_prompt.html', {
-                'email': email,
-                'message': 'Your account is not verified yet. Please verify your email before resetting your password.'
-            })
-
-        protocol = 'https' if self.request.is_secure() else 'http'
-        domain = self.request.get_host()
-
-        opts = {
-            'use_https': self.request.is_secure(),
-            'from_email': settings.EMAIL_HOST_USER,
-            'request': self.request,
-            'email_template_name': self.email_template_name,
-            'html_email_template_name': self.html_email_template_name,
-            'extra_email_context': {
-                'protocol': protocol,
-                'domain': domain,
-            },
-        }
-
-        form.save(**opts)
-        return super().form_valid(form)
-    
-    # User Password Reset Confirm View
-class CustomPasswordResetConfirmView(PasswordResetConfirmView):
-    template_name = 'user_login/password_reset_confirm.html'
-    success_url = reverse_lazy('user:password_reset_complete')
-    form_class = SetPasswordForm
-
-    def dispatch(self, *args, **kwargs):
-        uidb64 = kwargs.get('uidb64')
-        try:
-            uid = force_str(urlsafe_base64_decode(uidb64))
-            user = User.objects.get(pk=uid)
-            if user.is_staff:
-                return render(self.request, 'user_login/password_reset_failure.html', {
-                    'message': 'This is a staff account. Please use the staff password reset page.'
-                })
-            if not user.is_active:
-                return render(self.request, 'user_login/verification_prompt.html', {
-                    'email': user.email,
-                    'message': 'Your account is not verified yet. Please verify your email before resetting your password.'
-                })
-        except (TypeError, ValueError, OverflowError, User.DoesNotExist):
-            return render(self.request, 'user_login/password_reset_failure.html', {
-                'message': 'Invalid reset link.'
-            })
-        return super().dispatch(*args, **kwargs)
-    
 
 
-
-
-def generate_staff_id():
-    while True:
-        staff_id = f"HSTF{random.randint(100, 999)}"
-        if not HotelStaff.objects.filter(staff_id=staff_id).exists():
-            return staff_id
-        
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.shortcuts import render, redirect
@@ -474,6 +363,9 @@ def user_profile(request):
     }
     
     return render(request, 'user_login/user_profile.html', context)
+
+
+
 # Set up logging
 logger = logging.getLogger(__name__)
 @login_required(login_url='/')
@@ -635,6 +527,128 @@ def user_profile_edit(request):
         'user': user,
         'social_data': social_data
     })
+
+
+
+
+
+
+
+
+def verify_email(request, uidb64, token):
+    try:
+        uid = force_str(urlsafe_base64_decode(uidb64))
+        user = User.objects.get(pk=uid)
+        if default_token_generator.check_token(user, token):
+            user.is_active = True
+            user.save()
+
+            # Automatically log the user in after email verification
+            authenticated_user = authenticate(request, username=user.username, password=user.password)
+            if authenticated_user is not None:
+                login(request, authenticated_user)
+
+            # Optional: Log the time when the user is logged in
+            ist = pytz.timezone('Asia/Kolkata')
+            signin_time = timezone.now().astimezone(ist).strftime('%Y-%m-%d %H:%M:%S')
+            messages.success(request, f'Account verified successfully and logged in at {signin_time}')
+
+            return redirect('user:signin')  # Redirect to a page after successful login
+
+        else:
+            return render(request, 'user_login/verification_failure.html')
+    except (TypeError, ValueError, OverflowError, User.DoesNotExist):
+        return render(request, 'user_login/verification_failure.html')
+
+# User Logout
+def logout_view(request):
+    if request.user.is_authenticated:
+        logout(request)
+        request.session.flush()
+        
+        messages.warning(request, 'Logged out successfully')
+        
+        return redirect('user:signin')  
+    return redirect('user:signin') 
+
+class CustomPasswordResetView(PasswordResetView):
+    template_name = 'user_login/password_reset.html'
+    success_url = reverse_lazy('user:password_reset_done')
+    email_template_name = 'user_login/reset_password.txt'
+    html_email_template_name = 'user_login/reset_password.html'
+
+    def form_valid(self, form): 
+        email = form.cleaned_data['email']
+        if not User.objects.filter(email=email, is_maintainer=False, is_staff=False).exists():
+            messages.error(self.request, 'No account found with this email.')
+            return self.render_to_response(self.get_context_data(form=form))
+
+        user = User.objects.get(email=email)
+        if user.is_staff:
+            messages.error(self.request, 'This is a staff account. Please use the staff password reset page.')
+            return self.render_to_response(self.get_context_data(form=form))
+
+        if not user.is_active:
+            return render(self.request, 'user_login/verification_prompt.html', {
+                'email': email,
+                'message': 'Your account is not verified yet. Please verify your email before resetting your password.'
+            })
+
+        protocol = 'https' if self.request.is_secure() else 'http'
+        domain = self.request.get_host()
+
+        opts = {
+            'use_https': self.request.is_secure(),
+            'from_email': settings.EMAIL_HOST_USER,
+            'request': self.request,
+            'email_template_name': self.email_template_name,
+            'html_email_template_name': self.html_email_template_name,
+            'extra_email_context': {
+                'protocol': protocol,
+                'domain': domain,
+            },
+        }
+
+        form.save(**opts)
+        return super().form_valid(form)
+    
+    # User Password Reset Confirm View
+class CustomPasswordResetConfirmView(PasswordResetConfirmView):
+    template_name = 'user_login/password_reset_confirm.html'
+    success_url = reverse_lazy('user:password_reset_complete')
+    form_class = SetPasswordForm
+
+    def dispatch(self, *args, **kwargs):
+        uidb64 = kwargs.get('uidb64')
+        try:
+            uid = force_str(urlsafe_base64_decode(uidb64))
+            user = User.objects.get(pk=uid)
+            if user.is_staff:
+                return render(self.request, 'user_login/password_reset_failure.html', {
+                    'message': 'This is a staff account. Please use the staff password reset page.'
+                })
+            if not user.is_active:
+                return render(self.request, 'user_login/verification_prompt.html', {
+                    'email': user.email,
+                    'message': 'Your account is not verified yet. Please verify your email before resetting your password.'
+                })
+        except (TypeError, ValueError, OverflowError, User.DoesNotExist):
+            return render(self.request, 'user_login/password_reset_failure.html', {
+                'message': 'Invalid reset link.'
+            })
+        return super().dispatch(*args, **kwargs)
+    
+
+
+
+
+def generate_staff_id():
+    while True:
+        staff_id = f"HSTF{random.randint(100, 999)}"
+        if not HotelStaff.objects.filter(staff_id=staff_id).exists():
+            return staff_id
+        
+
 
 
 @login_required(login_url='/')
