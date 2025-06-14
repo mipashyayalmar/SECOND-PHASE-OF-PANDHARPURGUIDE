@@ -259,9 +259,12 @@ def homepage(request):
         'hotel_type': hotel_type,
         'hotel_type_label': dict(Hotels.HOTEL_TYPE_CHOICES).get(hotel_type, 'All Types') if hotel_type else 'All Types',
         'active_amenities': active_amenities,
-        'show_recently_available': True  # Flag to enable the "Recently Available" display
+        'show_recently_available': True  ,# Flag to enable the "Recently Available" display
+        'show_social_picture': True  # Add this line
     }
     return render(request, 'rooms/index.html', context)
+
+
 def view_rooms(request, hotel_id):
     """
     Display rooms for a specific hotel, respecting applied filters.

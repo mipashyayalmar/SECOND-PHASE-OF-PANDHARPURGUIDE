@@ -531,7 +531,145 @@ def user_profile_edit(request):
 
 
 
+# Set up logging
+logger = logging.getLogger(__name__)
 
+@login_required(login_url='/')
+def user_profile_edit_form_userside(request):
+    if not request.user.is_authenticated:
+        messages.error(request, "Please sign in to edit your profile.")
+        return redirect('user:signin')
+    
+    if request.user.is_staff:
+        messages.error(request, "Staff accounts cannot edit user profiles.")
+        return redirect('user:staff_signin')
+    
+    user = request.user
+    social_data = {}
+
+    try:
+        # Fetch Google social account data
+        social_account = SocialAccount.objects.get(user=user, provider='google')
+        extra_data = social_account.extra_data
+        
+        # Extract all available fields from Google OAuth
+        social_data = {
+            'google_id': extra_data.get('sub'),  # Unique Google ID
+            'email': extra_data.get('email'),
+            'email_verified': extra_data.get('email_verified', False),
+            'full_name': extra_data.get('name'),
+            'first_name': extra_data.get('given_name'),
+            'last_name': extra_data.get('family_name'),
+            'picture': extra_data.get('picture'),
+            'locale': extra_data.get('locale'),
+            'hosted_domain': extra_data.get('hd'),  # For Google Workspace accounts
+        }
+        logger.debug(f"Google social data: {social_data}")
+
+    except SocialAccount.DoesNotExist:
+        # Fallback for non-Google login
+        social_data = {
+            'google_id': None,
+            'email': user.email,
+            'email_verified': False,
+            'full_name': user.get_full_name() or user.username,
+            'first_name': user.first_name,
+            'last_name': user.last_name,
+            'picture': None,
+            'locale': None,
+            'hosted_domain': None,
+        }
+        logger.debug(f"Non-Google user data: {social_data}")
+
+    if request.method == 'POST':
+        logger.debug(f"POST data: {request.POST}")
+        logger.debug(f"FILES data: {request.FILES}")
+
+        # Mandatory email field
+        email = request.POST.get('email')
+        if not email:
+            messages.error(request, "Email is required.")
+            return render(request, 'user_login/user_profile_edit_form_userside.html', {
+                'user': user,
+                'social_data': social_data
+            })
+
+        # Validate email format
+        try:
+            validate_email(email)
+        except ValidationError:
+            messages.error(request, "Invalid email format.")
+            return render(request, 'user_login/user_profile_edit_form_userside.html', {
+                'user': user,
+                'social_data': social_data
+            })
+
+        # Check for email uniqueness (excluding current user)
+        if email != user.email and request.user.__class__.objects.filter(email=email).exclude(pk=user.pk).exists():
+            messages.error(request, "This email is already in use.")
+            return render(request, 'user_login/user_profile_edit_form_userside.html', {
+                'user': user,
+                'social_data': social_data
+            })
+
+        # Update user fields
+        user.email = email
+        user.name = request.POST.get('name', user.name)
+        user.phone = request.POST.get('phone', user.phone)
+
+        # Handle file uploads with validation
+        if 'profile_image' in request.FILES:
+            profile_image = request.FILES['profile_image']
+            if not profile_image.content_type.startswith('image/'):
+                messages.error(request, "Profile image must be a valid image file.")
+                return render(request, 'user_login/user_profile_edit_form_userside.html', {
+                    'user': user,
+                    'social_data': social_data
+                })
+            user.profile_image = profile_image
+            logger.info(f"Profile image uploaded: {user.profile_image}")
+
+        if 'aadhar_image' in request.FILES:
+            aadhar_image = request.FILES['aadhar_image']
+            if not aadhar_image.content_type.startswith('image/'):
+                messages.error(request, "Aadhar image must be a valid image file.")
+                return render(request, 'user_login/user_profile_edit_form_userside.html', {
+                    'user': user,
+                    'social_data': social_data
+                })
+            user.aadhar_image = aadhar_image
+            logger.info(f"Aadhar image uploaded: {user.aadhar_image}")
+
+        if 'pancard_image' in request.FILES:
+            pancard_image = request.FILES['pancard_image']
+            if not pancard_image.content_type.startswith('image/'):
+                messages.error(request, "Pancard image must be a valid image file.")
+                return render(request, 'user_login/user_profile_edit_form_userside.html', {
+                    'user': user,
+                    'social_data': social_data
+                })
+            user.pancard_image = pancard_image
+            logger.info(f"Pancard image uploaded: {user.pancard_image}")
+
+        try:
+            user.save()
+            messages.success(request, "Profile updated successfully.")
+            return redirect('user:user_profile')
+                
+        except Exception as e:
+            logger.error(f"Error saving user profile: {str(e)}")
+            messages.error(request, "An error occurred while updating your profile.")
+            return render(request, 'user_login/user_profile_edit_form_userside.html', {
+                'user': user,
+                'social_data': social_data
+            })
+
+    return render(request, 'user_login/user_profile_edit_form_userside.html', {
+        'user': user,
+        'social_data': social_data,
+        'show_social_picture': True  # Add this line
+        
+    })
 
 
 
