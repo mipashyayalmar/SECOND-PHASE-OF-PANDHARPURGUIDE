@@ -3480,6 +3480,19 @@ def user_bookings(request):
 
 from decimal import Decimal
 
+
+from django.shortcuts import render, redirect
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required
+from django.urls import reverse
+from decimal import Decimal
+from datetime import datetime
+import logging
+from .models import Rooms, Hotels, Reservation
+
+# Set up logging
+logger = logging.getLogger(__name__)
+
 def book_room_page(request):
     try:
         room_id = request.GET.get('roomid')
@@ -3499,7 +3512,23 @@ def book_room_page(request):
         is_owner_booking = False
         if request.user.is_authenticated:
             is_owner_booking = (request.user.username == hotel.owner)
-        
+            # Check if all required profile fields are filled
+            required_fields_filled = all([
+                request.user.name,
+                request.user.phone,
+                request.user.email,
+                request.user.aadhar_image,
+                request.user.profile_image,
+                request.user.pancard_image
+            ])
+            if not required_fields_filled:
+                # Store the current URL in the session and redirect to profile edit
+                request.session['next'] = request.get_full_path()
+                messages.info(request, "Your profile needs a few more details. Complete it now to get started")
+        else:
+            # Store the current URL in the session for redirection after login
+            request.session['next'] = request.get_full_path()
+
         # Retrieve form data from session
         check_in_str = request.session.get('check_in', '')
         check_out_str = request.session.get('check_out', '')
@@ -3535,7 +3564,6 @@ def book_room_page(request):
                 # Calculate extra person charges if applicable
                 extra_persons = max(0, capacity - room.capacity)
                 if extra_persons > 0 and room.extra_capacity > 0:
-                    # Don't allow more extra persons than the room allows
                     extra_persons = min(extra_persons, room.extra_capacity)
                     extra_person_charges = Decimal(str(room.extra_person_charges)) * Decimal(str(extra_persons)) * Decimal(str(stay_days))
                 
@@ -3586,6 +3614,7 @@ def book_room_page(request):
         logger.exception(f"Error in book_room_page: {str(e)}")
         messages.error(request, "An error occurred while processing your request.")
         return redirect('homepage')
+
 
 
 # Existing user_bookings view
