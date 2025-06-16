@@ -561,82 +561,161 @@
     </div>
     <style>
       .alert-info {
-    background-color: #d1ecf1;
-    color: #0c5460;
-    border-color: #bee5eb;
-    padding: 10px;
-    border-radius: 4px;
-    font-size: 14px;
-    display: flex;
-    align-items: center;
-}
+          background-color: #d1ecf1;
+          color: #0c5460;
+          border-color: #bee5eb;
+          padding: 10px;
+          border-radius: 4px;
+          font-size: 14px;
+          display: flex;
+          align-items: center;
+      }
 
-.alert-info i {
-    margin-right: 8px;
-}
+      .alert-info i {
+          margin-right: 8px;
+      }
     </style>
     <!-- Hotel Results -->
-      <div class="col-lg-9 col-md-8">
-            <div class="row" id="hotel">
-                {% for hotel_data in hotels %}
-                 
-                <div class="col-lg-6 col-xl-4 hotel-card">
-                    <div class="card h-100">
-                        <div class="img-container">
-                            {% if hotel_data.hotel.image_1 %}
-                            <img alt="{{ hotel_data.hotel.name }}" class="card-img-top gallery-img" src="{{ hotel_data.hotel.image_1.url }}" onclick="openModal(this)">
-                            {% else %}
-                            <img alt="Hotel placeholder" class="card-img-top gallery-img" src="https://r1imghtlak.mmtcdn.com/1ecd1aceec2611e997630242ac110002.jpg" onclick="openModal(this)">
-                            {% endif %}
-                        </div>
-                        
-                        <div class="card-body">
-                            <h5 class="card-title text-center">{{ hotel_data.hotel.name|title }}({{hotel_data.hotel.hotel_type}})</h5>
-                            <p class="text-muted text-center mb-3">
-                                <i class="fas fa-map-marker-alt me-1"></i>{{ hotel_data.hotel.location|title }}
-                            </p>
-                            
-                            <p class="card-text">{{ hotel_data.hotel.description|truncatewords:20 }}</p>
-                            
-                            <div class="d-flex justify-content-between mt-3">
-                                <div>
-                                    <i class="fas fa-star text-warning me-1"></i>
-                                    <span>{{ hotel_data.hotel.rating|default:"N/A" }}/5</span>
-                                </div>
-                                <div>
-                                    <i class="fas fa-door-open text-primary me-1"></i>
-                                    <span>{{ hotel_data.available_rooms_count }} rooms</span>
+    <div class="col-lg-9 col-md-8">
+    <div class="row" id="hotel">
+        {% for hotel_data in hotels %}
+        <div class="col-lg-6 col-xl-4 hotel-card">
+            <div class="card h-100">
+                <div class="img-container">
+                    {% if hotel_data.hotel.image_1 %}
+                    <img alt="{{ hotel_data.hotel.name }}" class="card-img-top gallery-img" src="{{ hotel_data.hotel.image_1.url }}" onclick="openModal(this)">
+                    {% else %}
+                    <img alt="Hotel placeholder" class="card-img-top gallery-img" src="https://r1imghtlak.mmtcdn.com/1ecd1aceec2611e997630242ac110002.jpg" onclick="openModal(this)">
+                    {% endif %}
+                </div>
+                
+                <div class="card-body">
+                    <h5 class="card-title text-center">{{ hotel_data.hotel.name|title }}({{hotel_data.hotel.hotel_type}})</h5>
+                    <p class="text-muted text-center mb-3">
+                        <i class="fas fa-map-marker-alt me-1"></i>{{ hotel_data.hotel.location|title }}
+                    </p>
+                    
+                    <p class="card-text">{{ hotel_data.hotel.description|truncatewords:20 }}</p>
+                    
+                    <div class="room-capacity-info">
+                        <div class="d-flex align-items-center mb-2">
+                            <i class="fas fa-users me-2"></i>
+                            <div>
+                                <strong>Room Capacities:</strong>
+                                <div class="small text-muted">
+                                    {% for room in hotel_data.hotel.rooms.all|slice:":3" %}
+                                    - {{ room.display_capacity }} persons
+                                    {% if room.extra_capacity > 0 %}
+                                    <span class="text-success small">(+{{ room.extra_capacity }})</span>
+                                    {% endif %}
+                                    <br>
+                                    {% endfor %}
+                                    {% if hotel_data.hotel.rooms.count > 3 %}
+                                    <span class="text-muted small">+ {{ hotel_data.hotel.rooms.count|add:"-3" }} more room types</span>
+                                    {% endif %}
                                 </div>
                             </div>
                         </div>
-                        
-                        <div class="card-footer bg-white border-0 text-center pb-3">
-                          {% if hotel_data.has_recently_cancelled %}
-                          <div class="alert alert-info" style="margin-top: 10px;">
-                              <i class="fas fa-bolt"></i> Recently available due to cancellations!
-                          </div>
-                          {% endif %}
-                            <a href="#" 
-                               class="btn btn-primary view-rooms-btn" 
-                               data-hotel-id="{{ hotel_data.hotel.id }}"
-                               onclick="showDatePopup(this); return false;">
-                                <i class="fas fa-door-open me-2"></i>View Rooms
-                            </a>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between mt-3">
+                        <div>
+                            <i class="fas fa-star text-warning me-1"></i>
+                            <span>{{ hotel_data.hotel.rating|default:"N/A" }}/5</span>
+                        </div>
+                        <div>
+                            <i class="fas fa-door-open text-primary me-1"></i>
+                            <span>{{ hotel_data.available_rooms_count }} rooms</span>
                         </div>
                     </div>
                 </div>
-                {% empty %}
-                <div class="col-12">
-                    <div class="alert alert-info text-center">
-                        <i class="fas fa-info-circle me-2"></i>
-                        No hotels match your search criteria. Please try different filters.
+                
+                <div class="card-footer bg-white border-0 text-center pb-3">
+                    {% if hotel_data.has_recently_cancelled %}
+                    <div class="alert alert-info" style="margin-top: 10px;">
+                        <i class="fas fa-bolt"></i> Recently available due to cancellations!
                     </div>
+                    {% endif %}
+                    <a href="#" 
+                       class="btn btn-primary view-rooms-btn" 
+                       data-hotel-id="{{ hotel_data.hotel.id }}"
+                       onclick="showDatePopup(this); return false;">
+                        <i class="fas fa-door-open me-2"></i>View Rooms
+                    </a>
                 </div>
-                {% endfor %}
             </div>
         </div>
+        {% empty %}
+        <div class="col-12">
+            <div class="alert alert-info text-center">
+                <i class="fas fa-info-circle me-2"></i>
+                No hotels match your search criteria. Please try different filters.
+            </div>
+        </div>
+        {% endfor %}
     </div>
 </div>
+</div>
+<style>
+  /* Add this to your CSS file */
+.room-capacity-info {
+    background-color: #f8f9fa;
+    padding: 10px;
+    border-radius: 5px;
+    margin-bottom: 10px;
+}
+
+.capacity-display {
+    font-weight: bold;
+}
+
+.extra-capacity-info {
+    font-size: 0.85em;
+    color: #6c757d;
+}
+
+.extra-person-charges {
+    color: #28a745;
+    font-size: 0.9em;
+}
+
+.amenity-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-top: 5px;
+}
+
+.amenity-tag {
+    background-color: #e9ecef;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 0.8em;
+}
+
+.discount-badge {
+    background-color: #dc3545;
+    color: white;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 0.8em;
+    margin-left: 5px;
+}
+
+.recently-available {
+    border: 2px solid #17a2b8;
+}
+
+.recently-available-badge {
+    background-color: #17a2b8;
+    color: white;
+    padding: 3px 8px;
+    border-radius: 3px;
+    font-size: 0.8em;
+    margin-top: 5px;
+    display: inline-block;
+}
+</style>
 
 <!-- Assume modal for image gallery or date popup exists -->
 <script>

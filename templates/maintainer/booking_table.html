@@ -175,7 +175,10 @@
                 <th>Check-in</th>
                 <th>Check-out</th>
                 <th>Nights</th>
+                <th>Guests</th>
                 <th>Base Amount</th>
+                <th>Extra Charges</th>
+                <th>Total</th>
                 <th>Booking Date</th>
                 <th>Status</th>
                 <th>Actions</th>
@@ -204,8 +207,21 @@
                 <td>{{ booking.check_in|date:"M d, Y" }}</td>
                 <td>{{ booking.check_out|date:"M d, Y" }}</td>
                 <td>{{ booking.nights }}</td>
-                <td>₹{{ booking.base_price|floatformat:2 }}
-                    <br>(GST{{ booking.gst_rate|floatformat:2|escapejs }})</td>
+<td>
+    {{ booking.number_of_guests }}
+    {% if booking.extra_persons > 0 %}
+    <br><small class="text-muted">(+{{ booking.extra_persons }})</small>
+    {% endif %}
+</td>
+                <td>₹{{ booking.base_price|floatformat:2 }}</td>
+                <td>
+                    {% if booking.extra_persons > 0 %}
+                    ₹{{ booking.extra_charges|floatformat:2 }}
+                    {% else %}
+                    ₹0.00
+                    {% endif %}
+                </td>
+                <td>₹{{ booking.total_price|floatformat:2 }}</td>
                 <td>{{ booking.booking_time|date:"M d, Y H:i" }}</td>
                 <td>
                     <span class="badge 
@@ -225,13 +241,16 @@
                            "check_out": "{{ booking.check_out|date:'M d, Y'|escapejs }}",
                            "nights": "{{ booking.nights|escapejs }}",
                            "base_amount": "{{ booking.base_price|floatformat:2|escapejs }}",
-                           "gst_rate": "{{ booking.gst_rate|floatformat:2|escapejs }}"
+                           "gst_rate": "{{ booking.gst_rate|floatformat:2|escapejs }}",
+                           "extra_persons": "{{ booking.extra_persons|escapejs }}",
+                           "extra_charges": "{{ booking.extra_charges|floatformat:2|escapejs }}",
+                           "total_price": "{{ booking.total_price|floatformat:2|escapejs }}"
                        }'>View</a>
                 </td>
             </tr>
             {% empty %}
             <tr>
-                <td colspan="11" class="text-center">No bookings found matching your criteria.</td>
+                <td colspan="14" class="text-center">No bookings found matching your criteria.</td>
             </tr>
             {% endfor %}
         </tbody>
@@ -301,7 +320,9 @@
             const baseAmount = parseFloat(bookingData.base_amount);
             const gstRate = parseFloat(bookingData.gst_rate) || 12.00; // Default to 12% if not provided
             const gstAmount = baseAmount * (gstRate / 100);
-            const totalWithGst = baseAmount + gstAmount;
+            const extraPersons = parseInt(bookingData.extra_persons) || 0;
+            const extraCharges = parseFloat(bookingData.extra_charges) || 0;
+            const totalWithGst = baseAmount + gstAmount + extraCharges;
 
             const popup = document.createElement('div');
             popup.className = 'booking-popup';
@@ -322,7 +343,9 @@
                     <div><strong>Check-in:</strong> ${checkInDate}</div>
                     <div><strong>Check-out:</strong> ${checkOutDate}</div>
                     <div><strong>Nights:</strong> ${bookingData.nights}</div>
+                    <div><strong>Extra Persons:</strong> ${extraPersons}</div>
                     <div><strong>Base Amount:</strong> ₹${baseAmount.toFixed(2)} (₹${(baseAmount / bookingData.nights).toFixed(2)} × ${bookingData.nights} nights)</div>
+                    <div><strong>Extra Charges:</strong> ₹${extraCharges.toFixed(2)}</div>
                     <div><strong>GST (${gstRate.toFixed(2)}%):</strong> ₹${gstAmount.toFixed(2)}</div>
                     <div><strong>Total with GST:</strong> ₹${totalWithGst.toFixed(2)}</div>
                 </div>

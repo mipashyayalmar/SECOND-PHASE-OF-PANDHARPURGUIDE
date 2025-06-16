@@ -99,9 +99,17 @@ class Rooms(models.Model):
         ("2", "deluxe"),
         ("3", "basic"),
     )
+    capacity = models.IntegerField(
+        validators=[MinValueValidator(1)],
+        help_text="Base capacity of the room"
+    )
+    extra_capacity = models.IntegerField(
+        default=0,
+        validators=[MinValueValidator(0)],
+        help_text="Extra capacity beyond base (e.g., with extra beds)"
+    )
     hotel = models.ForeignKey(Hotels, on_delete=models.CASCADE, related_name='rooms')
     room_type = models.CharField(max_length=50, choices=ROOM_TYPE)
-    capacity = models.IntegerField(validators=[MinValueValidator(1)])
     price = models.DecimalField(max_digits=10, decimal_places=2)
     size = models.IntegerField(help_text="Room size in square feet")
     hotel = models.ForeignKey('Hotels', on_delete=models.CASCADE, related_name='rooms')
@@ -193,6 +201,28 @@ class Rooms(models.Model):
         default="marathi",
         help_text="Languages spoken by staff"
     )
+
+    # In your Rooms model
+    def display_capacity(self):
+        """Display capacity as '3+2' if extra capacity exists, or just '3' if no extra"""
+        if self.extra_capacity > 0:
+            return f"{self.capacity}+{self.extra_capacity}"
+        return str(self.capacity)
+
+    def total_capacity(self):
+        """Calculate total capacity (base + extra)"""
+        return self.capacity + self.extra_capacity
+
+    def get_extra_person_info(self):
+        """Return formatted string about extra person charges if applicable"""
+        if self.extra_capacity > 0 and self.extra_person_charges > 0:
+            return f"Extra person charge: ${self.extra_person_charges} per person (max {self.extra_capacity})"
+        return ""
+    
+    # In your Reservation model
+    @property
+    def extra_persons(self):
+        return max(0, self.number_of_guests - self.room.capacity)
 
     def discounted_price(self):
         """Calculate price after applying the discount."""

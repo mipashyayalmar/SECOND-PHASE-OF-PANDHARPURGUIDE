@@ -275,31 +275,6 @@ def signup(request):
 
     return render(request, 'user_login/signup.html')
 
-def verify_email(request, uidb64, token):
-    try:
-        uid = force_str(urlsafe_base64_decode(uidb64))
-        user = User.objects.get(pk=uid)
-        if default_token_generator.check_token(user, token):
-            user.is_active = True
-            user.save()
-
-            # Automatically log the user in after email verification
-            authenticated_user = authenticate(request, username=user.username, password=user.password)
-            if authenticated_user is not None:
-                login(request, authenticated_user)
-
-            # Optional: Log the time when the user is logged in
-            ist = pytz.timezone('Asia/Kolkata')
-            signin_time = timezone.now().astimezone(ist).strftime('%Y-%m-%d %H:%M:%S')
-            messages.success(request, f'Account verified successfully and logged in at {signin_time}')
-
-            return redirect('user:signin')  # Redirect to a page after successful login
-
-        else:
-            return render(request, 'user_login/verification_failure.html')
-    except (TypeError, ValueError, OverflowError, User.DoesNotExist):
-        return render(request, 'user_login/verification_failure.html')
-
 from django.shortcuts import render, redirect
 from django.contrib.auth import authenticate, login
 from django.contrib import messages
@@ -346,94 +321,8 @@ def signin(request):
         return render(request, 'user_login/signin.html', {'message': 'Incorrect username or password'})
 
     return render(request, 'user_login/signin.html')
-# User Logout
-def logout_view(request):
-    if request.user.is_authenticated:
-        logout(request)
-        request.session.flush()
-        
-        messages.warning(request, 'Logged out successfully')
-        
-        return redirect('user:signin')  
-    return redirect('user:signin') 
-
-class CustomPasswordResetView(PasswordResetView):
-    template_name = 'user_login/password_reset.html'
-    success_url = reverse_lazy('user:password_reset_done')
-    email_template_name = 'user_login/reset_password.txt'
-    html_email_template_name = 'user_login/reset_password.html'
-
-    def form_valid(self, form): 
-        email = form.cleaned_data['email']
-        if not User.objects.filter(email=email, is_maintainer=False, is_staff=False).exists():
-            messages.error(self.request, 'No account found with this email.')
-            return self.render_to_response(self.get_context_data(form=form))
-
-        user = User.objects.get(email=email)
-        if user.is_staff:
-            messages.error(self.request, 'This is a staff account. Please use the staff password reset page.')
-            return self.render_to_response(self.get_context_data(form=form))
-
-        if not user.is_active:
-            return render(self.request, 'user_login/verification_prompt.html', {
-                'email': email,
-                'message': 'Your account is not verified yet. Please verify your email before resetting your password.'
-            })
-
-        protocol = 'https' if self.request.is_secure() else 'http'
-        domain = self.request.get_host()
-
-        opts = {
-            'use_https': self.request.is_secure(),
-            'from_email': settings.EMAIL_HOST_USER,
-            'request': self.request,
-            'email_template_name': self.email_template_name,
-            'html_email_template_name': self.html_email_template_name,
-            'extra_email_context': {
-                'protocol': protocol,
-                'domain': domain,
-            },
-        }
-
-        form.save(**opts)
-        return super().form_valid(form)
-    
-    # User Password Reset Confirm View
-class CustomPasswordResetConfirmView(PasswordResetConfirmView):
-    template_name = 'user_login/password_reset_confirm.html'
-    success_url = reverse_lazy('user:password_reset_complete')
-    form_class = SetPasswordForm
-
-    def dispatch(self, *args, **kwargs):
-        uidb64 = kwargs.get('uidb64')
-        try:
-            uid = force_str(urlsafe_base64_decode(uidb64))
-            user = User.objects.get(pk=uid)
-            if user.is_staff:
-                return render(self.request, 'user_login/password_reset_failure.html', {
-                    'message': 'This is a staff account. Please use the staff password reset page.'
-                })
-            if not user.is_active:
-                return render(self.request, 'user_login/verification_prompt.html', {
-                    'email': user.email,
-                    'message': 'Your account is not verified yet. Please verify your email before resetting your password.'
-                })
-        except (TypeError, ValueError, OverflowError, User.DoesNotExist):
-            return render(self.request, 'user_login/password_reset_failure.html', {
-                'message': 'Invalid reset link.'
-            })
-        return super().dispatch(*args, **kwargs)
-    
 
 
-
-
-def generate_staff_id():
-    while True:
-        staff_id = f"HSTF{random.randint(100, 999)}"
-        if not HotelStaff.objects.filter(staff_id=staff_id).exists():
-            return staff_id
-        
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.shortcuts import render, redirect
@@ -474,6 +363,9 @@ def user_profile(request):
     }
     
     return render(request, 'user_login/user_profile.html', context)
+
+
+
 # Set up logging
 logger = logging.getLogger(__name__)
 @login_required(login_url='/')
@@ -635,6 +527,266 @@ def user_profile_edit(request):
         'user': user,
         'social_data': social_data
     })
+
+
+
+
+# Set up logging
+logger = logging.getLogger(__name__)
+
+@login_required(login_url='/')
+def user_profile_edit_form_userside(request):
+    if not request.user.is_authenticated:
+        messages.error(request, "Please sign in to edit your profile.")
+        return redirect('user:signin')
+    
+    if request.user.is_staff:
+        messages.error(request, "Staff accounts cannot edit user profiles.")
+        return redirect('user:staff_signin')
+    
+    user = request.user
+    social_data = {}
+
+    try:
+        # Fetch Google social account data
+        social_account = SocialAccount.objects.get(user=user, provider='google')
+        extra_data = social_account.extra_data
+        
+        # Extract all available fields from Google OAuth
+        social_data = {
+            'google_id': extra_data.get('sub'),  # Unique Google ID
+            'email': extra_data.get('email'),
+            'email_verified': extra_data.get('email_verified', False),
+            'full_name': extra_data.get('name'),
+            'first_name': extra_data.get('given_name'),
+            'last_name': extra_data.get('family_name'),
+            'picture': extra_data.get('picture'),
+            'locale': extra_data.get('locale'),
+            'hosted_domain': extra_data.get('hd'),  # For Google Workspace accounts
+        }
+        logger.debug(f"Google social data: {social_data}")
+
+    except SocialAccount.DoesNotExist:
+        # Fallback for non-Google login
+        social_data = {
+            'google_id': None,
+            'email': user.email,
+            'email_verified': False,
+            'full_name': user.get_full_name() or user.username,
+            'first_name': user.first_name,
+            'last_name': user.last_name,
+            'picture': None,
+            'locale': None,
+            'hosted_domain': None,
+        }
+        logger.debug(f"Non-Google user data: {social_data}")
+
+    if request.method == 'POST':
+        logger.debug(f"POST data: {request.POST}")
+        logger.debug(f"FILES data: {request.FILES}")
+
+        # Mandatory email field
+        email = request.POST.get('email')
+        if not email:
+            messages.error(request, "Email is required.")
+            return render(request, 'user_login/user_profile_edit_form_userside.html', {
+                'user': user,
+                'social_data': social_data
+            })
+
+        # Validate email format
+        try:
+            validate_email(email)
+        except ValidationError:
+            messages.error(request, "Invalid email format.")
+            return render(request, 'user_login/user_profile_edit_form_userside.html', {
+                'user': user,
+                'social_data': social_data
+            })
+
+        # Check for email uniqueness (excluding current user)
+        if email != user.email and request.user.__class__.objects.filter(email=email).exclude(pk=user.pk).exists():
+            messages.error(request, "This email is already in use.")
+            return render(request, 'user_login/user_profile_edit_form_userside.html', {
+                'user': user,
+                'social_data': social_data
+            })
+
+        # Update user fields
+        user.email = email
+        user.name = request.POST.get('name', user.name)
+        user.phone = request.POST.get('phone', user.phone)
+
+        # Handle file uploads with validation
+        if 'profile_image' in request.FILES:
+            profile_image = request.FILES['profile_image']
+            if not profile_image.content_type.startswith('image/'):
+                messages.error(request, "Profile image must be a valid image file.")
+                return render(request, 'user_login/user_profile_edit_form_userside.html', {
+                    'user': user,
+                    'social_data': social_data
+                })
+            user.profile_image = profile_image
+            logger.info(f"Profile image uploaded: {user.profile_image}")
+
+        if 'aadhar_image' in request.FILES:
+            aadhar_image = request.FILES['aadhar_image']
+            if not aadhar_image.content_type.startswith('image/'):
+                messages.error(request, "Aadhar image must be a valid image file.")
+                return render(request, 'user_login/user_profile_edit_form_userside.html', {
+                    'user': user,
+                    'social_data': social_data
+                })
+            user.aadhar_image = aadhar_image
+            logger.info(f"Aadhar image uploaded: {user.aadhar_image}")
+
+        if 'pancard_image' in request.FILES:
+            pancard_image = request.FILES['pancard_image']
+            if not pancard_image.content_type.startswith('image/'):
+                messages.error(request, "Pancard image must be a valid image file.")
+                return render(request, 'user_login/user_profile_edit_form_userside.html', {
+                    'user': user,
+                    'social_data': social_data
+                })
+            user.pancard_image = pancard_image
+            logger.info(f"Pancard image uploaded: {user.pancard_image}")
+
+        try:
+            user.save()
+            messages.success(request, "Profile updated successfully.")
+            return redirect('user:user_profile')
+                
+        except Exception as e:
+            logger.error(f"Error saving user profile: {str(e)}")
+            messages.error(request, "An error occurred while updating your profile.")
+            return render(request, 'user_login/user_profile_edit_form_userside.html', {
+                'user': user,
+                'social_data': social_data
+            })
+
+    return render(request, 'user_login/user_profile_edit_form_userside.html', {
+        'user': user,
+        'social_data': social_data,
+        'show_social_picture': True  # Add this line
+        
+    })
+
+
+
+def verify_email(request, uidb64, token):
+    try:
+        uid = force_str(urlsafe_base64_decode(uidb64))
+        user = User.objects.get(pk=uid)
+        if default_token_generator.check_token(user, token):
+            user.is_active = True
+            user.save()
+
+            # Automatically log the user in after email verification
+            authenticated_user = authenticate(request, username=user.username, password=user.password)
+            if authenticated_user is not None:
+                login(request, authenticated_user)
+
+            # Optional: Log the time when the user is logged in
+            ist = pytz.timezone('Asia/Kolkata')
+            signin_time = timezone.now().astimezone(ist).strftime('%Y-%m-%d %H:%M:%S')
+            messages.success(request, f'Account verified successfully and logged in at {signin_time}')
+
+            return redirect('user:signin')  # Redirect to a page after successful login
+
+        else:
+            return render(request, 'user_login/verification_failure.html')
+    except (TypeError, ValueError, OverflowError, User.DoesNotExist):
+        return render(request, 'user_login/verification_failure.html')
+
+# User Logout
+def logout_view(request):
+    if request.user.is_authenticated:
+        logout(request)
+        request.session.flush()
+        
+        messages.warning(request, 'Logged out successfully')
+        
+        return redirect('user:signin')  
+    return redirect('user:signin') 
+
+class CustomPasswordResetView(PasswordResetView):
+    template_name = 'user_login/password_reset.html'
+    success_url = reverse_lazy('user:password_reset_done')
+    email_template_name = 'user_login/reset_password.txt'
+    html_email_template_name = 'user_login/reset_password.html'
+
+    def form_valid(self, form): 
+        email = form.cleaned_data['email']
+        if not User.objects.filter(email=email, is_maintainer=False, is_staff=False).exists():
+            messages.error(self.request, 'No account found with this email.')
+            return self.render_to_response(self.get_context_data(form=form))
+
+        user = User.objects.get(email=email)
+        if user.is_staff:
+            messages.error(self.request, 'This is a staff account. Please use the staff password reset page.')
+            return self.render_to_response(self.get_context_data(form=form))
+
+        if not user.is_active:
+            return render(self.request, 'user_login/verification_prompt.html', {
+                'email': email,
+                'message': 'Your account is not verified yet. Please verify your email before resetting your password.'
+            })
+
+        protocol = 'https' if self.request.is_secure() else 'http'
+        domain = self.request.get_host()
+
+        opts = {
+            'use_https': self.request.is_secure(),
+            'from_email': settings.EMAIL_HOST_USER,
+            'request': self.request,
+            'email_template_name': self.email_template_name,
+            'html_email_template_name': self.html_email_template_name,
+            'extra_email_context': {
+                'protocol': protocol,
+                'domain': domain,
+            },
+        }
+
+        form.save(**opts)
+        return super().form_valid(form)
+    
+    # User Password Reset Confirm View
+class CustomPasswordResetConfirmView(PasswordResetConfirmView):
+    template_name = 'user_login/password_reset_confirm.html'
+    success_url = reverse_lazy('user:password_reset_complete')
+    form_class = SetPasswordForm
+
+    def dispatch(self, *args, **kwargs):
+        uidb64 = kwargs.get('uidb64')
+        try:
+            uid = force_str(urlsafe_base64_decode(uidb64))
+            user = User.objects.get(pk=uid)
+            if user.is_staff:
+                return render(self.request, 'user_login/password_reset_failure.html', {
+                    'message': 'This is a staff account. Please use the staff password reset page.'
+                })
+            if not user.is_active:
+                return render(self.request, 'user_login/verification_prompt.html', {
+                    'email': user.email,
+                    'message': 'Your account is not verified yet. Please verify your email before resetting your password.'
+                })
+        except (TypeError, ValueError, OverflowError, User.DoesNotExist):
+            return render(self.request, 'user_login/password_reset_failure.html', {
+                'message': 'Invalid reset link.'
+            })
+        return super().dispatch(*args, **kwargs)
+    
+
+
+
+
+def generate_staff_id():
+    while True:
+        staff_id = f"HSTF{random.randint(100, 999)}"
+        if not HotelStaff.objects.filter(staff_id=staff_id).exists():
+            return staff_id
+        
+
 
 
 @login_required(login_url='/')
