@@ -3521,7 +3521,7 @@ def book_room_page(request):
                 request.user.profile_image,
                 request.user.pancard_image
             ])
-            if not required_fields_filled:
+            if not required_fields_filled and not request.user.is_staff and not request.is_maintainer:
                 # Store the current URL in the session and redirect to profile edit
                 request.session['next'] = request.get_full_path()
                 messages.info(request, "Your profile needs a few more details. Complete it now to get started")
