@@ -2102,21 +2102,35 @@ def hotel_staff_bookings(request):
         messages.warning(request, "You don't have permissions to access the staff panel.")
         return redirect('/')
 
-    staff = HotelStaff.objects.get(user=request.user)
+    try:
+        staff = HotelStaff.objects.get(user=request.user)
+    except HotelStaff.DoesNotExist:
+        messages.warning(request, "Staff profile not found.")
+        return redirect('/')
+
     current_date = datetime.now().date()
     current_month = current_date.month
     current_year = current_date.year
     
-    # Get all hotels owned by the same owner as the staff's hotel
-    owner_hotels = Hotels.objects.filter(owner=staff.hotel.owner)
+    # Initialize accessible hotels
+    all_accessible_hotels = Hotels.objects.none()
     
-    # Get all hotels assigned to the staff
-    assigned_hotels = staff.assigned_hotels.all()
+    # Get hotels from staff's assigned hotel if exists
+    if staff.hotel:
+        owner_hotels = Hotels.objects.filter(owner=staff.hotel.owner)
+        all_accessible_hotels = owner_hotels
     
-    # Combine both querysets and remove duplicates
-    all_accessible_hotels = (owner_hotels | assigned_hotels).distinct()
+    # Add assigned hotels if any
+    if hasattr(staff, 'assigned_hotels'):
+        assigned_hotels = staff.assigned_hotels.all()
+        all_accessible_hotels = (all_accessible_hotels | assigned_hotels).distinct()
     
-    # Get all bookings for all accessible hotels, including cancelled
+    # If no hotels found, show message and return
+    if not all_accessible_hotels.exists():
+        messages.warning(request, "No hotels assigned to your staff account.")
+        return redirect('/')
+    
+    # Rest of your view code remains the same...
     all_bookings = Reservation.objects.filter(
         room__hotel__in=all_accessible_hotels
     ).select_related('guest', 'room', 'room__hotel').order_by('-booking_time')

@@ -199,13 +199,14 @@
                 <th scope="col">Booking Id</th>
                 <th scope="col">Guest</th>
                 <th scope="col">Room</th>
+                <th scope="col">Guests</th>
                 <th scope="col">Check-in</th>
                 <th scope="col">Check-out</th>
                 <th scope="col">Nights</th>
-                <th scope="col">Hotels</th>
+                <th scope="col">Hotel</th>
                 <th scope="col">Booking Date</th>
                 <th scope="col">Status</th>
-                <th scope="col">Base Price</th>
+                <th scope="col">Pricing Details</th>
                 <th scope="col">Total (with GST)</th>
                 <th scope="col">Actions</th>
             </tr>
@@ -225,6 +226,30 @@
                         <a href="{% url 'viewroom' booking.room.id %}" class="text-decoration-none">
                             {{ booking.room.room_number }} ({{ booking.room.get_room_type_display }})
                         </a>
+                    </td>
+                    <td>
+                        <div class="guest-details">
+                            <div class="d-flex justify-content-between">
+                                <span>Total Guests:</span>
+                                <strong>{{ booking.guests }}</strong>
+                            </div>
+                            {% if booking.extra_guests > 0 %}
+                            <div class="d-flex justify-content-between text-success">
+                                <span>Extra Guests:</span>
+                                <strong>+{{ booking.extra_guests }}</strong>
+                            </div>
+                            <div class="small text-muted">
+                                (₹{{ booking.room.extra_capacity_charge }} per extra guest)
+                            </div>
+                            {% endif %}
+                              <div class="small text-muted">
+                                {% if booking.room.extra_person_charges %}+ ₹{{ booking.room.extra_person_charges|floatformat:2 }} (per extra guest){% else %}(no extra charges){% endif %}
+                            </div>
+                            <div class="d-flex justify-content-between small text-info">
+                                <span>Room Capacity:</span>
+                                <span>{{ booking.room.capacity }} + {{ booking.room.extra_capacity }}</span>
+                            </div>
+                        </div>
                     </td>
                     <td class="bg-success bg-opacity-10 {% if booking.check_in == current_date %}date-highlight{% endif %}">
                         {{ booking.check_in|date:"M d, Y" }}
@@ -248,10 +273,25 @@
                         </span>
                     </td>
                     <td class="fw-medium">
-                        ₹{{ booking.base_price|floatformat:2 }} {% if booking.room.extra_person_charges %}+ ₹{{ booking.room.extra_person_charges|floatformat:2 }} (Excl. GST){% else %}(Excl. GST){% endif %}
+                        <div class="pricing-details">
+                            <div class="d-flex justify-content-between">
+                                <span>Base Price:</span>
+                                <span>₹{{ booking.base_price|floatformat:2 }}</span>
+                            </div>
+                            {% if booking.extra_guests > 0 %}
+                            <div class="d-flex justify-content-between text-success">
+                                <span>Extra Guests:</span>
+                                <span>₹{{ booking.extra_guest_charges|floatformat:2 }}</span>
+                            </div>
+                            {% endif %}
+                            <div class="d-flex justify-content-between small text-muted">
+                                <span>GST ({{ booking.gst_rate|floatformat:2 }}%):</span>
+                                <span>₹{{ booking.gst_amount|floatformat:2 }}</span>
+                            </div>
+                        </div>
                     </td>
-                    <td class="fw-medium">
-                        ₹{{ booking.total_price|floatformat:2 }} (Incl. {{ booking.gst_rate|floatformat:2 }}% GST)
+                    <td class="fw-bold">
+                        ₹{{ booking.total_price|floatformat:2 }}
                     </td>
                     <td>
                         <a href="#" class="text-primary text-decoration-none view-booking" 
@@ -262,6 +302,9 @@
                                "check_in": "{{ booking.check_in|date:'M d, Y'|escapejs }}",
                                "check_out": "{{ booking.check_out|date:'M d, Y'|escapejs }}",
                                "nights": "{{ booking.nights|escapejs }}",
+                               "guests": "{{ booking.guests|escapejs }}",
+                               "extra_guests": "{{ booking.extra_guests|escapejs }}",
+                               "extra_guest_charge": "{{ booking.room.extra_capacity_charge|escapejs }}",
                                "base_amount": "{{ booking.base_price|floatformat:2|escapejs }}",
                                "gst_rate": "{{ booking.gst_rate|floatformat:2|escapejs }}",
                                "total_amount": "{{ booking.total_price|floatformat:2|escapejs }}"
@@ -271,7 +314,7 @@
                 {% endfor %}
             {% else %}
                 <tr>
-                    <td colspan="12" class="text-center text-muted py-4">
+                    <td colspan="13" class="text-center text-muted py-4">
                         No bookings found matching your criteria.
                     </td>
                 </tr>
@@ -280,6 +323,17 @@
     </table>
 </div>
 
+<style>
+    .guest-details div,
+    .pricing-details div {
+        margin-bottom: 0.2rem;
+    }
+    .date-highlight {
+        font-weight: bold;
+        border-left: 3px solid #0d6efd !important;
+        border-right: 3px solid #0d6efd !important;
+    }
+</style>
 {% if bookings.has_other_pages %}
 <nav class="d-flex justify-content-center mt-4">
     <ul class="pagination">
