@@ -1284,8 +1284,6 @@ def hotel_staff_panel(request):
 
 
 
-
-
 from django.db.models import Q
 from decimal import Decimal
 from datetime import datetime, timedelta
@@ -1300,8 +1298,9 @@ from .models import Hotels, Rooms, Reservation
 def rooms_status(request):
     """
     Displays the rooms status dashboard with filtering capabilities and handles direct room booking.
-    Shows detailed pricing information including base price, discount, and GST.
+    Shows detailed pricing information including base price, discount, extra person charges, and GST.
     Includes all bookings (past, current, and future) for the bookings section.
+    Guest count is restricted to 1-5, with extra person charges applied for guests beyond base capacity.
     """
     if not hasattr(request.user, 'hotel_staff_profile'):
         return render(request, 'hotel_staff/panel.html', {
@@ -1351,8 +1350,18 @@ def rooms_status(request):
                 
                 # Validate guest count
                 person = int(person)
-                if person <= 0 or person > room.capacity:
-                    messages.error(request, f'Guest count must be between 1 and {room.capacity}.')
+                if person < 1 or person > 5:
+                    messages.error(request, 'Guest count must be between 1 and 5.')
+                    return redirect(request.get_full_path())
+                
+                # Check if guest count exceeds total capacity
+                total_capacity = room.total_capacity()
+                if person > total_capacity:
+                    messages.error(request, 
+                        f"This room can accommodate up to {total_capacity} guests "
+                        f"({room.capacity} base + {room.extra_capacity} extra). "
+                        f"Please select a different room or reduce your guest count."
+                    )
                     return redirect(request.get_full_path())
                 
                 # Check room availability
@@ -1367,28 +1376,6 @@ def rooms_status(request):
                     messages.error(request, 'Room is not available for the selected dates.')
                     return redirect(request.get_full_path())
                 
-                # Calculate pricing with discount and GST
-                stay_days = max((check_out - check_in).days, 1)
-                discounted_price_per_night = room.discounted_price()
-                base_price = discounted_price_per_night * stay_days
-                
-                # Add extra person charges if applicable
-                if person > 1 and room.extra_person_charges:
-                    base_price += room.extra_person_charges * (person - 1)
-
-                # In your booking view
-                if person > room.total_capacity():
-                    messages.error(request, 
-                        f"This room can accommodate {room.capacity} guests (with {room.extra_capacity} extra). "
-                        f"Please select a different room or reduce your guest count."
-                    )
-                    return redirect('index', room_id=room.id)
-                
-                # Calculate GST
-                gst_percentage = room.hotel.gst_rate if room.hotel.gst_rate else Decimal('12.00')
-                gst_amount = (base_price * gst_percentage) / Decimal('100')
-                total_price = base_price + gst_amount
-                
                 # Create reservation
                 reservation = Reservation(
                     room=room,
@@ -1396,10 +1383,8 @@ def rooms_status(request):
                     check_in=check_in,
                     check_out=check_out,
                     number_of_guests=person,
-                    base_price_value=base_price,  # Store the calculated base price
-                    gst_amount_value=gst_amount   # Store the calculated GST
                 )
-                reservation.save()
+                reservation.save()  # Model properties handle pricing calculations
                 
                 messages.success(request, 'Room booked successfully!')
                 return redirect(request.get_full_path())
@@ -1462,9 +1447,18 @@ def rooms_status(request):
             if room.display_status == '3' and room.current_booking:
                 room.gst_amount = room.current_booking.gst_amount
                 room.total_price = room.current_booking.total_price
+                room.base_price = room.current_booking.base_price
+                room.extra_guests = room.current_booking.extra_guests
+                room.extra_guest_charges = room.current_booking.extra_guest_charges
+                room.nights = room.current_booking.nights
             else:
+                # For non-booked rooms, calculate GST based on discounted price for one night
                 room.gst_amount = (room.discounted_price_value * room.gst_rate) / Decimal('100')
                 room.total_price = room.discounted_price_value + room.gst_amount
+                room.base_price = room.discounted_price_value
+                room.extra_guests = 0
+                room.extra_guest_charges = Decimal('0')
+                room.nights = 1
             
             room.is_past_date = selected_date < current_date
             processed_rooms.append(room)
@@ -1507,7 +1501,6 @@ def rooms_status(request):
             'current_date': datetime.now().date(),
             'tomorrow_date': (datetime.now().date() + timedelta(days=1))
         }, status=500)
-
 @login_required
 @require_POST
 def update_room_status(request, room_id):

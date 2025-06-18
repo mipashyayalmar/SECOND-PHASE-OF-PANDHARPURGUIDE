@@ -152,6 +152,28 @@
     .table-unavailable { background-color: rgba(239, 68, 68, 0.1); }
     .table-past { background-color: rgba(107, 114, 128, 0.1); }
 
+    .capacity-badge {
+        background-color: #6c757d;
+        color: white;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 0.8rem;
+    }
+
+    .extra-charge-badge {
+        background-color: #dc3545;
+        color: white;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 0.8rem;
+    }
+
+    .price-row {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 5px;
+    }
+
     @media (max-width: 768px) {
         .filter-form { grid-template-columns: 1fr; }
         .fc .fc-toolbar { flex-direction: column; align-items: center; }
@@ -233,76 +255,76 @@
         </div>
 
         <!-- Summary Cards -->
-<div class="row mb-4">
-    <div class="col-xl-3 col-md-6">
-        <div class="card border-left-primary border-left-4 mb-4">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <h5 class="card-title text-primary">Total Rooms</h5>
-                        <h2 class="mb-0">{{ total_rooms }}</h2>
+        <div class="row mb-4">
+            <div class="col-xl-3 col-md-6">
+                <div class="card border-left-primary border-left-4 mb-4">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h5 class="card-title text-primary">Total Rooms</h5>
+                                <h2 class="mb-0">{{ total_rooms }}</h2>
+                            </div>
+                            <i class="fas fa-door-open fa-3x text-primary"></i>
+                        </div>
                     </div>
-                    <i class="fas fa-door-open fa-3x text-primary"></i>
+                    <div class="card-footer d-flex align-items-center justify-content-between bg-transparent">
+                        <a class="small text-primary stretched-link" href="#" data-filter="all">View All</a>
+                        <div class="small text-primary"><i class="fas fa-angle-right"></i></div>
+                    </div>
                 </div>
             </div>
-            <div class="card-footer d-flex align-items-center justify-content-between bg-transparent">
-                <a class="small text-primary stretched-link" href="#" data-filter="all">View All</a>
-                <div class="small text-primary"><i class="fas fa-angle-right"></i></div>
-            </div>
-        </div>
-    </div>
-    <div class="col-xl-3 col-md-6">
-        <div class="card border-left-success border-left-4 mb-4">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <h5 class="card-title text-success">Available Rooms</h5>
-                        <h2 class="mb-0">{{ available_rooms }}</h2>
+            <div class="col-xl-3 col-md-6">
+                <div class="card border-left-success border-left-4 mb-4">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h5 class="card-title text-success">Available Rooms</h5>
+                                <h2 class="mb-0">{{ available_rooms }}</h2>
+                            </div>
+                            <i class="fas fa-check-circle fa-3x text-success"></i>
+                        </div>
                     </div>
-                    <i class="fas fa-check-circle fa-3x text-success"></i>
+                    <div class="card-footer d-flex align-items-center justify-content-between bg-transparent">
+                        <a class="small text-success stretched-link" href="#" data-filter="available">View Available</a>
+                        <div class="small text-success"><i class="fas fa-angle-right"></i></div>
+                    </div>
                 </div>
             </div>
-            <div class="card-footer d-flex align-items-center justify-content-between bg-transparent">
-                <a class="small text-success stretched-link" href="#" data-filter="available">View Available</a>
-                <div class="small text-success"><i class="fas fa-angle-right"></i></div>
-            </div>
-        </div>
-    </div>
-    <div class="col-xl-3 col-md-6">
-        <div class="card border-left-warning border-left-4 mb-4">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <h5 class="card-title text-warning">Booked Rooms</h5>
-                        <h2 class="mb-0">{{ booked_rooms }}</h2>
+            <div class="col-xl-3 col-md-6">
+                <div class="card border-left-warning border-left-4 mb-4">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h5 class="card-title text-warning">Booked Rooms</h5>
+                                <h2 class="mb-0">{{ booked_rooms }}</h2>
+                            </div>
+                            <i class="fas fa-bed fa-3x text-warning"></i>
+                        </div>
                     </div>
-                    <i class="fas fa-bed fa-3x text-warning"></i>
+                    <div class="card-footer d-flex align-items-center justify-content-between bg-transparent">
+                        <a class="small text-warning stretched-link" href="#" data-filter="booked">View Booked</a>
+                        <div class="small text-warning"><i class="fas fa-angle-right"></i></div>
+                    </div>
                 </div>
             </div>
-            <div class="card-footer d-flex align-items-center justify-content-between bg-transparent">
-                <a class="small text-warning stretched-link" href="#" data-filter="booked">View Booked</a>
-                <div class="small text-warning"><i class="fas fa-angle-right"></i></div>
-            </div>
-        </div>
-    </div>
-    <div class="col-xl-3 col-md-6">
-        <div class="card border-left-danger border-left-4 mb-4">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <h5 class="card-title text-danger">Unavailable Rooms</h5>
-                        <h2 class="mb-0">{{ unavailable_rooms }}</h2>
+            <div class="col-xl-3 col-md-6">
+                <div class="card border-left-danger border-left-4 mb-4">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h5 class="card-title text-danger">Unavailable Rooms</h5>
+                                <h2 class="mb-0">{{ unavailable_rooms }}</h2>
+                            </div>
+                            <i class="fas fa-times-circle fa-3x text-danger"></i>
+                        </div>
                     </div>
-                    <i class="fas fa-times-circle fa-3x text-danger"></i>
+                    <div class="card-footer d-flex align-items-center justify-content-between bg-transparent">
+                        <a class="small text-danger stretched-link" href="#" data-filter="unavailable">View Unavailable</a>
+                        <div class="small text-danger"><i class="fas fa-angle-right"></i></div>
+                    </div>
                 </div>
             </div>
-            <div class="card-footer d-flex align-items-center justify-content-between bg-transparent">
-                <a class="small text-danger stretched-link" href="#" data-filter="unavailable">View Unavailable</a>
-                <div class="small text-danger"><i class="fas fa-angle-right"></i></div>
-            </div>
         </div>
-    </div>
-</div>
 
         <!-- Calendar Toggle Button -->
         <div class="text-center mb-3">
@@ -351,9 +373,22 @@
                                 <td>
                                     <div class="price-details">
                                         <span class="original-price" style="text-decoration: line-through;">₹{{ room.price }}</span>
-                                        <span class="discounted-price">₹{{ room.discounted_price_value }}</span><br>
-                                        <span class="discount-badge">Save ₹{{ room.saved_amount }} ({{ room.discount }}%)</span><br>
-                                        <span>{{ room.gst_rate }}% GST</span>
+                                        <span class="discounted-price">₹{{ room.discounted_price_value|floatformat:2 }}</span><br>
+                                        {% if room.discount > 0 %}
+                                        <span class="text-success">Save ₹{{ room.saved_amount|floatformat:2 }} ({{ room.discount }}%)</span><br>
+                                        {% endif %}
+                                        <span>{{ room.gst_rate|floatformat:2 }}% GST</span><br>
+                                        <span class="capacity-badge">
+                                            {{ room.capacity }} base
+                                            {% if room.extra_capacity > 0 %}
+                                            + {{ room.extra_capacity }} extra
+                                            {% endif %}
+                                        </span>
+                                        {% if room.extra_person_charges > 0 %}
+                                        <span class="extra-charge-badge" title="Extra person charge">
+                                            ₹{{ room.extra_person_charges }}/extra
+                                        </span>
+                                        {% endif %}
                                     </div>
                                 </td>
                                 <td>
@@ -377,7 +412,30 @@
                                         </a><br>
                                         <strong>Check-in:</strong> {{ room.current_booking.check_in|date:"M d, Y" }}<br>
                                         <strong>Check-out:</strong> {{ room.current_booking.check_out|date:"M d, Y" }}<br>
-                                        <strong>Total:</strong> ₹{{ room.current_booking.total_price }}
+                                        <strong>Guests:</strong> {{ room.current_booking.number_of_guests }}
+                                        {% if room.current_booking.extra_guests > 0 %}
+                                        <span class="extra-charge-badge">+{{ room.current_booking.extra_guests }} extra</span>
+                                        {% endif %}<br>
+                                        <div class="price-breakdown">
+                                            <div class="price-row">
+                                                <span>Base Price ({{ room.current_booking.nights }} night{{ room.current_booking.nights|pluralize }}):</span>
+                                                <span>₹{{ room.current_booking.base_price|floatformat:2 }}</span>
+                                            </div>
+                                            {% if room.current_booking.extra_guests > 0 %}
+                                            <div class="price-row">
+                                                <span>Extra Guests ({{ room.current_booking.extra_guests }} × ₹{{ room.extra_person_charges|floatformat:2 }}):</span>
+                                                <span>₹{{ room.current_booking.extra_guest_charges|floatformat:2 }}</span>
+                                            </div>
+                                            {% endif %}
+                                            <div class="price-row">
+                                                <span>GST ({{ room.gst_rate|floatformat:2 }}%):</span>
+                                                <span>₹{{ room.current_booking.gst_amount|floatformat:2 }}</span>
+                                            </div>
+                                            <div class="price-row font-weight-bold">
+                                                <span>Total:</span>
+                                                <span>₹{{ room.current_booking.total_price|floatformat:2 }}</span>
+                                            </div>
+                                        </div>
                                     </div>
                                     {% else %}
                                         {% if room.is_past_date %}
@@ -394,19 +452,28 @@
                                             data-room-id="{{ room.id }}"
                                             data-room-number="{{ room.room_number }}"
                                             data-room-type="{{ room.get_room_type_display }}"
-                                            data-room-price="{{ room.price_details.price_per_night }}"
+                                            data-room-price="{{ room.price }}"
+                                            data-room-discounted-price="{{ room.discounted_price_value }}"
+                                            data-room-discount="{{ room.discount }}"
+                                            data-room-saved-money="{{ room.saved_amount }}"
                                             data-room-status="{{ room.display_status }}"
                                             data-hotel-name="{{ room.hotel.name }}"
                                             data-hotel-location="{{ room.hotel.location }}"
                                             data-room-capacity="{{ room.capacity }}"
-                                            data-gst-rate="{{ room.hotel.gst_rate|default:'0.0' }}"
-                                            data-extra-person-charge="{{ room.price_details.extra_person_charge }}"
+                                            data-room-extra-capacity="{{ room.extra_capacity }}"
+                                            data-gst-rate="{{ room.gst_rate }}"
+                                            data-extra-person-charge="{{ room.extra_person_charges }}"
                                             {% if room.current_booking %}
                                             data-booking-id="{{ room.current_booking.id }}"
                                             data-guest-name="{{ room.current_booking.guest.get_full_name }}"
                                             data-check-in="{{ room.current_booking.check_in|date:'Y-m-d' }}"
                                             data-check-out="{{ room.current_booking.check_out|date:'Y-m-d' }}"
                                             data-total-price="{{ room.current_booking.total_price }}"
+                                            data-base-price="{{ room.current_booking.base_price }}"
+                                            data-extra-guests="{{ room.current_booking.extra_guests }}"
+                                            data-extra-guest-charges="{{ room.current_booking.extra_guest_charges }}"
+                                            data-gst-amount="{{ room.current_booking.gst_amount }}"
+                                            data-nights="{{ room.current_booking.nights }}"
                                             {% endif %}>
                                             <i class="fas fa-eye"></i> View
                                         </button>
@@ -417,10 +484,11 @@
                                                     data-room-number="{{ room.room_number }}"
                                                     data-room-type="{{ room.get_room_type_display }}"
                                                     data-room-price="{{ room.price }}"
+                                                    data-room-discounted-price="{{ room.discounted_price_value }}"
                                                     data-room-discount="{{ room.discount }}"
                                                     data-hotel-name="{{ room.hotel.name }}"
                                                     data-room-capacity="{{ room.capacity }}"
-                                                    data-extra-capacity="{{ room.extra_capacity }}"
+                                                    data-room-extra-capacity="{{ room.extra_capacity|default:'0' }}"
                                                     data-check-in="{{ selected_date|date:'Y-m-d' }}"
                                                     data-gst-rate="{{ room.gst_rate|default:'12.0' }}"
                                                     data-extra-person-charge="{{ room.extra_person_charges|default:'0.0' }}">
@@ -527,12 +595,20 @@
                                 <span id="modal-room-type"></span>
                             </li>
                             <li class="list-group-item d-flex justify-content-between align-items-center">
-                                <strong>Base Price:</strong>
+                                <strong>Original Price:</strong>
                                 <span id="modal-room-price"></span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <strong>Discounted Price:</strong>
+                                <span id="modal-room-discounted-price"></span>
                             </li>
                             <li class="list-group-item d-flex justify-content-between align-items-center">
                                 <strong>Discount:</strong>
                                 <span id="modal-room-discount"></span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <strong>Saved Amount:</strong>
+                                <span id="modal-room-saved-money"></span>
                             </li>
                             <li class="list-group-item d-flex justify-content-between align-items-center">
                                 <strong>GST Rate:</strong>
@@ -545,6 +621,10 @@
                             <li class="list-group-item d-flex justify-content-between align-items-center">
                                 <strong>Capacity:</strong>
                                 <span id="modal-room-capacity"></span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <strong>Extra Capacity:</strong>
+                                <span id="modal-room-extra-capacity"></span>
                             </li>
                             <li class="list-group-item d-flex justify-content-between align-items-center">
                                 <strong>Status:</strong>
@@ -572,8 +652,6 @@
     </div>
 </div>
 
-
-
 <!-- Booking Modal -->
 <div class="modal fade" id="bookingModal" tabindex="-1" aria-labelledby="bookingModalLabel" aria-hidden="true">
     <div class="modal-dialog booking-modal">
@@ -597,35 +675,14 @@
                         <label for="booking-room-type" class="form-label">Room Type:</label>
                         <input type="text" class="form-control" id="booking-room-type" name="room_type" readonly>
                     </div>
-                    
-                    <!-- Guest Capacity Information -->
-                    <div class="card mb-3">
-                        <div class="card-header bg-light">
-                            <i class="fas fa-users me-2"></i>Guest Capacity
-                        </div>
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between mb-2">
-                                <span>Base Capacity:</span>
-                                <strong id="booking-base-capacity"></strong>
-                            </div>
-                            <div class="d-flex justify-content-between mb-2">
-                                <span>Extra Capacity:</span>
-                                <strong id="booking-extra-capacity"></strong>
-                            </div>
-                            <div class="d-flex justify-content-between fw-bold">
-                                <span>Total Capacity:</span>
-                                <strong id="booking-total-capacity"></strong>
-                            </div>
-                        </div>
-                    </div>
-                    
                     <div class="form-group mb-3">
                         <label for="booking-username" class="form-label">Username:</label>
                         <input type="text" class="form-control" id="booking-username" name="username" readonly value="{{ request.user.username }}">
                     </div>
                     <div class="form-group mb-3">
-                        <label for="booking-person" class="form-label">Number of Guests (Max: <span id="booking-max-capacity"></span>):</label>
-                        <input type="number" class="form-control" id="booking-person" name="person" min="1" required>
+                        <label for="booking-person" class="form-label">Guests (Max: <span id="booking-max-capacity"></span>):</label>
+                        <input type="number" class="form-control" id="booking-person" name="person" min="1" max="5" value="1" required>
+                        <small class="form-text text-muted" id="booking-capacity-info"></small>
                     </div>
                     <div class="row mb-3">
                         <div class="col-md-6">
@@ -640,24 +697,24 @@
                     <div class="form-group mb-3">
                         <label class="form-label">Price Breakdown:</label>
                         <div class="price-breakdown" id="booking-price-breakdown">
-                            <div class="d-flex justify-content-between">
+                            <div class="price-row">
                                 <span>Base Price <span id="booking-room-info"></span>:</span>
                                 <span id="booking-base-price">₹0.00</span>
                             </div>
-                            <div class="d-flex justify-content-between" id="booking-discount-row">
+                            <div class="price-row" id="booking-discount-row">
                                 <span>Discount (<span id="booking-discount-rate"></span>%):</span>
                                 <span id="booking-discount-amount">₹0.00</span>
                             </div>
-                            <div class="d-flex justify-content-between" id="booking-extra-person-row">
-                                <span>Extra Person Charge (<span id="booking-extra-person-count">0</span> × ₹<span id="booking-extra-person-rate">0.00</span> × <span id="booking-extra-person-nights">0</span> nights):</span>
+                            <div class="price-row" id="booking-extra-person-row" style="display:none">
+                                <span>Extra Guest Charges:</span>
                                 <span id="booking-extra-person-amount">₹0.00</span>
                             </div>
-                            <div class="d-flex justify-content-between" id="booking-gst-row">
+                            <div class="price-row" id="booking-gst-row">
                                 <span>GST (<span id="booking-gst-rate"></span>%):</span>
                                 <span id="booking-gst-amount">₹0.00</span>
                             </div>
                             <hr>
-                            <div class="d-flex justify-content-between fw-bold">
+                            <div class="price-row fw-bold">
                                 <span>Total Amount:</span>
                                 <span id="booking-total-price">₹0.00</span>
                             </div>
@@ -788,20 +845,28 @@ $(document).ready(function() {
         const roomNumber = $(this).data('room-number');
         const roomType = $(this).data('room-type');
         const roomPrice = $(this).data('room-price');
+        const roomDiscountedPrice = $(this).data('room-discounted-price');
+        const roomDiscount = $(this).data('room-discount');
+        const roomSavedMoney = $(this).data('room-saved-money');
         const roomStatus = $(this).data('room-status');
         const bookingId = $(this).data('booking-id');
         const hotelName = $(this).data('hotel-name');
         const gstRate = $(this).data('gst-rate');
         const extraPersonCharge = $(this).data('extra-person-charge');
         const roomCapacity = $(this).data('room-capacity');
+        const roomExtraCapacity = $(this).data('room-extra-capacity');
 
         // Set room information
         $('#modal-room-number').text(roomNumber || 'N/A');
         $('#modal-room-type').text(roomType || 'N/A');
-        $('#modal-room-price').text(roomPrice ? '₹' + roomPrice : 'N/A');
+        $('#modal-room-price').text(roomPrice ? '₹' + parseFloat(roomPrice).toFixed(2) : 'N/A');
+        $('#modal-room-discounted-price').text(roomDiscountedPrice ? '₹' + parseFloat(roomDiscountedPrice).toFixed(2) : 'N/A');
+        $('#modal-room-discount').text(roomDiscount ? roomDiscount + '%' : 'N/A');
+        $('#modal-room-saved-money').text(roomSavedMoney ? '₹' + parseFloat(roomSavedMoney).toFixed(2) : 'N/A');
         $('#modal-gst-rate').text(gstRate ? gstRate + '%' : 'N/A');
-        $('#modal-extra-person-charge').text(extraPersonCharge ? '₹' + extraPersonCharge : 'N/A');
+        $('#modal-extra-person-charge').text(extraPersonCharge ? '₹' + parseFloat(extraPersonCharge).toFixed(2) : 'N/A');
         $('#modal-room-capacity').text(roomCapacity || 'N/A');
+        $('#modal-room-extra-capacity').text(roomExtraCapacity || '0');
         $('#modal-hotel-name').text(hotelName || 'N/A');
         
         // Set status with appropriate badge
@@ -821,8 +886,13 @@ $(document).ready(function() {
             const checkIn = $(this).data('check-in');
             const checkOut = $(this).data('check-out');
             const totalPrice = $(this).data('total-price');
+            const basePrice = $(this).data('base-price');
+            const extraGuests = $(this).data('extra-guests');
+            const extraGuestCharges = $(this).data('extra-guest-charges');
+            const gstAmount = $(this).data('gst-amount');
+            const nights = $(this).data('nights');
             
-            const bookingHtml = `
+            let bookingHtml = `
                 <ul class="list-group list-group-flush">
                     <li class="list-group-item d-flex justify-content-between align-items-center">
                         <strong>Guest Name:</strong>
@@ -837,8 +907,31 @@ $(document).ready(function() {
                         <span>${checkOut || 'N/A'}</span>
                     </li>
                     <li class="list-group-item d-flex justify-content-between align-items-center">
-                        <strong>Total Price:</strong>
-                        <span>${totalPrice ? '₹' + parseFloat(totalPrice).toFixed(2) : 'N/A'}</span>
+                        <strong>Price Breakdown:</strong>
+                        <div class="price-breakdown">
+                            <div class="price-row">
+                                <span>Base Price (${nights} night${nights > 1 ? 's' : ''}):</span>
+                                <span>₹${parseFloat(basePrice).toFixed(2)}</span>
+                            </div>
+            `;
+            if (extraGuests > 0) {
+                bookingHtml += `
+                            <div class="price-row">
+                                <span>Extra Guests (${extraGuests} × ₹${parseFloat(extraPersonCharge).toFixed(2)}):</span>
+                                <span>₹${parseFloat(extraGuestCharges).toFixed(2)}</span>
+                            </div>
+                `;
+            }
+            bookingHtml += `
+                            <div class="price-row">
+                                <span>GST (${gstRate}%):</span>
+                                <span>₹${parseFloat(gstAmount).toFixed(2)}</span>
+                            </div>
+                            <div class="price-row font-weight-bold">
+                                <span>Total:</span>
+                                <span>₹${parseFloat(totalPrice).toFixed(2)}</span>
+                            </div>
+                        </div>
                     </li>
                 </ul>
             `;
@@ -850,46 +943,53 @@ $(document).ready(function() {
         // Show the modal
         $('#roomModal').modal('show');
     });
-    // Handle book now button
+
     // Handle book now button
     $('.book-now').click(function() {
         const roomId = $(this).data('room-id');
         const roomNumber = $(this).data('room-number');
         const roomType = $(this).data('room-type');
         const roomPrice = parseFloat($(this).data('room-price') || 0);
+        const roomDiscountedPrice = parseFloat($(this).data('room-discounted-price') || 0);
         const roomDiscount = parseFloat($(this).data('room-discount') || 0);
         const hotelName = $(this).data('hotel-name');
         const roomCapacity = parseInt($(this).data('room-capacity') || 1);
-        const extraCapacity = parseInt($(this).data('extra-capacity') || 0);
+        const roomExtraCapacity = parseInt($(this).data('room-extra-capacity') || 0);
         const checkIn = $(this).data('check-in');
         const gstRate = parseFloat($(this).data('gst-rate') || 12.0);
         const extraPersonCharge = parseFloat($(this).data('extra-person-charge') || 0);
+
+        // Calculate max guests (min of total capacity and 5)
+        const totalCapacity = Math.min(roomCapacity + roomExtraCapacity, 5);
 
         // Populate booking modal
         $('#booking-room-id').val(roomId);
         $('#booking-hotel').val(hotelName || '');
         $('#booking-room-number').val(roomNumber || '');
         $('#booking-room-type').val(roomType || '');
-        
-        // Set capacity information
-        $('#booking-base-capacity').text(roomCapacity);
-        $('#booking-extra-capacity').text(extraCapacity);
-        $('#booking-total-capacity').text(roomCapacity + extraCapacity);
-        $('#booking-max-capacity').text(roomCapacity + extraCapacity);
-        
+        $('#booking-max-capacity').text(totalCapacity);
         $('#booking-person').attr({
-            'max': roomCapacity + extraCapacity,
+            'max': totalCapacity,
             'value': 1
         });
-        
         $('#booking-check-in').val(checkIn).attr('min', '{{ current_date|date:"Y-m-d" }}');
         $('#booking-check-out').val('').attr('min', moment(checkIn).add(1, 'days').format('YYYY-MM-DD'));
         $('#booking-gst-rate').text(gstRate.toFixed(2));
         $('#booking-discount-rate').text(roomDiscount.toFixed(2));
-        $('#booking-extra-person-rate').text(extraPersonCharge.toFixed(2));
+
+        // Update capacity info
+        let capacityInfo = `Max ${totalCapacity} guests (${roomCapacity} base`;
+        if (roomExtraCapacity > 0) {
+            capacityInfo += ` + ${roomExtraCapacity} extra`;
+            if (extraPersonCharge > 0) {
+                capacityInfo += ` at ₹${extraPersonCharge.toFixed(2)} per extra guest`;
+            }
+        }
+        capacityInfo += ')';
+        $('#booking-capacity-info').text(capacityInfo);
 
         // Initialize price breakdown
-        updateBookingPrice(roomPrice, roomDiscount, gstRate, extraPersonCharge);
+        updateBookingPrice(roomDiscountedPrice, roomDiscount, gstRate, extraPersonCharge, roomCapacity);
 
         // Show booking modal
         $('#bookingModal').modal('show');
@@ -897,76 +997,28 @@ $(document).ready(function() {
 
     // Update price breakdown on input change
     $('#booking-check-in, #booking-check-out, #booking-person').change(function() {
-        const roomPrice = parseFloat($('.book-now:visible').data('room-price') || 0);
+        const roomDiscountedPrice = parseFloat($('.book-now:visible').data('room-discounted-price') || 0);
         const roomDiscount = parseFloat($('.book-now').data('room-discount') || 0);
         const gstRate = parseFloat($('.book-now').data('gst-rate') || 12.0);
         const extraPersonCharge = parseFloat($('.book-now').data('extra-person-charge') || 0);
-        updateBookingPrice(roomPrice, roomDiscount, gstRate, extraPersonCharge);
+        const roomCapacity = parseInt($('.book-now').data('room-capacity') || 1);
+        updateBookingPrice(roomDiscountedPrice, roomDiscount, gstRate, extraPersonCharge, roomCapacity);
     });
 
-    function updateBookingPrice(roomPrice, roomDiscount, gstRate, extraPersonCharge) {
+    function updateBookingPrice(roomPrice, roomDiscount, gstRate, extraPersonCharge, roomCapacity) {
         const checkIn = $('#booking-check-in').val();
         const checkOut = $('#booking-check-out').val();
-        const guests = parseInt($('#booking-person').val() || 1);
-        const roomCapacity = parseInt($('#booking-base-capacity').text() || 1);
-        let basePrice = 0;
-        let discountAmount = 0;
-        let extraPersonAmount = 0;
-        let gstAmount = 0;
-        let totalPrice = 0;
-        let stayDays = 0;
-
-        if (checkIn && checkOut) {
-            const start = new Date(checkIn);
-            const end = new Date(checkOut);
-            stayDays = Math.max(1, Math.floor((end - start) / (1000 * 60 * 60 * 24)));
-            
-            // Calculate base price before discount
-            const originalPrice = roomPrice * stayDays;
-            // Apply discount
-            discountAmount = originalPrice * (roomDiscount / 100);
-            basePrice = originalPrice - discountAmount;
-            
-            // Calculate extra persons and charges
-            const extraPersons = Math.max(0, guests - roomCapacity);
-            $('#booking-extra-person-count').text(extraPersons);
-            $('#booking-extra-person-nights').text(stayDays);
-            
-            // Add extra person charges if applicable
-            if (extraPersons > 0 && extraPersonCharge > 0) {
-                extraPersonAmount = extraPersonCharge * extraPersons * stayDays;
-                basePrice += extraPersonAmount;
-            }
-            
-            // Calculate GST amount
-            gstAmount = basePrice * (gstRate / 100);
-            totalPrice = basePrice + gstAmount;
-
-            $('#booking-room-info').text(`(${stayDays} night${stayDays > 1 ? 's' : ''} × ₹${roomPrice.toFixed(2)})`);
-        } else {
-            $('#booking-room-info').text('');
+        let guests = parseInt($('#booking-person').val() || 1);
+        
+        // Enforce guest count between 1 and 5
+        if (guests < 1) {
+            guests = 1;
+            $('#booking-person').val(1);
+        } else if (guests > 5) {
+            guests = 5;
+            $('#booking-person').val(5);
         }
 
-        $('#booking-base-price').text(`₹${basePrice.toFixed(2)}`);
-        $('#booking-discount-amount').text(`₹${discountAmount.toFixed(2)}`);
-        $('#booking-extra-person-amount').text(`₹${extraPersonAmount.toFixed(2)}`);
-        $('#booking-gst-amount').text(`₹${gstAmount.toFixed(2)}`);
-        $('#booking-total-price').text(`₹${totalPrice.toFixed(2)}`);
-    }
-
-    // Update price breakdown on input change
-    $('#booking-check-in, #booking-check-out, #booking-person').change(function() {
-        const roomPrice = parseFloat($('.book-now:visible').data('room-price') || 0);
-        const roomDiscount = parseFloat($('.book-now').data('room-discount') || 0);
-        const gstRate = parseFloat($('.book-now').data('gst-rate') || 12.0);
-        const extraPersonCharge = parseFloat($('.book-now').data('extra-person-charge') || 0);
-        updateBookingPrice(roomPrice, roomDiscount, gstRate, extraPersonCharge);
-    });
-
-    function updateBookingPrice(roomPrice, roomDiscount, gstRate, extraPersonCharge) {
-        const checkIn = $('#booking-check-in').val();
-        const checkOut = $('#booking-check-out').val();
-        const guests = parseInt($('#booking-person').val() || 1);
         let basePrice = 0;
         let discountAmount = 0;
         let extraPersonAmount = 0;
@@ -979,21 +1031,27 @@ $(document).ready(function() {
             const end = new Date(checkOut);
             stayDays = Math.max(1, Math.floor((end - start) / (1000 * 60 * 60 * 24)));
             
-            // Calculate base price before discount
-            const originalPrice = roomPrice * stayDays;
-            // Apply discount
-            discountAmount = originalPrice * (roomDiscount / 100);
-            basePrice = originalPrice - discountAmount;
+            // Calculate base price (already discounted in roomDiscountedPrice)
+            basePrice = roomPrice * stayDays;
+            
+            // Original price before discount for discount amount calculation
+            const originalPrice = roomPrice / (1 - (roomDiscount / 100));
+            discountAmount = (originalPrice - roomPrice) * stayDays;
             
             // Add extra person charges
-            if (guests > 1 && extraPersonCharge > 0) {
-                extraPersonAmount = extraPersonCharge * (guests - 1);
-                basePrice += extraPersonAmount;
+            if (guests > roomCapacity && extraPersonCharge > 0) {
+                extraPersonAmount = extraPersonCharge * (guests - roomCapacity) * stayDays;
+                $('#booking-extra-person-row').show();
+                $('#booking-extra-person-amount').text(`₹${extraPersonAmount.toFixed(2)}`);
+            } else {
+                $('#booking-extra-person-row').hide();
+                $('#booking-extra-person-amount').text('₹0.00');
             }
             
             // Calculate GST amount
-            gstAmount = basePrice * (gstRate / 100);
-            totalPrice = basePrice + gstAmount;
+            const subtotal = basePrice + extraPersonAmount;
+            gstAmount = subtotal * (gstRate / 100);
+            totalPrice = subtotal + gstAmount;
 
             $('#booking-room-info').text(`(${stayDays} night${stayDays > 1 ? 's' : ''} × ₹${roomPrice.toFixed(2)})`);
         } else {
@@ -1002,7 +1060,6 @@ $(document).ready(function() {
 
         $('#booking-base-price').text(`₹${basePrice.toFixed(2)}`);
         $('#booking-discount-amount').text(`₹${discountAmount.toFixed(2)}`);
-        $('#booking-extra-person-amount').text(`₹${extraPersonAmount.toFixed(2)}`);
         $('#booking-gst-amount').text(`₹${gstAmount.toFixed(2)}`);
         $('#booking-total-price').text(`₹${totalPrice.toFixed(2)}`);
     }
