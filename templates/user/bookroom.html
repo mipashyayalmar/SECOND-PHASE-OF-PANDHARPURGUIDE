@@ -339,14 +339,14 @@
                     </p>
                 </div>
                 <div>
-                    {% if user.is_authenticated %}
-                    <button class="continue-button">Continue to Book</button>
-                    {% else %}
-                    <a href="{% url 'user:signin' %}" class="login">
-                        <button class="continue-button-login">Continue to Book</button>
-                    </a>
-                    {% endif %}
-                </div>
+    {% if user.is_authenticated %}
+        <button class="continue-button">Continue to Book</button>
+    {% else %}
+        <a href="{% url 'user:signin' %}?next={{ request.get_full_path|urlencode }}" class="login">
+            <button class="continue-button-login">Continue to Book</button>
+        </a>
+    {% endif %}
+</div>
             </div>
         </div>
         
@@ -659,23 +659,23 @@
                                 <span>₹{{ extra_person_charges|floatformat:2 }}</span>
                             </div>
                             {% endif %}
-            <!-- GST (only shown if applicable) -->
-            {% if has_gst %}
-            <div class="d-flex justify-content-between">
-                <span>GST ({{ gst_percentage|floatformat:2 }}%):</span>
-                <span>₹{{ gst_amount|floatformat:2 }}</span>
-            </div>
-            {% endif %}
-            
-            <hr>
-            
-            <!-- Total Price -->
-            <div class="d-flex justify-content-between fw-bold">
-                <span>Total Amount:</span>
-                <span>₹{{ total_price|floatformat:2 }}</span>
-            </div>
-        </div>
-    </div>
+                                    <!-- GST (only shown if applicable) -->
+                                    {% if has_gst %}
+                                    <div class="d-flex justify-content-between">
+                                        <span>GST ({{ gst_percentage|floatformat:2 }}%):</span>
+                                        <span>₹{{ gst_amount|floatformat:2 }}</span>
+                                    </div>
+                                    {% endif %}
+                                    
+                                    <hr>
+                                    
+                                    <!-- Total Price -->
+                                    <div class="d-flex justify-content-between fw-bold">
+                                        <span>Total Amount:</span>
+                                        <span>₹{{ total_price|floatformat:2 }}</span>
+                                    </div>
+                                </div>
+                            </div>
                             </div>
                             
                             <div class="d-grid gap-2">

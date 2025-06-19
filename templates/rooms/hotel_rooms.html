@@ -1112,7 +1112,7 @@
                 <div class="room-actions">
                     <a href="{% url 'bookroompage' %}?roomid={{ room.id }}&cin={{ check_in|urlencode }}&cout={{ check_out|urlencode }}" 
                        class="btn btn-primary book-btn">
-                        Book Now
+                       View Room Details
                     </a>
                     {% if room.id in recently_cancelled_room_ids %}
                     <div class="recently-available-badge">

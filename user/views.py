@@ -275,17 +275,30 @@ def signup(request):
 
     return render(request, 'user_login/signup.html')
 
+
 from django.shortcuts import render, redirect
 from django.contrib.auth import authenticate, login
 from django.contrib import messages
 from django.utils import timezone
 import pytz
 from django.contrib.auth.models import User
+from urllib.parse import urlparse
+
+# Custom function to validate redirect URL
+def is_safe_redirect_url(url, allowed_hosts):
+    if not url:
+        return False
+    # Ensure the URL is relative (starts with '/') or belongs to allowed hosts
+    parsed_url = urlparse(url)
+    if not parsed_url.netloc:  # Relative URL (no netloc, e.g., /path/to/page)
+        return url.startswith('/')
+    # For absolute URLs, check if the host is in allowed_hosts
+    return parsed_url.netloc in allowed_hosts
 
 # User Signin
 def signin(request):
     if request.user.is_authenticated and request.user.is_active:
-        return redirect('/')
+        return redirect('/')  # Redirect authenticated users to homepage
 
     if request.method == 'POST':
         username = request.POST['username']
@@ -307,20 +320,55 @@ def signin(request):
 
             ist = pytz.timezone('Asia/Kolkata')
             signin_time = timezone.now().astimezone(ist).strftime('%Y-%m-%d %H:%M:%S')
-
             messages.success(request, f'Signin successful at {signin_time}')
+
+            # Check if all required profile fields are filled
+            required_fields_filled = all([
+                getattr(authenticated_user, 'name', None),
+                getattr(authenticated_user, 'phone', None),
+                getattr(authenticated_user, 'email', None),
+                getattr(authenticated_user, 'aadhar_image', None),
+                getattr(authenticated_user, 'profile_image', None),
+                getattr(authenticated_user, 'pancard_image', None)
+            ])
+
+            # Determine redirect URL: check POST, GET, or session for 'next'
+            next_url = request.POST.get('next', request.GET.get('next', request.session.get('next', None)))
 
             if hasattr(authenticated_user, 'is_maintainer') and authenticated_user.is_maintainer:
                 # Assuming is_maintainer is a custom field in the User model
                 return redirect('maintainer_panel')  # Redirect maintainer to maintainer_panel
             elif authenticated_user.is_staff:
                 return redirect('staffpanel')  
-            else:
-                return redirect('myapp:home')  # Redirect regular user to home page
-        
-        return render(request, 'user_login/signin.html', {'message': 'Incorrect username or password'})
 
-    return render(request, 'user_login/signin.html')
+            elif not required_fields_filled:
+                # Store next_url in session and redirect to profile edit
+                if next_url:
+                    request.session['next'] = next_url
+                messages.info(request, "Please complete your profile to continue.")
+                return redirect('user:user_profile')  # Corrected to 'user:user_profile'
+
+            # If all fields are filled, redirect to next_url or default based on user type
+            if next_url and is_safe_redirect_url(next_url, allowed_hosts={request.get_host()}):
+                # Clean up session
+                if 'next' in request.session:
+                    del request.session['next']
+                return redirect(next_url)
+            else:
+                # Default redirects based on user type
+                if hasattr(authenticated_user, 'is_maintainer') and authenticated_user.is_maintainer:
+                    return redirect('maintainer_panel')  # Redirect maintainer to maintainer_panel
+                elif authenticated_user.is_staff:
+                    return redirect('staffpanel')  # Redirect staff to staff panel
+                else:
+                    return redirect('myapp:home')  # Redirect regular user to home page
+        
+        return render(request, 'user_login/signin.html', {'message': 'Incorrect username or password', 'next': request.POST.get('next', request.GET.get('next', ''))})
+
+    # Pass the 'next' parameter to the template for GET requests
+    return render(request, 'user_login/signin.html', {'next': request.GET.get('next', '')})
+
+
 
 
 from django.contrib.auth.decorators import login_required
@@ -366,8 +414,29 @@ def user_profile(request):
 
 
 
+from django.shortcuts import render, redirect
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required
+from django.core.exceptions import ValidationError
+from django.core.validators import validate_email
+from allauth.socialaccount.models import SocialAccount
+from urllib.parse import urlparse
+import logging
+
 # Set up logging
 logger = logging.getLogger(__name__)
+
+# Custom function to validate redirect URL
+def is_safe_redirect_url(url, allowed_hosts):
+    if not url:
+        return False
+    # Ensure the URL is relative (starts with '/') or belongs to allowed hosts
+    parsed_url = urlparse(url)
+    if not parsed_url.netloc:  # Relative URL (no netloc, e.g., /path/to/page)
+        return url.startswith('/')
+    # For absolute URLs, check if the host is in allowed_hosts
+    return parsed_url.netloc in allowed_hosts
+
 @login_required(login_url='/')
 def user_profile_edit(request):
     if not request.user.is_authenticated:
@@ -417,15 +486,21 @@ def user_profile_edit(request):
 
     # Check if all required fields are already filled
     required_fields_filled = all([
-        user.name,
-        user.phone,
-        user.email,
-        user.aadhar_image,
-        user.profile_image,
-        user.pancard_image
+        getattr(user, 'name', None),
+        getattr(user, 'phone', None),
+        getattr(user, 'email', None),
+        getattr(user, 'aadhar_image', None),
+        getattr(user, 'profile_image', None),
+        getattr(user, 'pancard_image', None)
     ])
     
     if required_fields_filled and request.method != 'POST':
+        # If all fields are filled, redirect to 'next' URL if provided
+        next_url = request.GET.get('next', request.session.get('next', None))
+        if next_url and is_safe_redirect_url(next_url, allowed_hosts={request.get_host()}):
+            if 'next' in request.session:
+                del request.session['next']
+            return redirect(next_url)
         return redirect('myapp:home')
 
     if request.method == 'POST':
@@ -438,7 +513,8 @@ def user_profile_edit(request):
             messages.error(request, "Email is required.")
             return render(request, 'user_login/user_profile_edit.html', {
                 'user': user,
-                'social_data': social_data
+                'social_data': social_data,
+                'next': request.POST.get('next', request.GET.get('next', ''))
             })
 
         # Validate email format
@@ -448,7 +524,8 @@ def user_profile_edit(request):
             messages.error(request, "Invalid email format.")
             return render(request, 'user_login/user_profile_edit.html', {
                 'user': user,
-                'social_data': social_data
+                'social_data': social_data,
+                'next': request.POST.get('next', request.GET.get('next', ''))
             })
 
         # Check for email uniqueness (excluding current user)
@@ -456,7 +533,8 @@ def user_profile_edit(request):
             messages.error(request, "This email is already in use.")
             return render(request, 'user_login/user_profile_edit.html', {
                 'user': user,
-                'social_data': social_data
+                'social_data': social_data,
+                'next': request.POST.get('next', request.GET.get('next', ''))
             })
 
         # Update user fields
@@ -471,7 +549,8 @@ def user_profile_edit(request):
                 messages.error(request, "Profile image must be a valid image file.")
                 return render(request, 'user_login/user_profile_edit.html', {
                     'user': user,
-                    'social_data': social_data
+                    'social_data': social_data,
+                    'next': request.POST.get('next', request.GET.get('next', ''))
                 })
             user.profile_image = profile_image
             logger.info(f"Profile image uploaded: {user.profile_image}")
@@ -482,7 +561,8 @@ def user_profile_edit(request):
                 messages.error(request, "Aadhar image must be a valid image file.")
                 return render(request, 'user_login/user_profile_edit.html', {
                     'user': user,
-                    'social_data': social_data
+                    'social_data': social_data,
+                    'next': request.POST.get('next', request.GET.get('next', ''))
                 })
             user.aadhar_image = aadhar_image
             logger.info(f"Aadhar image uploaded: {user.aadhar_image}")
@@ -493,7 +573,8 @@ def user_profile_edit(request):
                 messages.error(request, "Pancard image must be a valid image file.")
                 return render(request, 'user_login/user_profile_edit.html', {
                     'user': user,
-                    'social_data': social_data
+                    'social_data': social_data,
+                    'next': request.POST.get('next', request.GET.get('next', ''))
                 })
             user.pancard_image = pancard_image
             logger.info(f"Pancard image uploaded: {user.pancard_image}")
@@ -504,13 +585,19 @@ def user_profile_edit(request):
             
             # Check again if all required fields are filled after update
             if all([
-                user.name,
-                user.phone,
-                user.email,
-                user.aadhar_image,
-                user.profile_image,
-                user.pancard_image
+                getattr(user, 'name', None),
+                getattr(user, 'phone', None),
+                getattr(user, 'email', None),
+                getattr(user, 'aadhar_image', None),
+                getattr(user, 'profile_image', None),
+                getattr(user, 'pancard_image', None)
             ]):
+                # Redirect to 'next' URL if provided
+                next_url = request.POST.get('next', request.GET.get('next', request.session.get('next', None)))
+                if next_url and is_safe_redirect_url(next_url, allowed_hosts={request.get_host()}):
+                    if 'next' in request.session:
+                        del request.session['next']
+                    return redirect(next_url)
                 return redirect('myapp:home')
             else:
                 return redirect('user:user_profile')
@@ -520,15 +607,15 @@ def user_profile_edit(request):
             messages.error(request, "An error occurred while updating your profile.")
             return render(request, 'user_login/user_profile_edit.html', {
                 'user': user,
-                'social_data': social_data
+                'social_data': social_data,
+                'next': request.POST.get('next', request.GET.get('next', ''))
             })
 
     return render(request, 'user_login/user_profile_edit.html', {
         'user': user,
-        'social_data': social_data
+        'social_data': social_data,
+        'next': request.GET.get('next', '')
     })
-
-
 
 
 # Set up logging

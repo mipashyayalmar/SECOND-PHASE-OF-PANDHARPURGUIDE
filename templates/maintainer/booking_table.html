@@ -207,12 +207,12 @@
                 <td>{{ booking.check_in|date:"M d, Y" }}</td>
                 <td>{{ booking.check_out|date:"M d, Y" }}</td>
                 <td>{{ booking.nights }}</td>
-<td>
-    {{ booking.number_of_guests }}
-    {% if booking.extra_persons > 0 %}
-    <br><small class="text-muted">(+{{ booking.extra_persons }})</small>
-    {% endif %}
-</td>
+                <td>
+                    {{ booking.number_of_guests }}
+                    {% if booking.extra_persons > 0 %}
+                    <br><small class="text-muted">(+{{ booking.extra_persons }})</small>
+                    {% endif %}
+                </td>
                 <td>₹{{ booking.base_price|floatformat:2 }}</td>
                 <td>
                     {% if booking.extra_persons > 0 %}
