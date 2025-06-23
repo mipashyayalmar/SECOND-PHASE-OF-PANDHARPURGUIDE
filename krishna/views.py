@@ -1283,7 +1283,6 @@ def hotel_staff_panel(request):
     
 
 
-
 from django.db.models import Q
 from decimal import Decimal
 from datetime import datetime, timedelta
@@ -1296,21 +1295,6 @@ from .models import Hotels, Rooms, Reservation
 
 @login_required(login_url='user:signin')
 def rooms_status(request):
-    """
-    Displays the rooms status dashboard with filtering capabilities and handles direct room booking.
-    Shows detailed pricing information including base price, discount, extra person charges, and GST.
-    Includes all bookings (past, current, and future) for the bookings section.
-    Guest count is restricted to 1-5, with extra person charges applied for guests beyond base capacity.
-    """
-    if not hasattr(request.user, 'hotel_staff_profile'):
-        return render(request, 'hotel_staff/panel.html', {
-            'error_title': 'Access Denied',
-            'error_message': 'This page is only accessible to hotel staff members.',
-            'current_date': datetime.now().date(),
-            'tomorrow_date': (datetime.now().date() + timedelta(days=1))
-        }, status=403)
-    
-    try:
         staff = request.user.hotel_staff_profile
         assigned_hotels = Hotels.objects.filter(assigned_staff=staff)
         
@@ -1326,8 +1310,19 @@ def rooms_status(request):
                 check_out_str = request.POST.get('check_out')
                 person = request.POST.get('person')
                 
-                if not all([room_id, check_in_str, check_out_str, person]):
-                    messages.error(request, 'All fields are required.')
+                # Specific error messages for missing fields
+                missing_fields = []
+                if not room_id:
+                    missing_fields.append('Room ID')
+                if not check_in_str:
+                    missing_fields.append('Check-in date')
+                if not check_out_str:
+                    missing_fields.append('Check-out date')
+                if not person:
+                    missing_fields.append('Number of guests')
+                
+                if missing_fields:
+                    messages.error(request, f'Missing required fields: {", ".join(missing_fields)}.')
                     return redirect(request.get_full_path())
                 
                 room = Rooms.objects.get(id=int(room_id))
@@ -1349,11 +1344,13 @@ def rooms_status(request):
                     return redirect(request.get_full_path())
                 
                 # Validate guest count
+                # In your views.py, modify the person validation section:
+                # Validate guest count
                 person = int(person)
-                if person < 1 or person > 5:
-                    messages.error(request, 'Guest count must be between 1 and 5.')
+                if person < 1:
+                    messages.error(request, 'At least 1 guest is required.')
                     return redirect(request.get_full_path())
-                
+
                 # Check if guest count exceeds total capacity
                 total_capacity = room.total_capacity()
                 if person > total_capacity:
@@ -1363,19 +1360,15 @@ def rooms_status(request):
                         f"Please select a different room or reduce your guest count."
                     )
                     return redirect(request.get_full_path())
-                
-                # Check room availability
-                conflicting_bookings = Reservation.objects.filter(
-                    room=room,
-                    check_in__lt=check_out,
-                    check_out__gt=check_in,
-                    is_cancelled=False
-                ).exists()
-                
-                if conflicting_bookings or room.status == '2':
-                    messages.error(request, 'Room is not available for the selected dates.')
+
+                # Check if extra guests exceed extra capacity
+                extra_guests = max(0, person - room.capacity)
+                if extra_guests > room.extra_capacity:
+                    messages.error(request,
+                        f"This room allows maximum {room.extra_capacity} extra guests "
+                        f"(base {room.capacity}). You're trying to add {extra_guests} extras."
+                    )
                     return redirect(request.get_full_path())
-                
                 # Create reservation
                 reservation = Reservation(
                     room=room,
@@ -1493,22 +1486,10 @@ def rooms_status(request):
         }
 
         return render(request, 'hotel_staff/rooms_status.html', context)
-        
-    except Exception as e:
-        return render(request, 'hotel_staff/rooms_status.html', {
-            'error_title': 'An Error Occurred',
-            'error_message': f'An unexpected error occurred: {str(e)}',
-            'current_date': datetime.now().date(),
-            'tomorrow_date': (datetime.now().date() + timedelta(days=1))
-        }, status=500)
+
 @login_required
 @require_POST
 def update_room_status(request, room_id):
-    """
-    AJAX view to update room status (Available/Unavailable).
-    Validates staff permission and ensures no booking conflicts.
-    """
-    try:
         room = Rooms.objects.get(id=room_id)
         if not Hotels.objects.filter(assigned_staff=request.user.hotel_staff_profile, id=room.hotel.id).exists():
             return JsonResponse({'error': 'Permission denied'}, status=403)
@@ -1540,13 +1521,6 @@ def update_room_status(request, room_id):
             'success': True,
             'new_status': 'Available' if new_status == '1' else 'Unavailable'
         })
-            
-    except Rooms.DoesNotExist:
-        return JsonResponse({'error': 'Room not found'}, status=404)
-    except Exception as e:
-        return JsonResponse({'error': str(e)}, status=500)
-
-
 
 
 from django.shortcuts import render, redirect
