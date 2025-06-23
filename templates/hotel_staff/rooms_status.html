@@ -3,6 +3,7 @@
 
 {% block content %}
 <style>
+    /* Same CSS as previous artifact e2430bcc-f054-4586-ade0-12a55fa7ed6b */
     a { text-decoration: none; }
     :root {
         --available: #10B981;
@@ -11,169 +12,38 @@
         --primary: #1E3A8A;
         --past: #6B7280;
     }
-
-    .room-container {
-        width: 100%;
-        margin: 0 auto;
-        padding: 20px;
-    }
-    
-    .room-card {
-        background-color: white;
-        border-radius: 10px;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        padding: 20px;
-        margin-bottom: 20px;
-    }
-    
-    .room-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 20px;
-    }
-    
-    .room-title {
-        font-size: 1.5rem;
-        font-weight: bold;
-        color: #333;
-    }
-    
-    .room-date {
-        color: #666;
-        font-size: 0.9rem;
-    }
-    
-    .filter-section {
-        background-color: #f8f9fa;
-        border-radius: 8px;
-        padding: 15px;
-        margin-bottom: 20px;
-    }
-    
-    .filter-form {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-        gap: 15px;
-    }
-    
-    .form-group {
-        margin-bottom: 0;
-    }
-    
-    .form-control {
-        width: 100%;
-    }
-    
-    .fc-event-available {
-        background-color: var(--available);
-        border-color: var(--available);
-        color: white;
-    }
-    
-    .fc-event-booked {
-        background-color: var(--booked);
-        border-color: var(--booked);
-        color: white;
-    }
-    
-    .fc-event-unavailable {
-        background-color: var(--unavailable);
-        border-color: var(--unavailable);
-        color: white;
-    }
-
-    #roomCalendar {
-        max-width: 100%;
-        margin: 0 auto;
-        transition: all 0.3s ease;
-    }
-
-    .calendar-fullscreen {
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        z-index: 1000;
-        background: white;
-        padding: 1rem;
-    }
-
-    .room-popup {
-        position: fixed;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        background: white;
-        padding: 20px;
-        border-radius: 8px;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.2);
-        z-index: 1001;
-        max-width: 90%;
-        width: 400px;
-    }
-
-    .room-popup .close-btn {
-        position: absolute;
-        top: 10px;
-        right: 10px;
-        cursor: pointer;
-        font-size: 1.5rem;
-        color: #666;
-    }
-
-    .booking-modal .modal-dialog {
-        max-width: 600px;
-    }
-
-    .price-breakdown {
-        background-color: #f8f9fa;
-        padding: 10px;
-        border-radius: 4px;
-    }
-
-    .price-details {
-        font-size: 0.85rem;
-        color: #6c757d;
-    }
-
-    .price-details strong {
-        color: #495057;
-    }
-
+    .room-container { width: 100%; margin: 0 auto; padding: 20px; }
+    .room-card { background-color: white; border-radius: 10px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); padding: 20px; margin-bottom: 20px; }
+    .room-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+    .room-title { font-size: 1.5rem; font-weight: bold; color: #333; }
+    .room-date { color: #666; font-size: 0.9rem; }
+    .filter-section { background-color: #f8f9fa; border-radius: 8px; padding: 15px; margin-bottom: 20px; }
+    .filter-form { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; }
+    .form-group { margin-bottom: 0; }
+    .form-control { width: 100%; }
+    .fc-event-available { background-color: var(--available); border-color: var(--available); color: white; }
+    .fc-event-booked { background-color: var(--booked); border-color: var(--booked); color: white; }
+    .fc-event-unavailable { background-color: var(--unavailable); border-color: var(--unavailable); color: white; }
+    #roomCalendar { max-width: 100%; margin: 0 auto; transition: all 0.3s ease; }
+    .calendar-fullscreen { position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 1000; background: white; padding: 1rem; }
+    .room-popup { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.2); z-index: 1001; max-width: 90%; width: 400px; }
+    .room-popup .close-btn { position: absolute; top: 10px; right: 10px; cursor: pointer; font-size: 1.5rem; color: #666; }
+    .booking-modal .modal-dialog { max-width: 600px; }
+    .price-breakdown { background-color: #f8f9fa; padding: 10px; border-radius: 4px; }
+    .price-details { font-size: 0.85rem; color: #6c757d; }
+    .price-details strong { color: #495057; }
     .badge-available { background-color: var(--available); }
     .badge-booked { background-color: var(--booked); }
     .badge-unavailable { background-color: var(--unavailable); }
     .badge-past { background-color: var(--past); }
-
     .table-available { background-color: rgba(16, 185, 129, 0.1); }
     .table-booked { background-color: rgba(245, 158, 11, 0.1); }
     .table-unavailable { background-color: rgba(239, 68, 68, 0.1); }
     .table-past { background-color: rgba(107, 114, 128, 0.1); }
-
-    .capacity-badge {
-        background-color: #6c757d;
-        color: white;
-        padding: 2px 6px;
-        border-radius: 4px;
-        font-size: 0.8rem;
-    }
-
-    .extra-charge-badge {
-        background-color: #dc3545;
-        color: white;
-        padding: 2px 6px;
-        border-radius: 4px;
-        font-size: 0.8rem;
-    }
-
-    .price-row {
-        display: flex;
-        justify-content: space-between;
-        margin-bottom: 5px;
-    }
-
+    .capacity-badge { background-color: #6c757d; color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.8rem; }
+    .extra-charge-badge { background-color: #dc3545; color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.8rem; }
+    .price-row { display: flex; justify-content: space-between; margin-bottom: 5px; }
+    .error-message { color: #dc3545; font-size: 0.8rem; margin-top: 5px; display: none; }
     @media (max-width: 768px) {
         .filter-form { grid-template-columns: 1fr; }
         .fc .fc-toolbar { flex-direction: column; align-items: center; }
@@ -181,12 +51,11 @@
         .fc .fc-button-group { margin: 0.5rem 0; }
         .room-popup, .booking-modal .modal-dialog { width: 90%; max-width: 320px; }
     }
-
     @media (max-width: 480px) {
         .room-header { flex-direction: column; align-items: flex-start; gap: 10px; }
         .fc-daygrid-main { display: none; }
         .fc-list-main { display: block; }
-        .room-popup, .booking-modal .modal-dialog { width: 95%; padding: 15px; }
+        .room-popup, .booking-modal .modal-dialog { width:95%; padding: 15px; }
     }
 </style>
 
@@ -201,7 +70,6 @@
             </div>
         </div>
 
-        <!-- Messages -->
         {% if messages %}
         <div class="mb-3">
             {% for message in messages %}
@@ -213,7 +81,6 @@
         </div>
         {% endif %}
 
-        <!-- Filters Section -->
         <div class="filter-section">
             <form method="get" id="filter-form">
                 <div class="row">
@@ -254,7 +121,6 @@
             </form>
         </div>
 
-        <!-- Summary Cards -->
         <div class="row mb-4">
             <div class="col-xl-3 col-md-6">
                 <div class="card border-left-primary border-left-4 mb-4">
@@ -326,14 +192,12 @@
             </div>
         </div>
 
-        <!-- Calendar Toggle Button -->
         <div class="text-center mb-3">
             <button id="toggleCalendarBtn" class="btn btn-success">
                 <i class="fas fa-calendar me-2"></i>Toggle Calendar View
             </button>
         </div>
 
-        <!-- Calendar Container -->
         <div id="calendarContainer" class="d-none mb-4" style="background-color: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); padding: 15px;">
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <h2 class="m-0" style="font-size: 1.25rem; font-weight: 600;">Room Availability Calendar</h2>
@@ -344,7 +208,6 @@
             <div id="roomCalendar"></div>
         </div>
 
-        <!-- Rooms Table -->
         <div class="card mb-4">
             <div class="card-header">
                 <i class="fas fa-table me-1"></i>
@@ -372,22 +235,15 @@
                                 <td>{{ room.get_room_type_display }}</td>
                                 <td>
                                     <div class="price-details">
-                                        <span class="original-price" style="text-decoration: line-through;">₹{{ room.price }}</span>
-                                        <span class="discounted-price">₹{{ room.discounted_price_value|floatformat:2 }}</span><br>
+                                        <span class="original-price" style="text-decoration: line-through;">₹{{ room.price|floatformat:2 }}</span>
+                                        <span class="discounted-price">₹{{ room.discounted_price|floatformat:2 }}</span><br>
                                         {% if room.discount > 0 %}
-                                        <span class="text-success">Save ₹{{ room.saved_amount|floatformat:2 }} ({{ room.discount }}%)</span><br>
+                                        <span class="text-success">Save ₹{{ room.saved_money|floatformat:2 }} ({{ room.discount }}%)</span><br>
                                         {% endif %}
-                                        <span>{{ room.gst_rate|floatformat:2 }}% GST</span><br>
-                                        <span class="capacity-badge">
-                                            {{ room.capacity }} base
-                                            {% if room.extra_capacity > 0 %}
-                                            + {{ room.extra_capacity }} extra
-                                            {% endif %}
-                                        </span>
+                                        <span>{{ room.hotel.gst_rate|floatformat:2 }}% GST</span><br>
+                                        <span class="capacity-badge">{{ room.display_capacity }}</span>
                                         {% if room.extra_person_charges > 0 %}
-                                        <span class="extra-charge-badge" title="Extra person charge">
-                                            ₹{{ room.extra_person_charges }}/extra
-                                        </span>
+                                        <span class="extra-charge-badge">₹{{ room.extra_person_charges|floatformat:2 }}/extra/night</span>
                                         {% endif %}
                                     </div>
                                 </td>
@@ -428,7 +284,7 @@
                                             </div>
                                             {% endif %}
                                             <div class="price-row">
-                                                <span>GST ({{ room.gst_rate|floatformat:2 }}%):</span>
+                                                <span>GST ({{ room.hotel.gst_rate|floatformat:2 }}%):</span>
                                                 <span>₹{{ room.current_booking.gst_amount|floatformat:2 }}</span>
                                             </div>
                                             <div class="price-row font-weight-bold">
@@ -447,21 +303,20 @@
                                 </td>
                                 <td>
                                     <div class="btn-group" role="group">
-                                        <!-- View Button -->
                                         <button type="button" class="btn btn-sm btn-outline-primary view-room" 
                                             data-room-id="{{ room.id }}"
                                             data-room-number="{{ room.room_number }}"
                                             data-room-type="{{ room.get_room_type_display }}"
                                             data-room-price="{{ room.price }}"
-                                            data-room-discounted-price="{{ room.discounted_price_value }}"
+                                            data-room-discounted-price="{{ room.discounted_price }}"
                                             data-room-discount="{{ room.discount }}"
-                                            data-room-saved-money="{{ room.saved_amount }}"
+                                            data-room-saved-money="{{ room.saved_money }}"
                                             data-room-status="{{ room.display_status }}"
                                             data-hotel-name="{{ room.hotel.name }}"
                                             data-hotel-location="{{ room.hotel.location }}"
                                             data-room-capacity="{{ room.capacity }}"
                                             data-room-extra-capacity="{{ room.extra_capacity }}"
-                                            data-gst-rate="{{ room.gst_rate }}"
+                                            data-gst-rate="{{ room.hotel.gst_rate }}"
                                             data-extra-person-charge="{{ room.extra_person_charges }}"
                                             {% if room.current_booking %}
                                             data-booking-id="{{ room.current_booking.id }}"
@@ -484,14 +339,15 @@
                                                     data-room-number="{{ room.room_number }}"
                                                     data-room-type="{{ room.get_room_type_display }}"
                                                     data-room-price="{{ room.price }}"
-                                                    data-room-discounted-price="{{ room.discounted_price_value }}"
+                                                    data-room-discounted-price="{{ room.discounted_price }}"
                                                     data-room-discount="{{ room.discount }}"
                                                     data-hotel-name="{{ room.hotel.name }}"
                                                     data-room-capacity="{{ room.capacity }}"
                                                     data-room-extra-capacity="{{ room.extra_capacity|default:'0' }}"
                                                     data-check-in="{{ selected_date|date:'Y-m-d' }}"
-                                                    data-gst-rate="{{ room.gst_rate|default:'12.0' }}"
-                                                    data-extra-person-charge="{{ room.extra_person_charges|default:'0.0' }}">
+                                                    data-gst-rate="{{ room.hotel.gst_rate|default:'12.0' }}"
+                                                    data-extra-person-charge="{{ room.extra_person_charges|default:'0.0' }}"
+                                                    data-total-capacity="{{ room.total_capacity }}">
                                                     <i class="fas fa-calendar-plus"></i> Book Now
                                                 </button>
                                                 <button type="button" class="btn btn-sm btn-outline-danger mark-unavailable" data-room-id="{{ room.id }}">
@@ -523,7 +379,6 @@
             </div>
         </div>
 
-        <!-- Bookings Section -->
         <div class="container-fluid px-4">
             <hr>
             <div class="bookings-section">
@@ -573,7 +428,6 @@
     </div>
 </div>
 
-<!-- Room Details Modal -->
 <div class="modal fade" id="roomModal" tabindex="-1" aria-labelledby="roomModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
@@ -652,7 +506,6 @@
     </div>
 </div>
 
-<!-- Booking Modal -->
 <div class="modal fade" id="bookingModal" tabindex="-1" aria-labelledby="bookingModalLabel" aria-hidden="true">
     <div class="modal-dialog booking-modal">
         <div class="modal-content">
@@ -665,33 +518,34 @@
                     {% csrf_token %}
                     <div class="form-group mb-3">
                         <label for="booking-hotel" class="form-label">Hotel:</label>
-                        <input type="text" class="form-control" id="booking-hotel" name="hotel" readonly>
+                        <input type="text" class="form-control" id="booking-hotel" readonly>
                     </div>
                     <div class="form-group mb-3">
                         <label for="booking-room-number" class="form-label">Room Number:</label>
-                        <input type="text" class="form-control" id="booking-room-number" name="room_number" readonly>
+                        <input type="text" class="form-control" id="booking-room-number" readonly>
                     </div>
                     <div class="form-group mb-3">
                         <label for="booking-room-type" class="form-label">Room Type:</label>
-                        <input type="text" class="form-control" id="booking-room-type" name="room_type" readonly>
+                        <input type="text" class="form-control" id="booking-room-type" readonly>
                     </div>
                     <div class="form-group mb-3">
                         <label for="booking-username" class="form-label">Username:</label>
-                        <input type="text" class="form-control" id="booking-username" name="username" readonly value="{{ request.user.username }}">
+                        <input type="text" class="form-control" id="booking-username" readonly value="{{ request.user.username }}">
                     </div>
                     <div class="form-group mb-3">
-                        <label for="booking-person" class="form-label">Guests (Max: <span id="booking-max-capacity"></span>):</label>
-                        <input type="number" class="form-control" id="booking-person" name="person" min="1" max="5" value="1" required>
+                        <label for="id_number_of_guests" class="form-label">Guests (Max: <span id="booking-max-capacity"></span>):</label>
+                        <input type="number" class="form-control" id="id_number_of_guests" name="number_of_guests" min="1" required>
                         <small class="form-text text-muted" id="booking-capacity-info"></small>
+                        <div id="booking-person-error" class="error-message"></div>
                     </div>
                     <div class="row mb-3">
                         <div class="col-md-6">
-                            <label for="booking-check-in" class="form-label">Check-in:</label>
-                            <input type="date" class="form-control" id="booking-check-in" name="check_in" required>
+                            <label for="id_check_in" class="form-label">Check-in:</label>
+                            <input type="date" class="form-control" id="id_check_in" name="check_in" required>
                         </div>
                         <div class="col-md-6">
-                            <label for="booking-check-out" class="form-label">Check-out:</label>
-                            <input type="date" class="form-control" id="booking-check-out" name="check_out" required>
+                            <label for="id_check_out" class="form-label">Check-out:</label>
+                            <input type="date" class="form-control" id="id_check_out" name="check_out" required>
                         </div>
                     </div>
                     <div class="form-group mb-3">
@@ -720,7 +574,7 @@
                             </div>
                         </div>
                     </div>
-                    <input type="hidden" id="booking-room-id" name="room_id">
+                    <input type="hidden" id="id_room" name="room" value="">
                     <div class="d-grid gap-2">
                         <button type="submit" class="btn btn-primary btn-lg">Confirm Booking</button>
                     </div>
@@ -730,7 +584,6 @@
     </div>
 </div>
 
-<!-- Room Calendar Popup -->
 <div id="roomCalendarPopup" class="room-popup d-none">
     <span class="close-btn">×</span>
     <h3 id="popup-room-title">Room Details</h3>
@@ -743,7 +596,8 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment.min.js"></script>
 <script>
 $(document).ready(function() {
-    // Initialize FullCalendar
+    let selectedRoomData = {};
+
     var calendarEl = document.getElementById('roomCalendar');
     var calendar = new FullCalendar.Calendar(calendarEl, {
         initialView: 'dayGridMonth',
@@ -803,7 +657,7 @@ $(document).ready(function() {
                 <p><strong>Room Type:</strong> ${props.roomType}</p>
                 <p><strong>Hotel:</strong> ${props.hotel}</p>
                 ${props.guest ? '<p><strong>Guest:</strong> ' + props.guest + '</p>' : ''}
-                ${props.totalPrice ? '<p><strong>Total:</strong> ₹' + props.totalPrice + '</p>' : ''}
+                ${props.totalPrice ? '<p><strong>Total:</strong> ₹' + props.totalPrice.toFixed(2) + '</p>' : ''}
                 ${info.event.start ? '<p><strong>Start Date:</strong> ' + info.event.start.toLocaleDateString() + '</p>' : ''}
                 ${info.event.end ? '<p><strong>End Date:</strong> ' + info.event.end.toLocaleDateString() + '</p>' : ''}
             `;
@@ -814,24 +668,20 @@ $(document).ready(function() {
     });
     calendar.render();
 
-    // Toggle Calendar Visibility
     $('#toggleCalendarBtn').click(function() {
         $('#calendarContainer').toggleClass('d-none');
     });
 
-    // Fullscreen Toggle
     $('#fullscreenToggleBtn').click(function() {
         $('#calendarContainer').toggleClass('calendar-fullscreen');
         $(this).find('i').toggleClass('fa-expand fa-compress');
         calendar.render();
     });
 
-    // Close Calendar Popup
     $('#roomCalendarPopup .close-btn').click(function() {
         $('#roomCalendarPopup').addClass('d-none');
     });
 
-    // Apply filter when clicking on summary cards
     $('.card-footer a[data-filter]').click(function(e) {
         e.preventDefault();
         const filter = $(this).data('filter');
@@ -839,7 +689,6 @@ $(document).ready(function() {
         $('#filter-form').submit();
     });
 
-    // Handle room view button click
     $('.view-room').click(function() {
         const roomId = $(this).data('room-id');
         const roomNumber = $(this).data('room-number');
@@ -849,14 +698,12 @@ $(document).ready(function() {
         const roomDiscount = $(this).data('room-discount');
         const roomSavedMoney = $(this).data('room-saved-money');
         const roomStatus = $(this).data('room-status');
-        const bookingId = $(this).data('booking-id');
         const hotelName = $(this).data('hotel-name');
         const gstRate = $(this).data('gst-rate');
         const extraPersonCharge = $(this).data('extra-person-charge');
         const roomCapacity = $(this).data('room-capacity');
         const roomExtraCapacity = $(this).data('room-extra-capacity');
 
-        // Set room information
         $('#modal-room-number').text(roomNumber || 'N/A');
         $('#modal-room-type').text(roomType || 'N/A');
         $('#modal-room-price').text(roomPrice ? '₹' + parseFloat(roomPrice).toFixed(2) : 'N/A');
@@ -864,12 +711,11 @@ $(document).ready(function() {
         $('#modal-room-discount').text(roomDiscount ? roomDiscount + '%' : 'N/A');
         $('#modal-room-saved-money').text(roomSavedMoney ? '₹' + parseFloat(roomSavedMoney).toFixed(2) : 'N/A');
         $('#modal-gst-rate').text(gstRate ? gstRate + '%' : 'N/A');
-        $('#modal-extra-person-charge').text(extraPersonCharge ? '₹' + parseFloat(extraPersonCharge).toFixed(2) : 'N/A');
+        $('#modal-extra-person-charge').text(extraPersonCharge ? '₹' + parseFloat(extraPersonCharge).toFixed(2) + '/night' : 'N/A');
         $('#modal-room-capacity').text(roomCapacity || 'N/A');
         $('#modal-room-extra-capacity').text(roomExtraCapacity || '0');
         $('#modal-hotel-name').text(hotelName || 'N/A');
         
-        // Set status with appropriate badge
         let statusBadge = '<span class="badge badge-unavailable">Unknown</span>';
         if (roomStatus === '1') {
             statusBadge = '<span class="badge badge-available">Available</span>';
@@ -880,8 +726,7 @@ $(document).ready(function() {
         }
         $('#modal-room-status').html(statusBadge);
 
-        // Set booking information if exists
-        if (bookingId) {
+        if ($(this).data('booking-id')) {
             const guestName = $(this).data('guest-name');
             const checkIn = $(this).data('check-in');
             const checkOut = $(this).data('check-out');
@@ -917,7 +762,7 @@ $(document).ready(function() {
             if (extraGuests > 0) {
                 bookingHtml += `
                             <div class="price-row">
-                                <span>Extra Guests (${extraGuests} × ₹${parseFloat(extraPersonCharge).toFixed(2)}):</span>
+                                <span>Extra Guests (${extraGuests} × ₹${parseFloat(extraPersonCharge).toFixed(2)}/night):</span>
                                 <span>₹${parseFloat(extraGuestCharges).toFixed(2)}</span>
                             </div>
                 `;
@@ -940,83 +785,93 @@ $(document).ready(function() {
             $('#modal-booking-info').html('<p class="text-muted">No booking for this room.</p>');
         }
 
-        // Show the modal
         $('#roomModal').modal('show');
     });
 
-    // Handle book now button
     $('.book-now').click(function() {
-        const roomId = $(this).data('room-id');
-        const roomNumber = $(this).data('room-number');
-        const roomType = $(this).data('room-type');
-        const roomPrice = parseFloat($(this).data('room-price') || 0);
-        const roomDiscountedPrice = parseFloat($(this).data('room-discounted-price') || 0);
-        const roomDiscount = parseFloat($(this).data('room-discount') || 0);
-        const hotelName = $(this).data('hotel-name');
-        const roomCapacity = parseInt($(this).data('room-capacity') || 1);
-        const roomExtraCapacity = parseInt($(this).data('room-extra-capacity') || 0);
-        const checkIn = $(this).data('check-in');
-        const gstRate = parseFloat($(this).data('gst-rate') || 12.0);
-        const extraPersonCharge = parseFloat($(this).data('extra-person-charge') || 0);
+        selectedRoomData = {
+            roomId: $(this).data('room-id'),
+            roomNumber: $(this).data('room-number'),
+            roomType: $(this).data('room-type'),
+            roomPrice: parseFloat($(this).data('room-price') || 0),
+            roomDiscountedPrice: parseFloat($(this).data('room-discounted-price') || 0),
+            roomDiscount: parseFloat($(this).data('room-discount') || 0),
+            hotelName: $(this).data('hotel-name'),
+            roomCapacity: parseInt($(this).data('room-capacity') || 1),
+            roomExtraCapacity: parseInt($(this).data('room-extra-capacity') || 0),
+            totalCapacity: parseInt($(this).data('total-capacity') || 1),
+            checkIn: $(this).data('check-in'),
+            gstRate: parseFloat($(this).data('gst-rate') || 12.0),
+            extraPersonCharge: parseFloat($(this).data('extra-person-charge') || 0)
+        };
 
-        // Calculate max guests (min of total capacity and 5)
-        const totalCapacity = Math.min(roomCapacity + roomExtraCapacity, 5);
+        $('#id_room').val(selectedRoomData.roomId);
+        $('#booking-hotel').val(selectedRoomData.hotelName || '');
+        $('#booking-room-number').val(selectedRoomData.roomNumber || '');
+        $('#booking-room-type').val(selectedRoomData.roomType || '');
+        $('#booking-max-capacity').text(selectedRoomData.totalCapacity);
+        $('#id_number_of_guests').attr({
+            'max': selectedRoomData.totalCapacity,
+            'min': 1,
+            'value': Math.min(selectedRoomData.roomCapacity, selectedRoomData.totalCapacity)
+        }).val(Math.min(selectedRoomData.roomCapacity, selectedRoomData.totalCapacity));
+        $('#id_check_in').val(selectedRoomData.checkIn).attr('min', '{{ current_date|date:"Y-m-d" }}');
+        $('#id_check_out').val('').attr('min', moment(selectedRoomData.checkIn).add(1, 'days').format('YYYY-MM-DD'));
+        $('#booking-gst-rate').text(selectedRoomData.gstRate.toFixed(2));
+        $('#booking-discount-rate').text(selectedRoomData.roomDiscount.toFixed(2));
 
-        // Populate booking modal
-        $('#booking-room-id').val(roomId);
-        $('#booking-hotel').val(hotelName || '');
-        $('#booking-room-number').val(roomNumber || '');
-        $('#booking-room-type').val(roomType || '');
-        $('#booking-max-capacity').text(totalCapacity);
-        $('#booking-person').attr({
-            'max': totalCapacity,
-            'value': 1
-        });
-        $('#booking-check-in').val(checkIn).attr('min', '{{ current_date|date:"Y-m-d" }}');
-        $('#booking-check-out').val('').attr('min', moment(checkIn).add(1, 'days').format('YYYY-MM-DD'));
-        $('#booking-gst-rate').text(gstRate.toFixed(2));
-        $('#booking-discount-rate').text(roomDiscount.toFixed(2));
-
-        // Update capacity info
-        let capacityInfo = `Max ${totalCapacity} guests (${roomCapacity} base`;
-        if (roomExtraCapacity > 0) {
-            capacityInfo += ` + ${roomExtraCapacity} extra`;
-            if (extraPersonCharge > 0) {
-                capacityInfo += ` at ₹${extraPersonCharge.toFixed(2)} per extra guest`;
+        let capacityInfo = `Max ${selectedRoomData.totalCapacity} guests (${selectedRoomData.roomCapacity} base`;
+        if (selectedRoomData.roomExtraCapacity > 0) {
+            capacityInfo += ` + ${selectedRoomData.roomExtraCapacity} extra`;
+            if (selectedRoomData.extraPersonCharge > 0) {
+                capacityInfo += ` at ₹${selectedRoomData.extraPersonCharge.toFixed(2)} per extra guest per night`;
             }
         }
         capacityInfo += ')';
         $('#booking-capacity-info').text(capacityInfo);
 
-        // Initialize price breakdown
-        updateBookingPrice(roomDiscountedPrice, roomDiscount, gstRate, extraPersonCharge, roomCapacity);
+        updateBookingPrice();
 
-        // Show booking modal
         $('#bookingModal').modal('show');
     });
 
-    // Update price breakdown on input change
-    $('#booking-check-in, #booking-check-out, #booking-person').change(function() {
-        const roomDiscountedPrice = parseFloat($('.book-now:visible').data('room-discounted-price') || 0);
-        const roomDiscount = parseFloat($('.book-now').data('room-discount') || 0);
-        const gstRate = parseFloat($('.book-now').data('gst-rate') || 12.0);
-        const extraPersonCharge = parseFloat($('.book-now').data('extra-person-charge') || 0);
-        const roomCapacity = parseInt($('.book-now').data('room-capacity') || 1);
-        updateBookingPrice(roomDiscountedPrice, roomDiscount, gstRate, extraPersonCharge, roomCapacity);
+    $('#id_check_in, #id_check_out, #id_number_of_guests').on('input change', function() {
+        updateBookingPrice();
     });
 
-    function updateBookingPrice(roomPrice, roomDiscount, gstRate, extraPersonCharge, roomCapacity) {
-        const checkIn = $('#booking-check-in').val();
-        const checkOut = $('#booking-check-out').val();
-        let guests = parseInt($('#booking-person').val() || 1);
+    $('#id_number_of_guests').on('input', function() {
+        const guests = parseInt($(this).val() || 1);
+        const totalCapacity = selectedRoomData.totalCapacity;
+        if (guests > totalCapacity) {
+            $(this).val(totalCapacity);
+            $('#booking-person-error').text(`Maximum capacity is ${totalCapacity} guests.`).show();
+            setTimeout(() => {
+                $('#booking-person-error').hide();
+            }, 3000);
+        } else {
+            $('#booking-person-error').hide();
+        }
+    });
+
+    function updateBookingPrice() {
+        const checkIn = $('#id_check_in').val();
+        const checkOut = $('#id_check_out').val();
+        let guests = parseInt($('#id_number_of_guests').val() || 1);
         
-        // Enforce guest count between 1 and 5
         if (guests < 1) {
             guests = 1;
-            $('#booking-person').val(1);
-        } else if (guests > 5) {
-            guests = 5;
-            $('#booking-person').val(5);
+            $('#id_number_of_guests').val(1);
+            $('#booking-person-error').text('Minimum 1 guest required.').show();
+            setTimeout(() => {
+                $('#booking-person-error').hide();
+            }, 3000);
+        } else if (guests > selectedRoomData.totalCapacity) {
+            guests = selectedRoomData.totalCapacity;
+            $('#id_number_of_guests').val(selectedRoomData.totalCapacity);
+            $('#booking-person-error').text(`Maximum capacity is ${selectedRoomData.totalCapacity} guests.`).show();
+            setTimeout(() => {
+                $('#booking-person-error').hide();
+            }, 3000);
         }
 
         let basePrice = 0;
@@ -1031,16 +886,12 @@ $(document).ready(function() {
             const end = new Date(checkOut);
             stayDays = Math.max(1, Math.floor((end - start) / (1000 * 60 * 60 * 24)));
             
-            // Calculate base price (already discounted in roomDiscountedPrice)
-            basePrice = roomPrice * stayDays;
+            basePrice = selectedRoomData.roomDiscountedPrice * stayDays;
+            const originalPrice = selectedRoomData.roomDiscount > 0 ? selectedRoomData.roomDiscountedPrice / (1 - (selectedRoomData.roomDiscount / 100)) : selectedRoomData.roomDiscountedPrice;
+            discountAmount = (originalPrice - selectedRoomData.roomDiscountedPrice) * stayDays;
             
-            // Original price before discount for discount amount calculation
-            const originalPrice = roomPrice / (1 - (roomDiscount / 100));
-            discountAmount = (originalPrice - roomPrice) * stayDays;
-            
-            // Add extra person charges
-            if (guests > roomCapacity && extraPersonCharge > 0) {
-                extraPersonAmount = extraPersonCharge * (guests - roomCapacity) * stayDays;
+            if (guests > selectedRoomData.roomCapacity && selectedRoomData.extraPersonCharge > 0) {
+                extraPersonAmount = selectedRoomData.extraPersonCharge * (guests - selectedRoomData.roomCapacity) * stayDays;
                 $('#booking-extra-person-row').show();
                 $('#booking-extra-person-amount').text(`₹${extraPersonAmount.toFixed(2)}`);
             } else {
@@ -1048,12 +899,11 @@ $(document).ready(function() {
                 $('#booking-extra-person-amount').text('₹0.00');
             }
             
-            // Calculate GST amount
             const subtotal = basePrice + extraPersonAmount;
-            gstAmount = subtotal * (gstRate / 100);
+            gstAmount = subtotal * (selectedRoomData.gstRate / 100);
             totalPrice = subtotal + gstAmount;
 
-            $('#booking-room-info').text(`(${stayDays} night${stayDays > 1 ? 's' : ''} × ₹${roomPrice.toFixed(2)})`);
+            $('#booking-room-info').text(`(${stayDays} night${stayDays > 1 ? 's' : ''} × ₹${selectedRoomData.roomDiscountedPrice.toFixed(2)})`);
         } else {
             $('#booking-room-info').text('');
         }
@@ -1064,7 +914,6 @@ $(document).ready(function() {
         $('#booking-total-price').text(`₹${totalPrice.toFixed(2)}`);
     }
 
-    // Handle mark unavailable button
     $('.mark-unavailable').click(function() {
         const roomId = $(this).data('room-id');
         if (confirm('Are you sure you want to mark this room as unavailable?')) {
@@ -1090,7 +939,6 @@ $(document).ready(function() {
         }
     });
 
-    // Handle mark available button
     $('.mark-available').click(function() {
         const roomId = $(this).data('room-id');
         if (confirm('Are you sure you want to mark this room as available?')) {

@@ -2436,6 +2436,8 @@ def hotel_staff_bookings(request):
     
     return render(request, 'hotel_staff/bookings.html', context)
 
+
+
 @login_required(login_url='user:signin')
 def list_rooms(request):
     """

@@ -1,4 +1,4 @@
-
+{% comment %} 
 {% extends 'base/base.html' %}
 {% load static %}
 {% block title %}Staff-SignIn{% endblock %}
@@ -27,21 +27,6 @@
                 <h3>Staff Sign Up</h3>
                 {% csrf_token %}
                
-
-                {% comment %} {% if  messages  %}
-                {% for message in messages %}
-                <div class="popup alert-{{ message.tags }}" role="alert">
-                    <button class="cancel-btn" aria-label="Cancel">×</button>
-                    <div class="popup-content">
-                        <p>{{ message }}</p>
-                        <div class="popup-buttons">
-                            <button class="btn close-btn">Close</button>
-                        </div>
-                    </div>
-                </div>
-                {% endfor %}
-                {% endif %} {% endcomment %}
-
                 <div class="form-holder active">
                     <input type="email" class="form-control" name="username" placeholder="Email" required="required">
                 </div>
@@ -84,7 +69,6 @@
         </div>
     </div>
 
-    {% comment %} trim the username like "mipashya@gmail.com "debug it  {% endcomment %}
 
     <script>
         // Add this JavaScript to trim spaces from the input
@@ -141,4 +125,4 @@
     <script src="{% static 'user/js/main.js' %}"></script>
 </body>
 </html>
-{% endblock %}
+{% endblock %} {% endcomment %}
