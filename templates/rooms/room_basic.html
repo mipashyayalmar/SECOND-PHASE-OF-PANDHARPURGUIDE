@@ -76,7 +76,9 @@
                     <a href="#"><span>Staff Check</span> <i class="bi bi-chevron-down toggle-dropdown"></i></a>
                     <ul>
                         <li><a href="{% url 'staffpanel' %}">Dashboard</a></li>
+                    {% if not user.is_employee %}
                         <li><a href="{% url 'allbookings' %}"> My Bookings</a></li>
+                    {% endif %}
                     </ul>
                 </li>
 

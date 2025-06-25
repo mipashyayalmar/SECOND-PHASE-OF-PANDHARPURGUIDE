@@ -1128,7 +1128,6 @@ def view_room(request, room_id):
     })
 
 
-
 @login_required(login_url='user:signin')
 def hotel_staff_panel(request):
     """
@@ -1191,7 +1190,7 @@ def hotel_staff_panel(request):
         current_year = current_date.year
         
         # Fetch all bookings for stats (filtered by hotel if hotel_filter is applied)
-        all_bookings = Reservation.objects.filter(room__hotel__in=assigned_hotels)
+        all_bookings = Reservation.objects.filter(room__hotel__in=assigned_hotels).select_related('guest', 'room', 'room__hotel').order_by('-booking_time')
         if hotel_filter != 'all':
             all_bookings = all_bookings.filter(room__hotel__name=hotel_filter)
         
@@ -1218,6 +1217,113 @@ def hotel_staff_panel(request):
         check_ins_month_revenue = calculate_revenue(all_bookings.filter(check_in__month=current_month, check_in__year=current_year))
         check_outs_month_revenue = calculate_revenue(all_bookings.filter(check_out__month=current_month, check_out__year=current_year))
 
+        # Booking filters
+        start_date = request.GET.get('start_date')
+        end_date = request.GET.get('end_date')
+        month = request.GET.get('month')
+        week = request.GET.get('week')
+        day = request.GET.get('day')
+        booking_date = request.GET.get('booking_date')
+        search_name = request.GET.get('search_name')
+        view_type = request.GET.get('view_type', 'active')
+        filter_type = None
+
+        if not any([start_date, end_date, month, week, day, booking_date, search_name]):
+            day = current_date.strftime('%Y-%m-%d')
+            view_type = 'active'
+
+        if view_type == 'check_in':
+            bookings = all_bookings.filter(check_in=day) if day else all_bookings
+            filter_type = 'check_in'
+        elif view_type == 'check_out':
+            bookings = all_bookings.filter(check_out=day) if day else all_bookings
+            filter_type = 'check_out'
+        elif view_type == 'active':
+            if day:
+                try:
+                    day_date = datetime.strptime(day, '%Y-%m-%d').date()
+                    bookings = all_bookings.filter(check_in__lte=day_date, check_out__gte=day_date)
+                    filter_type = 'active'
+                except ValueError:
+                    messages.warning(request, "Invalid day format.")
+                    bookings = all_bookings
+            else:
+                bookings = all_bookings.filter(check_in__lte=current_date, check_out__gte=current_date)
+                filter_type = 'active'
+        else:
+            bookings = all_bookings
+
+        if start_date:
+            try:
+                start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
+                bookings = bookings.filter(check_in__gte=start_date)
+                filter_type = 'check_in_range'
+            except ValueError:
+                messages.warning(request, "Invalid start date format.")
+                start_date = None
+
+        if end_date:
+            try:
+                end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
+                bookings = bookings.filter(check_out__lte=end_date)
+                filter_type = 'check_out_range'
+            except ValueError:
+                messages.warning(request, "Invalid end date format.")
+                end_date = None
+
+        if month:
+            try:
+                month_num = datetime.strptime(month, '%B').month
+                bookings = bookings.filter(Q(check_in__month=month_num) | Q(check_out__month=month_num))
+                filter_type = 'month'
+            except ValueError:
+                messages.warning(request, "Invalid month selected.")
+
+        if week:
+            try:
+                week_num = int(week)
+                bookings = bookings.filter(Q(check_in__week=week_num) | Q(check_out__week=week_num))
+                filter_type = 'week'
+            except ValueError:
+                messages.warning(request, "Invalid week number.")
+
+        if booking_date:
+            try:
+                booking_date = datetime.strptime(booking_date, '%Y-%m-%d').date()
+                bookings = bookings.filter(booking_time__date=booking_date)
+                filter_type = 'booking_date'
+            except ValueError:
+                messages.warning(request, "Invalid booking date format.")
+                booking_date = None
+
+        if search_name:
+            bookings = bookings.filter(
+                Q(guest__first_name__icontains=search_name) |
+                Q(guest__last_name__icontains=search_name) |
+                Q(guest__username__icontains=search_name) |
+                Q(room__hotel__name__icontains=search_name)
+            )
+
+        for booking in bookings:
+            if booking.check_out < current_date:
+                booking.status = 'past'
+            elif booking.check_in <= current_date <= booking.check_out:
+                booking.status = 'current'
+            else:
+                booking.status = 'future'
+
+        months = ['January', 'February', 'March', 'April', 'May', 'June',
+                'July', 'August', 'September', 'October', 'November', 'December']
+        weeks = [(i, f"Week {i}") for i in range(1, 53)]
+
+        date_ranges = {
+            'today': current_date,
+            'tomorrow': current_date + timedelta(days=1),
+            'yesterday': current_date - timedelta(days=1),
+            'next_7_days': current_date + timedelta(days=7),
+            'next_30_days': current_date + timedelta(days=30),
+        }
+
         # Calculate percentages
         total_rooms_nonzero = total_rooms or 1
         available_percent = (available_rooms / total_rooms_nonzero * 100)
@@ -1233,25 +1339,38 @@ def hotel_staff_panel(request):
 
         context = {
             'hotels': assigned_hotels,
-            'rooms': rooms,
             'selected_hotel': hotel_filter,
             'selected_status': status_filter,
-            'total_rooms': total_rooms,
+            'rooms': rooms,
+            'total_rooms': total_rooms or 0,
             'available_rooms': available_rooms,
-            'available_percent': available_percent,
             'unavailable_rooms': unavailable_rooms,
+            'available_percent': available_percent,
             'unavailable_percent': unavailable_percent,
+            'bookings': bookings,
+            'current_date': current_date,
+            'start_date': start_date.strftime('%Y-%m-%d') if start_date else '',
+            'end_date': end_date.strftime('%Y-%m-%d') if end_date else '',
+            'day': day if day else current_date.strftime('%Y-%m-%d'),
+            'month': month if month else '',
+            'week': week if week else '',
+            'booking_date': booking_date.strftime('%Y-%m-%d') if booking_date else '',
+            'search_name': search_name or '',
+            'months': months,
+            'weeks': weeks,
+            'date_ranges': date_ranges,
+            'view_type': view_type,
+            'filter_type': filter_type,
             'total_bookings': total_bookings,
-            'total_bookings_percent': total_bookings_percent,
             'bookings_today': bookings_today,
             'bookings_this_month': bookings_this_month,
             'active_bookings': active_bookings,
-            'active_bookings_percent': active_bookings_percent,
             'check_ins_today': check_ins_today,
             'check_outs_today': check_outs_today,
             'check_ins_this_month': check_ins_this_month,
             'check_outs_this_month': check_outs_this_month,
-            'current_date': current_date,
+            'total_bookings_percent': total_bookings_percent,
+            'active_bookings_percent': active_bookings_percent,
             'bookings_today_percent': bookings_today_percent,
             'check_ins_today_percent': check_ins_today_percent,
             'check_outs_today_percent': check_outs_today_percent,
@@ -1268,6 +1387,12 @@ def hotel_staff_panel(request):
             'check_outs_this_month_revenue': check_outs_month_revenue,
         }
 
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+            action = request.GET.get('action', 'table')
+            if action == 'calendar':
+                return render(request, 'maintainer/booking_calendar.html', context)
+            return render(request, 'maintainer/booking_table.html', context)
+
         return render(request, 'hotel_staff/panel.html', context)
         
     except HotelStaff.DoesNotExist:
@@ -1280,9 +1405,6 @@ def hotel_staff_panel(request):
             'error_title': 'An error occurred',
             'error_message': f'An unexpected error occurred: {str(e)}'
         }, status=500)
-    
-
-
 from django.db.models import Q
 from decimal import Decimal
 from datetime import datetime, timedelta
