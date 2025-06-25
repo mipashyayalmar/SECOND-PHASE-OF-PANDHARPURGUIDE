@@ -275,6 +275,491 @@ def signup(request):
 
     return render(request, 'user_login/signup.html')
 
+
+from django.shortcuts import render, redirect
+from django.contrib.auth import authenticate, login
+from django.contrib import messages
+from django.utils import timezone
+import pytz
+from django.contrib.auth.models import User
+from urllib.parse import urlparse
+
+# Custom function to validate redirect URL
+def is_safe_redirect_url(url, allowed_hosts):
+    if not url:
+        return False
+    # Ensure the URL is relative (starts with '/') or belongs to allowed hosts
+    parsed_url = urlparse(url)
+    if not parsed_url.netloc:  # Relative URL (no netloc, e.g., /path/to/page)
+        return url.startswith('/')
+    # For absolute URLs, check if the host is in allowed_hosts
+    return parsed_url.netloc in allowed_hosts
+
+# User Signin
+def signin(request):
+    if request.user.is_authenticated and request.user.is_active:
+        return redirect('/')  # Redirect authenticated users to homepage
+
+    if request.method == 'POST':
+        username = request.POST['username']
+        password = request.POST['password']
+
+        if not User.objects.filter(username=username).exists():
+            return render(request, 'user_login/signup.html', {'message': "User doesn't exist. Please sign up"})
+
+        user = User.objects.get(username=username)
+
+        if not user.is_active:
+            return render(request, 'user_login/verification_prompt.html', {'email': username, 'message': 'Your account is not verified yet. Please check your email.'})
+
+        authenticated_user = authenticate(request, username=username, password=password)
+
+        if authenticated_user is not None and authenticated_user.is_active:
+            request.session['username'] = username
+            login(request, authenticated_user)
+
+            ist = pytz.timezone('Asia/Kolkata')
+            signin_time = timezone.now().astimezone(ist).strftime('%Y-%m-%d %H:%M:%S')
+            messages.success(request, f'Signin successful at {signin_time}')
+
+            # Check if all required profile fields are filled
+            required_fields_filled = all([
+                getattr(authenticated_user, 'name', None),
+                getattr(authenticated_user, 'phone', None),
+                getattr(authenticated_user, 'email', None),
+                getattr(authenticated_user, 'aadhar_image', None),
+                getattr(authenticated_user, 'profile_image', None),
+                getattr(authenticated_user, 'pancard_image', None)
+            ])
+
+            # Determine redirect URL: check POST, GET, or session for 'next'
+            next_url = request.POST.get('next', request.GET.get('next', request.session.get('next', None)))
+
+            if hasattr(authenticated_user, 'is_maintainer') and authenticated_user.is_maintainer:
+                # Assuming is_maintainer is a custom field in the User model
+                return redirect('maintainer_panel')  # Redirect maintainer to maintainer_panel
+            elif authenticated_user.is_staff:
+                return redirect('staffpanel')  
+
+            elif not required_fields_filled:
+                # Store next_url in session and redirect to profile edit
+                if next_url:
+                    request.session['next'] = next_url
+                messages.info(request, "Please complete your profile to continue.")
+                return redirect('user:user_profile')  # Corrected to 'user:user_profile'
+
+            # If all fields are filled, redirect to next_url or default based on user type
+            if next_url and is_safe_redirect_url(next_url, allowed_hosts={request.get_host()}):
+                # Clean up session
+                if 'next' in request.session:
+                    del request.session['next']
+                return redirect(next_url)
+            else:
+                # Default redirects based on user type
+                if hasattr(authenticated_user, 'is_maintainer') and authenticated_user.is_maintainer:
+                    return redirect('maintainer_panel')  # Redirect maintainer to maintainer_panel
+                elif authenticated_user.is_staff:
+                    return redirect('staffpanel')  # Redirect staff to staff panel
+                else:
+                    return redirect('myapp:home')  # Redirect regular user to home page
+        
+        return render(request, 'user_login/signin.html', {'message': 'Incorrect username or password', 'next': request.POST.get('next', request.GET.get('next', ''))})
+
+    # Pass the 'next' parameter to the template for GET requests
+    return render(request, 'user_login/signin.html', {'next': request.GET.get('next', '')})
+
+
+
+
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+from django.shortcuts import render, redirect
+from allauth.socialaccount.models import SocialAccount
+from django.core.validators import validate_email, RegexValidator
+@login_required(login_url='/')
+def user_profile(request):
+    if not request.user.is_authenticated:
+        messages.error(request, "Please sign in to view your profile.")
+        return redirect('user:signin')
+    
+    if request.user.is_staff:
+        messages.error(request, "Staff accounts cannot access user profiles.")
+        return redirect('user:staff_signin')
+
+    user = request.user
+
+    # Try to get social account data
+    social_data = {}
+    try:
+        social_account = SocialAccount.objects.get(user=user, provider='google')
+        social_data = {
+            'full_name': social_account.extra_data.get('name'),
+            'email': social_account.extra_data.get('email'),
+            'picture': social_account.extra_data.get('picture'),
+        }
+    except SocialAccount.DoesNotExist:
+        # User may have signed up with regular email/password
+        social_data = {
+            'full_name': user.get_full_name() or user.username,
+            'email': user.email,
+            'picture': None
+        }
+
+    context = {
+        'user': user,
+        'social_data': social_data
+    }
+    
+    return render(request, 'user_login/user_profile.html', context)
+
+
+
+from django.shortcuts import render, redirect
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required
+from django.core.exceptions import ValidationError
+from django.core.validators import validate_email
+from allauth.socialaccount.models import SocialAccount
+from urllib.parse import urlparse
+import logging
+
+# Set up logging
+logger = logging.getLogger(__name__)
+
+# Custom function to validate redirect URL
+def is_safe_redirect_url(url, allowed_hosts):
+    if not url:
+        return False
+    # Ensure the URL is relative (starts with '/') or belongs to allowed hosts
+    parsed_url = urlparse(url)
+    if not parsed_url.netloc:  # Relative URL (no netloc, e.g., /path/to/page)
+        return url.startswith('/')
+    # For absolute URLs, check if the host is in allowed_hosts
+    return parsed_url.netloc in allowed_hosts
+
+@login_required(login_url='/')
+def user_profile_edit(request):
+    if not request.user.is_authenticated:
+        messages.error(request, "Please sign in to edit your profile.")
+        return redirect('user:signin')
+    
+    if request.user.is_staff:
+        messages.error(request, "Staff accounts cannot edit user profiles.")
+        return redirect('user:staff_signin')
+    
+    user = request.user
+    social_data = {}
+
+    try:
+        # Fetch Google social account data
+        social_account = SocialAccount.objects.get(user=user, provider='google')
+        extra_data = social_account.extra_data
+        
+        # Extract all available fields from Google OAuth
+        social_data = {
+            'google_id': extra_data.get('sub'),  # Unique Google ID
+            'email': extra_data.get('email'),
+            'email_verified': extra_data.get('email_verified', False),
+            'full_name': extra_data.get('name'),
+            'first_name': extra_data.get('given_name'),
+            'last_name': extra_data.get('family_name'),
+            'picture': extra_data.get('picture'),
+            'locale': extra_data.get('locale'),
+            'hosted_domain': extra_data.get('hd'),  # For Google Workspace accounts
+        }
+        logger.debug(f"Google social data: {social_data}")
+
+    except SocialAccount.DoesNotExist:
+        # Fallback for non-Google login
+        social_data = {
+            'google_id': None,
+            'email': user.email,
+            'email_verified': False,
+            'full_name': user.get_full_name() or user.username,
+            'first_name': user.first_name,
+            'last_name': user.last_name,
+            'picture': None,
+            'locale': None,
+            'hosted_domain': None,
+        }
+        logger.debug(f"Non-Google user data: {social_data}")
+
+    # Check if all required fields are already filled
+    required_fields_filled = all([
+        getattr(user, 'name', None),
+        getattr(user, 'phone', None),
+        getattr(user, 'email', None),
+        getattr(user, 'aadhar_image', None),
+        getattr(user, 'profile_image', None),
+        getattr(user, 'pancard_image', None)
+    ])
+    
+    if required_fields_filled and request.method != 'POST':
+        # If all fields are filled, redirect to 'next' URL if provided
+        next_url = request.GET.get('next', request.session.get('next', None))
+        if next_url and is_safe_redirect_url(next_url, allowed_hosts={request.get_host()}):
+            if 'next' in request.session:
+                del request.session['next']
+            return redirect(next_url)
+        return redirect('myapp:home')
+
+    if request.method == 'POST':
+        logger.debug(f"POST data: {request.POST}")
+        logger.debug(f"FILES data: {request.FILES}")
+
+        # Mandatory email field
+        email = request.POST.get('email')
+        if not email:
+            messages.error(request, "Email is required.")
+            return render(request, 'user_login/user_profile_edit.html', {
+                'user': user,
+                'social_data': social_data,
+                'next': request.POST.get('next', request.GET.get('next', ''))
+            })
+
+        # Validate email format
+        try:
+            validate_email(email)
+        except ValidationError:
+            messages.error(request, "Invalid email format.")
+            return render(request, 'user_login/user_profile_edit.html', {
+                'user': user,
+                'social_data': social_data,
+                'next': request.POST.get('next', request.GET.get('next', ''))
+            })
+
+        # Check for email uniqueness (excluding current user)
+        if email != user.email and request.user.__class__.objects.filter(email=email).exclude(pk=user.pk).exists():
+            messages.error(request, "This email is already in use.")
+            return render(request, 'user_login/user_profile_edit.html', {
+                'user': user,
+                'social_data': social_data,
+                'next': request.POST.get('next', request.GET.get('next', ''))
+            })
+
+        # Update user fields
+        user.email = email
+        user.name = request.POST.get('name', user.name)
+        user.phone = request.POST.get('phone', user.phone)
+
+        # Handle file uploads with validation
+        if 'profile_image' in request.FILES:
+            profile_image = request.FILES['profile_image']
+            if not profile_image.content_type.startswith('image/'):
+                messages.error(request, "Profile image must be a valid image file.")
+                return render(request, 'user_login/user_profile_edit.html', {
+                    'user': user,
+                    'social_data': social_data,
+                    'next': request.POST.get('next', request.GET.get('next', ''))
+                })
+            user.profile_image = profile_image
+            logger.info(f"Profile image uploaded: {user.profile_image}")
+
+        if 'aadhar_image' in request.FILES:
+            aadhar_image = request.FILES['aadhar_image']
+            if not aadhar_image.content_type.startswith('image/'):
+                messages.error(request, "Aadhar image must be a valid image file.")
+                return render(request, 'user_login/user_profile_edit.html', {
+                    'user': user,
+                    'social_data': social_data,
+                    'next': request.POST.get('next', request.GET.get('next', ''))
+                })
+            user.aadhar_image = aadhar_image
+            logger.info(f"Aadhar image uploaded: {user.aadhar_image}")
+
+        if 'pancard_image' in request.FILES:
+            pancard_image = request.FILES['pancard_image']
+            if not pancard_image.content_type.startswith('image/'):
+                messages.error(request, "Pancard image must be a valid image file.")
+                return render(request, 'user_login/user_profile_edit.html', {
+                    'user': user,
+                    'social_data': social_data,
+                    'next': request.POST.get('next', request.GET.get('next', ''))
+                })
+            user.pancard_image = pancard_image
+            logger.info(f"Pancard image uploaded: {user.pancard_image}")
+
+        try:
+            user.save()
+            messages.success(request, "Profile updated successfully.")
+            
+            # Check again if all required fields are filled after update
+            if all([
+                getattr(user, 'name', None),
+                getattr(user, 'phone', None),
+                getattr(user, 'email', None),
+                getattr(user, 'aadhar_image', None),
+                getattr(user, 'profile_image', None),
+                getattr(user, 'pancard_image', None)
+            ]):
+                # Redirect to 'next' URL if provided
+                next_url = request.POST.get('next', request.GET.get('next', request.session.get('next', None)))
+                if next_url and is_safe_redirect_url(next_url, allowed_hosts={request.get_host()}):
+                    if 'next' in request.session:
+                        del request.session['next']
+                    return redirect(next_url)
+                return redirect('myapp:home')
+            else:
+                return redirect('user:user_profile')
+                
+        except Exception as e:
+            logger.error(f"Error saving user profile: {str(e)}")
+            messages.error(request, "An error occurred while updating your profile.")
+            return render(request, 'user_login/user_profile_edit.html', {
+                'user': user,
+                'social_data': social_data,
+                'next': request.POST.get('next', request.GET.get('next', ''))
+            })
+
+    return render(request, 'user_login/user_profile_edit.html', {
+        'user': user,
+        'social_data': social_data,
+        'next': request.GET.get('next', '')
+    })
+
+
+# Set up logging
+logger = logging.getLogger(__name__)
+
+@login_required(login_url='/')
+def user_profile_edit_form_userside(request):
+    if not request.user.is_authenticated:
+        messages.error(request, "Please sign in to edit your profile.")
+        return redirect('user:signin')
+    
+    if request.user.is_staff:
+        messages.error(request, "Staff accounts cannot edit user profiles.")
+        return redirect('user:staff_signin')
+    
+    user = request.user
+    social_data = {}
+
+    try:
+        # Fetch Google social account data
+        social_account = SocialAccount.objects.get(user=user, provider='google')
+        extra_data = social_account.extra_data
+        
+        # Extract all available fields from Google OAuth
+        social_data = {
+            'google_id': extra_data.get('sub'),  # Unique Google ID
+            'email': extra_data.get('email'),
+            'email_verified': extra_data.get('email_verified', False),
+            'full_name': extra_data.get('name'),
+            'first_name': extra_data.get('given_name'),
+            'last_name': extra_data.get('family_name'),
+            'picture': extra_data.get('picture'),
+            'locale': extra_data.get('locale'),
+            'hosted_domain': extra_data.get('hd'),  # For Google Workspace accounts
+        }
+        logger.debug(f"Google social data: {social_data}")
+
+    except SocialAccount.DoesNotExist:
+        # Fallback for non-Google login
+        social_data = {
+            'google_id': None,
+            'email': user.email,
+            'email_verified': False,
+            'full_name': user.get_full_name() or user.username,
+            'first_name': user.first_name,
+            'last_name': user.last_name,
+            'picture': None,
+            'locale': None,
+            'hosted_domain': None,
+        }
+        logger.debug(f"Non-Google user data: {social_data}")
+
+    if request.method == 'POST':
+        logger.debug(f"POST data: {request.POST}")
+        logger.debug(f"FILES data: {request.FILES}")
+
+        # Mandatory email field
+        email = request.POST.get('email')
+        if not email:
+            messages.error(request, "Email is required.")
+            return render(request, 'user_login/user_profile_edit_form_userside.html', {
+                'user': user,
+                'social_data': social_data
+            })
+
+        # Validate email format
+        try:
+            validate_email(email)
+        except ValidationError:
+            messages.error(request, "Invalid email format.")
+            return render(request, 'user_login/user_profile_edit_form_userside.html', {
+                'user': user,
+                'social_data': social_data
+            })
+
+        # Check for email uniqueness (excluding current user)
+        if email != user.email and request.user.__class__.objects.filter(email=email).exclude(pk=user.pk).exists():
+            messages.error(request, "This email is already in use.")
+            return render(request, 'user_login/user_profile_edit_form_userside.html', {
+                'user': user,
+                'social_data': social_data
+            })
+
+        # Update user fields
+        user.email = email
+        user.name = request.POST.get('name', user.name)
+        user.phone = request.POST.get('phone', user.phone)
+
+        # Handle file uploads with validation
+        if 'profile_image' in request.FILES:
+            profile_image = request.FILES['profile_image']
+            if not profile_image.content_type.startswith('image/'):
+                messages.error(request, "Profile image must be a valid image file.")
+                return render(request, 'user_login/user_profile_edit_form_userside.html', {
+                    'user': user,
+                    'social_data': social_data
+                })
+            user.profile_image = profile_image
+            logger.info(f"Profile image uploaded: {user.profile_image}")
+
+        if 'aadhar_image' in request.FILES:
+            aadhar_image = request.FILES['aadhar_image']
+            if not aadhar_image.content_type.startswith('image/'):
+                messages.error(request, "Aadhar image must be a valid image file.")
+                return render(request, 'user_login/user_profile_edit_form_userside.html', {
+                    'user': user,
+                    'social_data': social_data
+                })
+            user.aadhar_image = aadhar_image
+            logger.info(f"Aadhar image uploaded: {user.aadhar_image}")
+
+        if 'pancard_image' in request.FILES:
+            pancard_image = request.FILES['pancard_image']
+            if not pancard_image.content_type.startswith('image/'):
+                messages.error(request, "Pancard image must be a valid image file.")
+                return render(request, 'user_login/user_profile_edit_form_userside.html', {
+                    'user': user,
+                    'social_data': social_data
+                })
+            user.pancard_image = pancard_image
+            logger.info(f"Pancard image uploaded: {user.pancard_image}")
+
+        try:
+            user.save()
+            messages.success(request, "Profile updated successfully.")
+            return redirect('user:user_profile')
+                
+        except Exception as e:
+            logger.error(f"Error saving user profile: {str(e)}")
+            messages.error(request, "An error occurred while updating your profile.")
+            return render(request, 'user_login/user_profile_edit_form_userside.html', {
+                'user': user,
+                'social_data': social_data
+            })
+
+    return render(request, 'user_login/user_profile_edit_form_userside.html', {
+        'user': user,
+        'social_data': social_data,
+        'show_social_picture': True  # Add this line
+        
+    })
+
+
+
 def verify_email(request, uidb64, token):
     try:
         uid = force_str(urlsafe_base64_decode(uidb64))
@@ -300,52 +785,6 @@ def verify_email(request, uidb64, token):
     except (TypeError, ValueError, OverflowError, User.DoesNotExist):
         return render(request, 'user_login/verification_failure.html')
 
-from django.shortcuts import render, redirect
-from django.contrib.auth import authenticate, login
-from django.contrib import messages
-from django.utils import timezone
-import pytz
-from django.contrib.auth.models import User
-
-# User Signin
-def signin(request):
-    if request.user.is_authenticated and request.user.is_active:
-        return redirect('/')
-
-    if request.method == 'POST':
-        username = request.POST['username']
-        password = request.POST['password']
-
-        if not User.objects.filter(username=username).exists():
-            return render(request, 'user_login/signup.html', {'message': "User doesn't exist. Please sign up"})
-
-        user = User.objects.get(username=username)
-
-        if not user.is_active:
-            return render(request, 'user_login/verification_prompt.html', {'email': username, 'message': 'Your account is not verified yet. Please check your email.'})
-
-        authenticated_user = authenticate(request, username=username, password=password)
-
-        if authenticated_user is not None and authenticated_user.is_active:
-            request.session['username'] = username
-            login(request, authenticated_user)
-
-            ist = pytz.timezone('Asia/Kolkata')
-            signin_time = timezone.now().astimezone(ist).strftime('%Y-%m-%d %H:%M:%S')
-
-            messages.success(request, f'Signin successful at {signin_time}')
-
-            if hasattr(authenticated_user, 'is_maintainer') and authenticated_user.is_maintainer:
-                # Assuming is_maintainer is a custom field in the User model
-                return redirect('maintainer_panel')  # Redirect maintainer to maintainer_panel
-            elif authenticated_user.is_staff:
-                return redirect('staffpanel')  
-            else:
-                return redirect('myapp:home')  # Redirect regular user to home page
-        
-        return render(request, 'user_login/signin.html', {'message': 'Incorrect username or password'})
-
-    return render(request, 'user_login/signin.html')
 # User Logout
 def logout_view(request):
     if request.user.is_authenticated:
@@ -434,207 +873,7 @@ def generate_staff_id():
         if not HotelStaff.objects.filter(staff_id=staff_id).exists():
             return staff_id
         
-from django.contrib.auth.decorators import login_required
-from django.contrib import messages
-from django.shortcuts import render, redirect
-from allauth.socialaccount.models import SocialAccount
-from django.core.validators import validate_email, RegexValidator
-@login_required(login_url='/')
-def user_profile(request):
-    if not request.user.is_authenticated:
-        messages.error(request, "Please sign in to view your profile.")
-        return redirect('user:signin')
-    
-    if request.user.is_staff:
-        messages.error(request, "Staff accounts cannot access user profiles.")
-        return redirect('user:staff_signin')
 
-    user = request.user
-
-    # Try to get social account data
-    social_data = {}
-    try:
-        social_account = SocialAccount.objects.get(user=user, provider='google')
-        social_data = {
-            'full_name': social_account.extra_data.get('name'),
-            'email': social_account.extra_data.get('email'),
-            'picture': social_account.extra_data.get('picture'),
-        }
-    except SocialAccount.DoesNotExist:
-        # User may have signed up with regular email/password
-        social_data = {
-            'full_name': user.get_full_name() or user.username,
-            'email': user.email,
-            'picture': None
-        }
-
-    context = {
-        'user': user,
-        'social_data': social_data
-    }
-    
-    return render(request, 'user_login/user_profile.html', context)
-# Set up logging
-logger = logging.getLogger(__name__)
-@login_required(login_url='/')
-def user_profile_edit(request):
-    if not request.user.is_authenticated:
-        messages.error(request, "Please sign in to edit your profile.")
-        return redirect('user:signin')
-    
-    if request.user.is_staff:
-        messages.error(request, "Staff accounts cannot edit user profiles.")
-        return redirect('user:staff_signin')
-    
-    user = request.user
-    social_data = {}
-
-    try:
-        # Fetch Google social account data
-        social_account = SocialAccount.objects.get(user=user, provider='google')
-        extra_data = social_account.extra_data
-        
-        # Extract all available fields from Google OAuth
-        social_data = {
-            'google_id': extra_data.get('sub'),  # Unique Google ID
-            'email': extra_data.get('email'),
-            'email_verified': extra_data.get('email_verified', False),
-            'full_name': extra_data.get('name'),
-            'first_name': extra_data.get('given_name'),
-            'last_name': extra_data.get('family_name'),
-            'picture': extra_data.get('picture'),
-            'locale': extra_data.get('locale'),
-            'hosted_domain': extra_data.get('hd'),  # For Google Workspace accounts
-        }
-        logger.debug(f"Google social data: {social_data}")
-
-    except SocialAccount.DoesNotExist:
-        # Fallback for non-Google login
-        social_data = {
-            'google_id': None,
-            'email': user.email,
-            'email_verified': False,
-            'full_name': user.get_full_name() or user.username,
-            'first_name': user.first_name,
-            'last_name': user.last_name,
-            'picture': None,
-            'locale': None,
-            'hosted_domain': None,
-        }
-        logger.debug(f"Non-Google user data: {social_data}")
-
-    # Check if all required fields are already filled
-    required_fields_filled = all([
-        user.name,
-        user.phone,
-        user.email,
-        user.aadhar_image,
-        user.profile_image,
-        user.pancard_image
-    ])
-    
-    if required_fields_filled and request.method != 'POST':
-        return redirect('myapp:home')
-
-    if request.method == 'POST':
-        logger.debug(f"POST data: {request.POST}")
-        logger.debug(f"FILES data: {request.FILES}")
-
-        # Mandatory email field
-        email = request.POST.get('email')
-        if not email:
-            messages.error(request, "Email is required.")
-            return render(request, 'user_login/user_profile_edit.html', {
-                'user': user,
-                'social_data': social_data
-            })
-
-        # Validate email format
-        try:
-            validate_email(email)
-        except ValidationError:
-            messages.error(request, "Invalid email format.")
-            return render(request, 'user_login/user_profile_edit.html', {
-                'user': user,
-                'social_data': social_data
-            })
-
-        # Check for email uniqueness (excluding current user)
-        if email != user.email and request.user.__class__.objects.filter(email=email).exclude(pk=user.pk).exists():
-            messages.error(request, "This email is already in use.")
-            return render(request, 'user_login/user_profile_edit.html', {
-                'user': user,
-                'social_data': social_data
-            })
-
-        # Update user fields
-        user.email = email
-        user.name = request.POST.get('name', user.name)
-        user.phone = request.POST.get('phone', user.phone)
-
-        # Handle file uploads with validation
-        if 'profile_image' in request.FILES:
-            profile_image = request.FILES['profile_image']
-            if not profile_image.content_type.startswith('image/'):
-                messages.error(request, "Profile image must be a valid image file.")
-                return render(request, 'user_login/user_profile_edit.html', {
-                    'user': user,
-                    'social_data': social_data
-                })
-            user.profile_image = profile_image
-            logger.info(f"Profile image uploaded: {user.profile_image}")
-
-        if 'aadhar_image' in request.FILES:
-            aadhar_image = request.FILES['aadhar_image']
-            if not aadhar_image.content_type.startswith('image/'):
-                messages.error(request, "Aadhar image must be a valid image file.")
-                return render(request, 'user_login/user_profile_edit.html', {
-                    'user': user,
-                    'social_data': social_data
-                })
-            user.aadhar_image = aadhar_image
-            logger.info(f"Aadhar image uploaded: {user.aadhar_image}")
-
-        if 'pancard_image' in request.FILES:
-            pancard_image = request.FILES['pancard_image']
-            if not pancard_image.content_type.startswith('image/'):
-                messages.error(request, "Pancard image must be a valid image file.")
-                return render(request, 'user_login/user_profile_edit.html', {
-                    'user': user,
-                    'social_data': social_data
-                })
-            user.pancard_image = pancard_image
-            logger.info(f"Pancard image uploaded: {user.pancard_image}")
-
-        try:
-            user.save()
-            messages.success(request, "Profile updated successfully.")
-            
-            # Check again if all required fields are filled after update
-            if all([
-                user.name,
-                user.phone,
-                user.email,
-                user.aadhar_image,
-                user.profile_image,
-                user.pancard_image
-            ]):
-                return redirect('myapp:home')
-            else:
-                return redirect('user:user_profile')
-                
-        except Exception as e:
-            logger.error(f"Error saving user profile: {str(e)}")
-            messages.error(request, "An error occurred while updating your profile.")
-            return render(request, 'user_login/user_profile_edit.html', {
-                'user': user,
-                'social_data': social_data
-            })
-
-    return render(request, 'user_login/user_profile_edit.html', {
-        'user': user,
-        'social_data': social_data
-    })
 
 
 @login_required(login_url='/')

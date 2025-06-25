@@ -1,0 +1,1046 @@
+{% extends 'rooms/room_basic.html' %}
+{% load static %}
+
+{% block content %}
+<style>
+    a { text-decoration: none; }
+    :root {
+        --available: #10B981;
+        --booked: #F59E0B;
+        --unavailable: #EF4444;
+        --primary: #1E3A8A;
+        --past: #6B7280;
+    }
+    .room-container { width: 100%; margin: 0 auto; padding: 20px; }
+    .room-card { background-color: white; border-radius: 10px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); padding: 20px; margin-bottom: 20px; }
+    .room-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+    .room-title { font-size: 1.5rem; font-weight: bold; color: #333; }
+    .room-date { color: #666; font-size: 0.9rem; }
+    .filter-section { background-color: #f8f9fa; border-radius: 8px; padding: 15px; margin-bottom: 20px; }
+    .filter-form { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; }
+    .form-group { margin-bottom: 0; }
+    .form-control { width: 100%; }
+    .fc-event-available { background-color: var(--available); border-color: var(--available); color: white; }
+    .fc-event-booked { background-color: var(--booked); border-color: var(--booked); color: white; }
+    .fc-event-unavailable { background-color: var(--unavailable); border-color: var(--unavailable); color: white; }
+    #roomCalendar { max-width: 100%; margin: 0 auto; transition: all 0.3s ease; }
+    .calendar-fullscreen { position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 1000; background: white; padding: 1rem; }
+    .room-popup { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.2); z-index: 1001; max-width: 90%; width: 400px; }
+    .room-popup .close-btn { position: absolute; top: 10px; right: 10px; cursor: pointer; font-size: 1.5rem; color: #666; }
+    .booking-modal .modal-dialog { max-width: 600px; }
+    .price-breakdown { background-color: #f8f9fa; padding: 10px; border-radius: 4px; }
+    .price-details { font-size: 0.85rem; color: #6c757d; }
+    .price-details strong { color: #495057; }
+    .badge-available { background-color: var(--available); }
+    .badge-booked { background-color: var(--booked); }
+    .badge-unavailable { background-color: var(--unavailable); }
+    .badge-past { background-color: var(--past); }
+    .table-available { background-color: rgba(16, 185, 129, 0.1); }
+    .table-booked { background-color: rgba(245, 158, 11, 0.1); }
+    .table-unavailable { background-color: rgba(239, 68, 68, 0.1); }
+    .table-past { background-color: rgba(107, 114, 128, 0.1); }
+    .capacity-badge { background-color: #6c757d; color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.8rem; }
+    .extra-charge-badge { background-color: #dc3545; color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.8rem; }
+    .price-row { display: flex; justify-content: space-between; margin-bottom: 5px; }
+    .error-message { color: #dc3545; font-size: 0.8rem; margin-top: 5px; display: none; }
+    @media (max-width: 768px) {
+        .filter-form { grid-template-columns: 1fr; }
+        .fc .fc-toolbar { flex-direction: column; align-items: center; }
+        .fc .fc-toolbar-title { margin: 0.5rem 0; }
+        .fc .fc-button-group { margin: 0.5rem 0; }
+        .room-popup, .booking-modal .modal-dialog { width: 90%; max-width: 320px; }
+    }
+    @media (max-width: 480px) {
+        .room-header { flex-direction: column; align-items: flex-start; gap: 10px; }
+        .fc-daygrid-main { display: none; }
+        .fc-list-main { display: block; }
+        .room-popup, .booking-modal .modal-dialog { width:95%; padding: 15px; }
+    }
+</style>
+
+<div class="room-container">
+    <div class="room-card">
+        <div class="room-header">
+            <h1 class="room-title">
+                <i class="fas fa-door-open me-2" style="color: var(--primary);"></i>Rooms Status Dashboard
+            </h1>
+            <div class="room-date">
+                <i class="fas fa-clock me-1"></i> Current Date: {{ current_date|date:"F j, Y" }}
+            </div>
+        </div>
+
+        {% if messages %}
+        <div class="mb-3">
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <div class="filter-section">
+            <form method="get" id="filter-form">
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label for="hotel-filter">Hotel</label>
+                            <select class="form-control" id="hotel-filter" name="hotel_filter">
+                                <option value="all">All Hotels</option>
+                                {% for hotel in hotels %}
+                                <option value="{{ hotel.name }}" {% if selected_hotel == hotel.name %}selected{% endif %}>{{ hotel.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label for="date-filter">Date</label>
+                            <input type="date" class="form-control" id="date-filter" name="date_filter" value="{{ selected_date|date:'Y-m-d' }}">
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label for="status-filter">Status</label>
+                            <select class="form-control" id="status-filter" name="status_filter">
+                                <option value="all" {% if selected_status == 'all' %}selected{% endif %}>All Statuses</option>
+                                <option value="available" {% if selected_status == 'available' %}selected{% endif %}>Available</option>
+                                <option value="booked" {% if selected_status == 'booked' %}selected{% endif %}>Booked</option>
+                                <option value="unavailable" {% if selected_status == 'unavailable' %}selected{% endif %}>Unavailable</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-3 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="fas fa-filter me-1"></i> Apply Filters
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <div class="row mb-4">
+            <div class="col-xl-3 col-md-6">
+                <div class="card border-left-primary border-left-4 mb-4">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h5 class="card-title text-primary">Total Rooms</h5>
+                                <h2 class="mb-0">{{ total_rooms }}</h2>
+                            </div>
+                            <i class="fas fa-door-open fa-3x text-primary"></i>
+                        </div>
+                    </div>
+                    <div class="card-footer d-flex align-items-center justify-content-between bg-transparent">
+                        <a class="small text-primary stretched-link" href="#" data-filter="all">View All</a>
+                        <div class="small text-primary"><i class="fas fa-angle-right"></i></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-3 col-md-6">
+                <div class="card border-left-success border-left-4 mb-4">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h5 class="card-title text-success">Available Rooms</h5>
+                                <h2 class="mb-0">{{ available_rooms }}</h2>
+                            </div>
+                            <i class="fas fa-check-circle fa-3x text-success"></i>
+                        </div>
+                    </div>
+                    <div class="card-footer d-flex align-items-center justify-content-between bg-transparent">
+                        <a class="small text-success stretched-link" href="#" data-filter="available">View Available</a>
+                        <div class="small text-success"><i class="fas fa-angle-right"></i></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-3 col-md-6">
+                <div class="card border-left-warning border-left-4 mb-4">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h5 class="card-title text-warning">Booked Rooms</h5>
+                                <h2 class="mb-0">{{ booked_rooms }}</h2>
+                            </div>
+                            <i class="fas fa-bed fa-3x text-warning"></i>
+                        </div>
+                    </div>
+                    <div class="card-footer d-flex align-items-center justify-content-between bg-transparent">
+                        <a class="small text-warning stretched-link" href="#" data-filter="booked">View Booked</a>
+                        <div class="small text-warning"><i class="fas fa-angle-right"></i></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-3 col-md-6">
+                <div class="card border-left-danger border-left-4 mb-4">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h5 class="card-title text-danger">Unavailable Rooms</h5>
+                                <h2 class="mb-0">{{ unavailable_rooms }}</h2>
+                            </div>
+                            <i class="fas fa-times-circle fa-3x text-danger"></i>
+                        </div>
+                    </div>
+                    <div class="card-footer d-flex align-items-center justify-content-between bg-transparent">
+                        <a class="small text-danger stretched-link" href="#" data-filter="unavailable">View Unavailable</a>
+                        <div class="small text-danger"><i class="fas fa-angle-right"></i></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="calendar-container">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h3 class="text-center mb-3">
+                    <button id="toggleBtn" class="btn btn-success">
+                        <i class="fas fa-calendar me-2"></i>Toggle Calendar View
+                    </button>
+                </h3>
+                <button id="fullscreenBtn" class="btn btn-primary">
+                    <i class="fas fa-expand"></i> Full Screen
+                </button>
+            </div>
+                
+            <div id="roomCalendarContainer" class="d-none mb-4" style="background-color: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); padding: 15px;">
+                <div id="roomCalendar"></div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="fas fa-table me-1"></i>
+                    Rooms Status for {{ selected_date|date:"F j, Y" }}
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover" id="roomsTable" width="100%" cellspacing="0">
+                            <thead>
+                                <tr class="table-light">
+                                    <th>Hotel</th>
+                                    <th>Name</th>
+                                    <th>Type</th>
+                                    <th>Price Details</th>
+                                    <th>Status</th>
+                                    <th>Booking Details</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for room in rooms %}
+                                <tr class="{% if room.display_status == '1' %} {% if room.is_past_date %}table-past{% else %}table-available{% endif %} {% elif room.display_status == '2' %}table-unavailable{% else %}table-booked{% endif %}">
+                                    <td><a href="" class="text-decoration-none">{{ room.hotel.name }}</a></td>
+                                    <td><a href="" class="text-decoration-none">{{ room.room_number }}</a></td>
+                                    <td>{{ room.get_room_type_display }}</td>
+                                    <td>
+                                        <div class="price-details">
+                                            <span class="original-price" style="text-decoration: line-through;">₹{{ room.price|floatformat:2 }}</span>
+                                            <span class="discounted-price">₹{{ room.discounted_price_value|floatformat:2 }}</span><br>
+                                            {% if room.discount > 0 %}
+                                            <span class="text-success">Save ₹{{ room.saved_amount|floatformat:2 }} ({{ room.discount }}%)</span><br>
+                                            {% endif %}
+                                            <span>{{ room.gst_rate|floatformat:2 }}% GST</span><br>
+                                            <span class="capacity-badge">
+                                                {{ room.capacity }} base + {{ room.extra_capacity }} extra (max {{ room.total_capacity }})
+                                            </span>
+                                            {% if room.extra_person_charges > 0 %}
+                                            <span class="extra-charge-badge">₹{{ room.extra_person_charges|floatformat:2 }}/extra/night</span>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                    <td>
+                                        {% if room.display_status == '1' %}
+                                            {% if room.is_past_date %}
+                                                <span class="badge badge-past">Past Date</span>
+                                            {% else %}
+                                                <span class="badge badge-available">Available</span>
+                                            {% endif %}
+                                        {% elif room.display_status == '2' %}
+                                            <span class="badge badge-unavailable">Unavailable</span>
+                                        {% else %}
+                                            <span class="badge badge-booked">Booked</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if room.current_booking %}
+                                        <div class="booking-details">
+                                            <a href="{% url 'user:user_profile_detail' username=room.current_booking.guest.username %}" class="text-primary text-decoration-none">
+                                                {{ room.current_booking.guest.get_full_name|default:room.current_booking.guest.username }}
+                                            </a><br>
+                                            <strong>Check-in:</strong> {{ room.current_booking.check_in|date:"M d, Y" }}<br>
+                                            <strong>Check-out:</strong> {{ room.current_booking.check_out|date:"M d, Y" }}<br>
+                                            <strong>Guests:</strong> {{ room.current_booking.number_of_guests }}
+                                            {% if room.current_booking.extra_guests > 0 %}
+                                            <span class="extra-charge-badge">+{{ room.current_booking.extra_guests }} extra</span>
+                                            {% endif %}<br>
+                                           
+                                        </div>
+                                        {% else %}
+                                            {% if room.is_past_date %}
+                                                <span class="text-muted">No booking (Past Date)</span>
+                                            {% else %}
+                                                <span class="text-muted">Available for booking</span>
+                                            {% endif %}
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="btn-group" role="group">
+                                            <button type="button" class="btn btn-sm btn-outline-primary view-room" 
+                                                data-room-id="{{ room.id }}"
+                                                data-room-number="{{ room.room_number }}"
+                                                data-room-type="{{ room.get_room_type_display }}"
+                                                data-room-price="{{ room.price }}"
+                                                data-room-discounted-price="{{ room.discounted_price_value }}"
+                                                data-room-discount="{{ room.discount }}"
+                                                data-room-saved-money="{{ room.saved_amount }}"
+                                                data-room-status="{{ room.display_status }}"
+                                                data-hotel-name="{{ room.hotel.name }}"
+                                                data-hotel-location="{{ room.hotel.location }}"
+                                                data-room-capacity="{{ room.capacity }}"
+                                                data-room-extra-capacity="{{ room.extra_capacity }}"
+                                                data-gst-rate="{{ room.gst_rate }}"
+                                                data-extra-person-charge="{{ room.extra_person_charges }}"
+                                                {% if room.current_booking %}
+                                                data-booking-id="{{ room.current_booking.id }}"
+                                                data-guest-name="{{ room.current_booking.guest.get_full_name }}"
+                                                data-check-in="{{ room.current_booking.check_in|date:'Y-m-d' }}"
+                                                data-check-out="{{ room.current_booking.check_out|date:'Y-m-d' }}"
+                                                data-total-price="{{ room.current_booking.total_price }}"
+                                                data-base-price="{{ room.current_booking.base_price }}"
+                                                data-extra-guests="{{ room.current_booking.extra_guests }}"
+                                                data-extra-guest-charges="{{ room.current_booking.extra_guest_charges }}"
+                                                data-gst-amount="{{ room.current_booking.gst_amount }}"
+                                                data-nights="{{ room.current_booking.nights }}"
+                                                {% endif %}
+                                            >
+                                                <i class="fas fa-eye"></i> View
+                                            </button>
+                                            {% if room.display_status == '1' %}
+                                                {% if not room.is_past_date %}
+                                                    <button type="button" class="btn btn-sm btn-success book-now" 
+                                                        data-room-id="{{ room.id }}"
+                                                        data-room-number="{{ room.room_number }}"
+                                                        data-room-type="{{ room.get_room_type_display }}"
+                                                        data-room-price="{{ room.price }}"
+                                                        data-room-discounted-price="{{ room.discounted_price_value }}"
+                                                        data-room-discount="{{ room.discount }}"
+                                                        data-hotel-name="{{ room.hotel.name }}"
+                                                        data-room-capacity="{{ room.capacity }}"
+                                                        data-room-extra-capacity="{{ room.extra_capacity|default:0 }}"
+                                                        data-check-in="{{ selected_date|date:'Y-m-d' }}"
+                                                        data-gst-rate="{{ room.gst_rate|default:'12.0' }}"
+                                                        data-extra-person-charge="{{ room.extra_person_charges|default:'0.0' }}"
+                                                        data-total-capacity="{{ room.total_capacity }}">
+                                                        <i class="fas fa-calendar-plus"></i> Book Now
+                                                    </button>
+                                                    <button type="button" class="btn btn-sm btn-outline-danger mark-unavailable" data-room-id="{{ room.id }}">
+                                                        <i class="fas fa-times"></i> Unavailable
+                                                    </button>
+                                                {% else %}
+                                                    <button class="btn btn-sm btn-secondary" disabled>
+                                                        <i class="fas fa-clock"></i> Past Date
+                                                    </button>
+                                                {% endif %}
+                                            {% elif room.display_status == '2' %}
+                                                <button type="button" class="btn btn-sm btn-outline-success mark-available" data-room-id="{{ room.id }}">
+                                                    <i class="fas fa-check"></i> Available
+                                                </button>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="7" class="text-center text-muted py-4">
+                                        No rooms found matching your criteria.
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="container-fluid px-4">
+                <hr>
+                <div class="bookings-section">
+                    <h3 class="text-success mb-4">
+                        <i class="fas fa-book me-2"></i>Bookings
+                    </h3>
+                    {% if reservations %}
+                    <div class="table-responsive">
+                        <table id="bookingsTable" class="table table-striped table-hover">
+                            <thead>
+                                <tr class="table-light">
+                                    <th>Username</th>
+                                    <th>Persons</th>
+                                    <th>Check In</th>
+                                    <th>Check Out</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for each_detail in reservations %}
+                                <tr>
+                                    <td>{{ each_detail.guest.username }}</td>
+                                    <td>{{ each_detail.number_of_guests }}</td>
+                                    <td>{{ each_detail.check_in|date:"M d, Y" }}</td>
+                                    <td>{{ each_detail.check_out|date:"M d, Y" }}</td>
+                                    <td style="background-color: {% if each_detail.is_deleted %}#808080{% elif each_detail.check_out < current_date %}red{% elif each_detail.check_in <= current_date and each_detail.check_out >= current_date %}green{% else %}blue{% endif %}; color: white;">
+                                        {% if each_detail.is_cancelled %}
+                                            Cancelled
+                                        {% elif each_detail.check_out < current_date %}
+                                            Past
+                                        {% elif each_detail.check_in <= current_date and each_detail.check_out >= current_date %}
+                                            Current
+                                        {% else %}
+                                            Future
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="5" class="text-center text-muted py-4">
+                                        No booking details found
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info">No booking details found</div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="roomModal" tabindex="-1" aria-labelledby="roomModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="roomModalLabel">Room Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h4>Room Information</h4>
+                            <ul class="list-group list-group-flush">
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    <strong>Room Number:</strong>
+                                    <span id="modal-room-number"></span>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    <strong>Room Type:</strong>
+                                    <span id="modal-room-type"></span>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    <strong>Original Price:</strong>
+                                    <span id="modal-room-price"></span>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    <strong>Discounted Price:</strong>
+                                    <span id="modal-room-discounted-price"></span>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    <strong>Discount:</strong>
+                                    <span id="modal-room-discount"></span>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    <strong>Saved Amount:</strong>
+                                    <span id="modal-room-saved-money"></span>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    <strong>GST Rate:</strong>
+                                    <span id="modal-gst-rate"></span>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    <strong>Extra Person Charge:</strong>
+                                    <span id="modal-extra-person-charge"></span>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    <strong>Capacity:</strong>
+                                    <span id="modal-room-capacity"></span>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    <strong>Extra Capacity:</strong>
+                                    <span id="modal-room-extra-capacity"></span>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    <strong>Status:</strong>
+                                    <span id="modal-room-status"></span>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    <strong>Hotel:</strong>
+                                    <span id="modal-hotel-name"></span>
+                                </li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h4>Booking Information</h4>
+                            <div id="modal-booking-info">
+                                <p class="text-muted">No active booking for this room.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary">Edit Room</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="bookingModal" tabindex="-1" aria-labelledby="bookingModalLabel" aria-hidden="true">
+        <div class="modal-dialog booking-modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="bookingModalLabel">Confirm Your Booking</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="bookingForm" method="POST">
+                        {% csrf_token %}
+                        <div class="form-group mb-3">
+                            <label for="booking-hotel-id" class="form-label">Hotel:</label>
+                            <input type="text" class="form-control" id="booking-hotel" readonly>
+                        </div>
+                        <div class="form-group mb-3">
+                            <label for="booking-room-number" class="form-label">Room Number:</label>
+                            <input type="text" class="form-control" id="booking-room-number" readonly>
+                        </div>
+                        <div class="form-group mb-3">
+                            <label for="booking-room-type" class="form-label">Room Type:</label>
+                            <input type="text" class="form-control" id="booking-room-type" readonly>
+                        </div>
+                        <div class="form-group mb-3">
+                            <label for="booking-username" class="form-label">Username:</label>
+                            <input type="text" class="form-control" id="booking-username" readonly value="{{ request.user.username }}">
+                        </div>
+                        <div class="form-group mb-3">
+                            <label for="id_person" class="form-label">Guests (Max: <span id="booking-max-capacity"></span>):</label>
+                            <input type="number" class="form-control" id="id_person" name="person" min="1" required>
+                            <small class="form-text text-muted" id="booking-capacity-info"></small>
+                            <div id="booking-person-error" class="error-message"></div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="id_check_in" class="form-label">Check-in:</label>
+                                <input type="date" class="form-control" id="id_check_in" name="check_in" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="id_check_out" class="form-label">Check-out:</label>
+                                <input type="date" class="form-control" id="id_check_out" name="check_out" required>
+                            </div>
+                        </div>
+                        <div class="form-group mb-3">
+                            <label class="form-label">Price Breakdown:</label>
+                            <div class="price-breakdown" id="booking-price-breakdown">
+                                <div class="price-row">
+                                    <span>Base Price <span id="booking-room-info"></span>:</span>
+                                    <span id="booking-base-price">₹0.00</span>
+                                </div>
+                                <div class="price-row" id="booking-discount-row">
+                                    <span>Discount (<span id="booking-discount-rate"></span>%):</span>
+                                    <span id="booking-discount-amount">₹0.00</span>
+                                </div>
+                                <div class="price-row" id="booking-extra-person-row" style="display:none">
+                                    <span>Extra Guest Charges:</span>
+                                    <span id="booking-extra-person-amount">₹0.00</span>
+                                </div>
+                                <div class="price-row" id="booking-gst-row">
+                                    <span>GST (<span id="booking-gst-rate"></span>%):</span>
+                                    <span id="booking-gst-amount">₹0.00</span>
+                                </div>
+                                <hr>
+                                <div class="price-row fw-bold">
+                                    <span>Total Amount:</span>
+                                    <span id="booking-total-price">₹0.00</span>
+                                </div>
+                            </div>
+                        </div>
+                        <input type="hidden" id="id_room_id" name="room_id" value="">
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary btn-lg">Confirm Booking</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="roomCalendarPopup" class="room-popup d-none">
+        <span class="close-btn">×</span>
+        <h3 id="popup-room-title">Room Details</h3>
+        <div id="popup-room-content"></div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment.min.js"></script>
+    <script>
+        // Fallback for jQuery if CDN fails
+        if (typeof jQuery === 'undefined') {
+            document.write('<script src="{% static "js/jquery-3.6.0.min.js" %}"><\/script>');
+        }
+
+        // Fallback for Bootstrap if CDN fails
+        if (typeof bootstrap === 'undefined') {
+            document.write('<script src="{% static "js/bootstrap.bundle.min.js" %}"><\/script>');
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            if (window.jQuery) {
+                console.log('jQuery loaded successfully:', jQuery.fn.jquery);
+                jQuery(document).ready(function($) {
+                    let selectedRoomData = {};
+
+                    // Initialize FullCalendar
+                    var calendarEl = document.getElementById('roomCalendar');
+                    if (calendarEl) {
+                        var calendar = new FullCalendar.Calendar(calendarEl, {
+                            initialView: 'dayGridMonth',
+                            headerToolbar: {
+                                left: 'prev,next today',
+                                center: 'title',
+                                right: 'dayGridMonth,timeGridWeek,timeGridDay'
+                            },
+                            events: [
+                                {% for room in rooms %}
+                                    {% if room.current_booking %}
+                                        {
+                                            title: 'Booked: Room {{ room.room_number }}',
+                                            start: '{{ room.current_booking.check_in|date:"Y-m-d" }}',
+                                            end: '{{ room.current_booking.check_out|date:"Y-m-d" }}',
+                                            className: 'fc-event-booked',
+                                            extendedProps: {
+                                                roomId: {{ room.id }},
+                                                roomNumber: '{{ room.room_number }}',
+                                                roomType: '{{ room.get_room_type_display }}',
+                                                hotel: '{{ room.hotel.name }}',
+                                                guest: '{{ room.current_booking.guest.get_full_name|default:room.current_booking.guest.username }}',
+                                                totalPrice: {{ room.current_booking.total_price }}
+                                            }
+                                        },
+                                    {% elif room.display_status == '2' %}
+                                        {
+                                            title: 'Unavailable: Room {{ room.room_number }}',
+                                            start: '{{ selected_date|date:"Y-m-d" }}',
+                                            className: 'fc-event-unavailable',
+                                            extendedProps: {
+                                                roomId: {{ room.id }},
+                                                roomNumber: '{{ room.room_number }}',
+                                                roomType: '{{ room.get_room_type_display }}',
+                                                hotel: '{{ room.hotel.name }}'
+                                            }
+                                        },
+                                    {% else %}
+                                        {
+                                            title: 'Available: Room {{ room.room_number }}',
+                                            start: '{{ selected_date|date:"Y-m-d" }}',
+                                            className: 'fc-event-available',
+                                            extendedProps: {
+                                                roomId: {{ room.id }},
+                                                roomNumber: '{{ room.room_number }}',
+                                                roomType: '{{ room.get_room_type_display }}',
+                                                hotel: '{{ room.hotel.name }}'
+                                            }
+                                        },
+                                    {% endif %}
+                                {% endfor %}
+                            ],
+                            eventClick: function(info) {
+                                console.log('Calendar event clicked:', info.event);
+                                var props = info.event.extendedProps;
+                                var content = `
+                                    <p><strong>Room Number:</strong> ${props.roomNumber || 'N/A'}</p>
+                                    <p><strong>Room Type:</strong> ${props.roomType || 'N/A'}</p>
+                                    <p><strong>Hotel:</strong> ${props.hotel || 'N/A'}</p>
+                                    ${props.guest ? '<p><strong>Guest:</strong> ' + props.guest + '</p>' : ''}
+                                    ${props.totalPrice ? '<p><strong>Total:</strong> ₹${props.totalPrice.toFixed(2)}</p>' : ''}
+                                    ${info.event.start ? '<p><strong>Start Date:</strong> ' + info.event.start.toLocaleDateString() + '</p>' : ''}
+                                    ${info.event.end ? '<p><strong>End Date:</strong> ' + info.event.end.toLocaleDateString() + '</p>' : ''}
+                                `;
+                                $('#popup-room-title').text(info.event.title || 'Room Details');
+                                $('#popup-room-content').html(content);
+                                $('#roomCalendarPopup').removeClass('d-none');
+                            }
+                        });
+                        calendar.render();
+                    }
+
+                    // Toggle calendar visibility
+                    $('#toggleBtn').on('click', function() {
+                        console.log('Toggle calendar clicked');
+                        $('#roomCalendarContainer').toggleClass('d-none');
+                        calendar.render();
+                    });
+
+                    // Toggle fullscreen
+                    $('#fullscreenBtn').on('click', function() {
+                        console.log('Fullscreen toggle clicked');
+                        $('#roomCalendarContainer').toggleClass('calendar-fullscreen');
+                        $(this).find('i').toggleClass('fa-expand fa-compress');
+                        calendar.render();
+                    });
+
+                    // Close calendar popup
+                    $('#roomCalendarPopup .close-btn').on('click', function() {
+                        console.log('Close popup clicked');
+                        $('#roomCalendarPopup').addClass('d-none');
+                    });
+
+                    // Filter links in card footers
+                    $('.card-footer a[data-filter]').on('click', function(e) {
+                        e.preventDefault();
+                        console.log('Filter link clicked:', $(this).data('filter'));
+                        const filter = $(this).data('filter');
+                        $('#status-filter').val(filter);
+                        $('#filter-form').submit();
+                    });
+
+                    // View button handler
+                    $(document).on('click', '.view-room', function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        console.log('View button clicked:', $(this).data('room-id'));
+
+                        const roomId = parseInt($(this).data('room-id') || 0);
+                        const roomNumber = $(this).data('room-number') || 'N/A';
+                        const roomType = $(this).data('room-type') || 'N/A';
+                        const roomPrice = parseFloat($(this).data('room-price') || 0);
+                        const roomDiscountedPrice = parseFloat($(this).data('room-discounted-price') || 0);
+                        const roomDiscount = parseFloat($(this).data('room-discount') || 0);
+                        const roomSavedMoney = parseFloat($(this).data('room-saved-money') || 0);
+                        const roomStatus = $(this).data('room-status') || '1';
+                        const hotelName = $(this).data('hotel-name') || 'N/A';
+                        const gstRate = parseFloat($(this).data('gst-rate') || 12.0);
+                        const extraPersonCharge = parseFloat($(this).data('extra-person-charge') || 0);
+                        const roomCapacity = parseInt($(this).data('room-capacity') || 1);
+                        const roomExtraCapacity = parseInt($(this).data('room-extra-capacity') || 0);
+
+                        $('#modal-room-number').text(roomNumber);
+                        $('#modal-room-type').text(roomType);
+                        $('#modal-room-price').text(roomPrice ? `₹${roomPrice.toFixed(2)}` : 'N/A');
+                        $('#modal-room-discounted-price').text(roomDiscountedPrice ? `₹${roomDiscountedPrice.toFixed(2)}` : 'N/A');
+                        $('#modal-room-discount').text(roomDiscount ? `${roomDiscount.toFixed(2)}%` : 'None');
+                        $('#modal-room-saved-money').text(roomSavedMoney ? `₹${roomSavedMoney.toFixed(2)}` : 'None');
+                        $('#modal-gst-rate').text(gstRate ? `${gstRate.toFixed(2)}%` : 'N/A');
+                        $('#modal-extra-person-charge').text(extraPersonCharge ? `₹${extraPersonCharge.toFixed(2)}/night` : 'None');
+                        $('#modal-room-capacity').text(roomCapacity);
+                        $('#modal-room-extra-capacity').text(roomExtraCapacity || '0');
+                        $('#modal-hotel-name').text(hotelName);
+
+                        let statusBadge = '<span class="badge badge-unavailable">Unknown</span>';
+                        if (roomStatus === '1') {
+                            statusBadge = '<span class="badge badge-available">Available</span>';
+                        } else if (roomStatus === '2') {
+                            statusBadge = '<span class="badge badge-unavailable">Unavailable</span>';
+                        } else if (roomStatus === '3') {
+                            statusBadge = '<span class="badge badge-booked">Booked</span>';
+                        }
+                        $('#modal-room-status').html(statusBadge);
+
+                        if ($(this).data('booking-id')) {
+                            const guestName = $(this).data('guest-name') || 'N/A';
+                            const checkIn = $(this).data('check-in') || 'N/A';
+                            const checkOut = $(this).data('check-out') || 'N/A';
+                            const totalPrice = parseFloat($(this).data('total-price') || 0);
+                            const basePrice = parseFloat($(this).data('base-price') || 0);
+                            const extraGuests = parseInt($(this).data('extra-guests') || 0);
+                            const extraGuestCharges = parseFloat($(this).data('extra-guest-charges') || 0);
+                            const gstAmount = parseFloat($(this).data('gst-amount') || 0);
+                            const nights = parseInt($(this).data('nights') || 1);
+
+                            let bookingHtml = `
+                                <ul class="list-group list-group-flush">
+                                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                                        <strong>Guest:</strong>
+                                        <span>${guestName}</span>
+                                    </li>
+                                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                                        <strong>Check-in:</strong>
+                                        <span>${checkIn}</span>
+                                    </li>
+                                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                                        <strong>Check-out:</strong>
+                                        <span>${checkOut}</span>
+                                    </li>
+                                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                                        <strong>Price Breakdown:</strong>
+                                        <div class="price-breakdown">
+                                            <div class="price-row">
+                                                <span>Base Price (${nights} night${nights > 1 ? 's' : ''}):</span>
+                                                <span>₹${basePrice.toFixed(2)}</span>
+                                            </div>
+                                            ${extraGuests > 0 ? `
+                                            <div class="price-row">
+                                                <span>Extra Guests (${extraGuests} × ₹${extraPersonCharge.toFixed(2)}/night):</span>
+                                                <span>₹${extraGuestCharges.toFixed(2)}</span>
+                                            </div>
+                                            ` : ''}
+                                            <div class="price-row">
+                                                <span>GST (${gstRate.toFixed(2)}%):</span>
+                                                <span>₹${gstAmount.toFixed(2)}</span>
+                                            </div>
+                                            <div class="price-row font-weight-bold">
+                                                <span>Total:</span>
+                                                <span>₹${totalPrice.toFixed(2)}</span>
+                                            </div>
+                                        </div>
+                                    </li>
+                                </ul>
+                            `;
+                            $('#modal-booking-info').html(bookingHtml);
+                        } else {
+                            $('#modal-booking-info').html('<p class="text-muted">No booking for this room.</p>');
+                        }
+
+                        try {
+                            $('#roomModal').modal('show');
+                        } catch (err) {
+                            console.error('Error showing room modal:', err);
+                        }
+                    });
+
+                    // Book Now button handler
+                    $(document).on('click', '.book-now', function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        console.log('Book Now button clicked:', $(this).data('room-id'));
+
+                        selectedRoomData = {
+                            roomId: parseInt($(this).data('room-id') || 0),
+                            roomNumber: $(this).data('room-number') || '',
+                            roomType: $(this).data('room-type') || '',
+                            roomPrice: parseFloat($(this).data('room-price') || 0),
+                            roomDiscountedPrice: parseFloat($(this).data('room-discounted-price') || 0),
+                            roomDiscount: parseFloat($(this).data('room-discount') || 0),
+                            hotelName: $(this).data('hotel-name') || '',
+                            roomCapacity: parseInt($(this).data('room-capacity') || 1),
+                            roomExtraCapacity: parseInt($(this).data('room-extra-capacity') || 0),
+                            totalCapacity: parseInt($(this).data('total-capacity') || 1),
+                            checkIn: $(this).data('check-in') || '',
+                            gstRate: parseFloat($(this).data('gst-rate') || 12.0),
+                            extraPersonCharge: parseFloat($(this).data('extra-person-charge') || 0)
+                        };
+
+                        $('#id_room_id').val(selectedRoomData.roomId);
+                        $('#booking-hotel').val(selectedRoomData.hotelName);
+                        $('#booking-room-number').val(selectedRoomData.roomNumber);
+                        $('#booking-room-type').val(selectedRoomData.roomType);
+                        $('#booking-max-capacity').text(selectedRoomData.totalCapacity);
+                        $('#id_person').attr({
+                            'max': selectedRoomData.totalCapacity,
+                            'min': 1,
+                            'value': Math.min(1, selectedRoomData.roomCapacity)
+                        }).val(Math.min(1, selectedRoomData.roomCapacity));
+                        $('#id_check_in').val(selectedRoomData.checkIn).attr('min', '{{ current_date|date:"Y-m-d" }}');
+                        $('#id_check_out').val('').attr('min', moment(selectedRoomData.checkIn).add(1, 'days').format('YYYY-MM-DD'));
+                        $('#booking-gst-rate').text(selectedRoomData.gstRate.toFixed(2));
+                        $('#booking-discount-rate').text(selectedRoomData.roomDiscount.toFixed(2));
+
+                        let capacityInfo = `Max ${selectedRoomData.totalCapacity} guests (${selectedRoomData.roomCapacity} base`;
+                        if (selectedRoomData.roomExtraCapacity > 0) {
+                            capacityInfo += ` + ${selectedRoomData.roomExtraCapacity} extra`;
+                            if (selectedRoomData.extraPersonCharge > 0) {
+                                capacityInfo += ` at ₹${selectedRoomData.extraPersonCharge.toFixed(2)} per extra guest per night`;
+                            }
+                        }
+                        capacityInfo += ')';
+                        $('#booking-capacity-info').text(capacityInfo);
+
+                        updateBookingPrice();
+                        try {
+                            $('#bookingModal').modal('show');
+                        } catch (err) {
+                            console.error('Error showing booking modal:', err);
+                        }
+                    });
+
+                    // Price update on input change
+                    $('#id_check_in, #id_check_out, #id_person').on('input change', function() {
+                        console.log('Input changed:', $(this).attr('id'), $(this).val());
+                        updateBookingPrice();
+                    });
+
+                    // Guest validation
+                    $('#id_person').on('input', function() {
+                        const guests = parseInt($(this).val() || 1);
+                        const baseCapacity = selectedRoomData.roomCapacity;
+                        const extraCapacity = selectedRoomData.roomExtraCapacity;
+                        const totalCapacity = selectedRoomData.totalCapacity;
+
+                        if (isNaN(guests)) {
+                            $(this).val(1);
+                            $('#booking-person-error').html('Please enter a valid number.').show();
+                            setTimeout(() => $('#booking-person-error').hide(), 3000);
+                            return;
+                        }
+
+                        if (guests < 1) {
+                            $(this).val(1);
+                            $('#booking-person-error').html('Minimum 1 guest required.').show();
+                        } else if (guests > totalCapacity) {
+                            $(this).val(totalCapacity);
+                            $('#booking-person-error').html(
+                                `Maximum capacity is ${totalCapacity} guests (${baseCapacity} base + ${extraCapacity} extra).`
+                            ).show();
+                        } else if ((guests - baseCapacity) > extraCapacity) {
+                            const maxAllowed = baseCapacity + extraCapacity;
+                            $(this).val(maxAllowed);
+                            $('#booking-person-error').html(
+                                `Maximum ${extraCapacity} extra guests allowed (${baseCapacity} base).`
+                            ).show();
+                        } else {
+                            $('#booking-person-error').hide();
+                        }
+
+                        setTimeout(() => $('#booking-person-error').hide(), 3000);
+                        updateBookingPrice();
+                    });
+
+                    // Form submission validation
+                    $('#bookingForm').on('submit', function(e) {
+                        console.log('Booking form submitted');
+                        const checkIn = $('#id_check_in').val();
+                        const checkOut = $('#id_check_out').val();
+                        const guests = parseInt($('#id_person').val() || 0);
+
+                        if (!checkIn || !checkOut || !guests) {
+                            e.preventDefault();
+                            $('#booking-person-error').html('Please fill in all required fields.').show();
+                            setTimeout(() => $('#booking-person-error').hide(), 3000);
+                            return false;
+                        }
+
+                        if (new Date(checkOut) <= new Date(checkIn)) {
+                            e.preventDefault();
+                            $('#booking-person-error').html('Check-out date must be after check-in date.').show();
+                            setTimeout(() => $('#booking-person-error').hide(), 3000);
+                            return false;
+                        }
+                    });
+
+                    function updateBookingPrice() {
+                        console.log('Updating booking price');
+                        const checkIn = $('#id_check_in').val();
+                        const checkOut = $('#id_check_out').val();
+                        let guests = parseInt($('#id_person').val() || 1);
+
+                        if (guests < 1) {
+                            guests = 1;
+                            $('#id_person').val(1);
+                        } else if (guests > selectedRoomData.totalCapacity) {
+                            guests = selectedRoomData.totalCapacity;
+                            $('#id_person').val(selectedRoomData.totalCapacity);
+                        }
+
+                        let basePrice = 0;
+                        let discountAmount = 0;
+                        let extraPersonAmount = 0;
+                        let gstAmount = 0;
+                        let totalPrice = 0;
+                        let stayDays = 0;
+
+                        if (checkIn && checkOut) {
+                            const start = new Date(checkIn);
+                            const end = new Date(checkOut);
+                            stayDays = Math.max(1, Math.floor((end - start) / (1000 * 60 * 60 * 24)));
+
+                            basePrice = selectedRoomData.roomDiscountedPrice * stayDays;
+                            const originalPrice = selectedRoomData.roomPrice;
+                            discountAmount = (originalPrice - selectedRoomData.roomDiscountedPrice) * stayDays;
+
+                            const extraGuests = Math.max(0, guests - selectedRoomData.roomCapacity);
+                            if (extraGuests > 0 && selectedRoomData.extraPersonCharge > 0) {
+                                extraPersonAmount = selectedRoomData.extraPersonCharge * extraGuests * stayDays;
+                                $('#booking-extra-person-row').show();
+                                $('#booking-extra-person-amount').text(`₹${extraPersonAmount.toFixed(2)}`);
+                            } else {
+                                $('#booking-extra-person-row').hide();
+                                $('#booking-extra-person-amount').text('₹0.00');
+                            }
+
+                            const subtotal = basePrice + extraPersonAmount;
+                            gstAmount = subtotal * (selectedRoomData.gstRate / 100);
+                            totalPrice = subtotal + gstAmount;
+
+                            $('#booking-room-info').text(`(${stayDays} night${stayDays > 1 ? 's' : ''} × ₹${selectedRoomData.roomDiscountedPrice.toFixed(2)})`);
+                        } else {
+                            $('#booking-room-info').text('');
+                        }
+
+                        $('#booking-base-price').text(`₹${basePrice.toFixed(2)}`);
+                        $('#booking-discount-amount').text(discountAmount > 0 ? `-₹${discountAmount.toFixed(2)}` : '₹0.00');
+                        $('#booking-gst-amount').text(`₹${gstAmount.toFixed(2)}`);
+                        $('#booking-total-price').text(`₹${totalPrice.toFixed(2)}`);
+                    }
+
+                    // Mark unavailable
+                    $(document).on('click', '.mark-unavailable', function(e) {
+                        e.preventDefault();
+                        console.log('Mark unavailable clicked:', $(this).data('room-id'));
+                        const roomId = $(this).data('room-id');
+                        if (confirm('Are you sure you want to mark this room as unavailable?')) {
+                            $.ajax({
+                                url: `/hotel/update-room-status/${roomId}/`,
+                                method: 'POST',
+                                data: {
+                                    status: '2',
+                                    selected_date: '{{ selected_date|date:"Y-m-d" }}',
+                                    csrfmiddlewaretoken: '{{ csrf_token }}'
+                                },
+                                success: function(response) {
+                                    if (response.success) {
+                                        location.reload();
+                                    } else {
+                                        alert('Error: ' + response.error);
+                                    }
+                                },
+                                error: function(xhr, status, error) {
+                                    alert('Error updating room status: ' + error);
+                                }
+                            });
+                        }
+                    });
+
+                    // Mark available
+                    $(document).on('click', '.mark-available', function(e) {
+                        e.preventDefault();
+                        console.log('Mark available clicked:', $(this).data('room-id'));
+                        const roomId = $(this).data('room-id');
+                        if (confirm('Are you sure you want to mark this room as available?')) {
+                            $.ajax({
+                                url: `/hotel/update-room-status/${roomId}/`,
+                                method: 'POST',
+                                data: {
+                                    status: '1',
+                                    selected_date: '{{ selected_date|date:"Y-m-d" }}',
+                                    csrfmiddlewaretoken: '{{ csrf_token }}'
+                                },
+                                success: function(response) {
+                                    if (response.success) {
+                                        location.reload();
+                                    } else {
+                                        alert('Error: ' + response.error);
+                                    }
+                                },
+                                error: function(xhr, status, error) {
+                                    alert('Error updating room status: ' + error);
+                                }
+                            });
+                        }
+                    });
+                });
+            } else {
+                console.error('jQuery not loaded. Please check the CDN or static file.');
+            }
+        });
+    </script>
+{% endblock %}

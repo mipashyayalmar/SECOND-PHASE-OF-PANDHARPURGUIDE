@@ -12,26 +12,29 @@ class HotelsAdmin(admin.ModelAdmin):
     list_display = ('name', 'owner', 'location', 'state', 'country')
     search_fields = ('name', 'owner', 'location')
     list_filter = ('state', 'country')
-
 @admin.register(Rooms)
 class RoomsAdmin(admin.ModelAdmin):
     list_display = (
-        'hotel', 'room_number', 'room_type', 'capacity', 'price', 
-        'status', 'average_rating', 'discounted_price', 'saved_money', 'image_preview'
+        'hotel', 'room_number', 'room_type', 'display_capacity', 'total_capacity', 
+        'price', 'status', 'average_rating', 'discounted_price', 'saved_money', 'image_preview'
     )
     list_filter = ('hotel', 'room_type', 'status', 'languages_spoken', 'food_facility', 'parking', 'wifi', 'ac', 'fan', 'heater', 'cleanliness')
     search_fields = ('room_number', 'hotel__name', 'description', 'heading')
-    readonly_fields = ('image_preview', 'discounted_price', 'saved_money')
+    readonly_fields = ('image_preview', 'discounted_price', 'saved_money', 'display_capacity', 'total_capacity')
     fieldsets = (
         ("Basic Information", {
-            'fields': ('hotel', 'room_number', 'room_type', 'capacity', 'price', 'discount', 'discounted_price', 'saved_money', 'status')
+            'fields': (
+                'hotel', 'room_number', 'room_type', 
+                'capacity', 'extra_capacity', 'display_capacity', 'total_capacity',
+                'price', 'discount', 'discounted_price', 'saved_money', 'status'
+            )
         }),
         ("Features and Amenities", {
             'fields': (
                 'size', 'description', 'heading', 'food_facility', 'parking', 'comfortable_bed',
                 'private_bathroom', 'wifi', 'ac', 'fan', 'heater', 'cleanliness', 
                 'safety_security', 'entertainment_options', 'laundry_facility', 
-                'outdoor_balcony',  'convenient_location', 'concierge_service'
+                'outdoor_balcony', 'convenient_location', 'concierge_service'
             ),
         }),
         ("Ratings and Reviews", {
@@ -62,6 +65,14 @@ class RoomsAdmin(admin.ModelAdmin):
     def saved_money(self, obj):
         return f"₹{obj.saved_money():.2f}"
     saved_money.short_description = "Saved Money"
+
+    def display_capacity(self, obj):
+        return obj.display_capacity()
+    display_capacity.short_description = "Display Capacity"
+
+    def total_capacity(self, obj):
+        return obj.total_capacity()
+    total_capacity.short_description = "Total Capacity"
 
 @admin.register(Comments)
 class CommentsAdmin(admin.ModelAdmin):

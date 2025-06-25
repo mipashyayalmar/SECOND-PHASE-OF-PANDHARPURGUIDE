@@ -27,24 +27,17 @@
         border: 1px solid #ddd;
     }
 
-    .booking-table tbody tr {
-        transition: all 0.3s ease;
-        animation: fadeIn 0.5s ease-out forwards;
-    }
-
-    .booking-table tbody tr:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-    }
-
     .expired-row {
         background-color: rgba(255, 0, 0, 0.1) !important;
-        animation: fadeIn 0.5s ease-in;
     }
 
     .active-row {
         background-color: rgba(0, 255, 0, 0.1) !important;
-        animation: fadeIn 0.5s ease-in;
+    }
+
+    .cancelled-row {
+        background-color: rgba(169, 169, 169, 0.1) !important;
+        color: #666;
     }
 
     .dashboard-title {
@@ -100,14 +93,11 @@
         font-size: 2em;
         color: #4a90e2;
         margin: 0.5em 0;
-        animation: fadeIn 1s ease-out forwards;
     }
 
     .error-message {
         font-size: 1.5em;
         margin: 1em 0;
-        animation: fadeIn 1s ease-out forwards;
-        animation-delay: 0.5s;
     }
 
     .home-button {
@@ -118,14 +108,38 @@
         text-decoration: none;
         border-radius: 25px;
         font-weight: bold;
-        animation: fadeIn 1s ease-out forwards;
-        animation-delay: 1s;
         transition: transform 0.3s ease, box-shadow 0.3s ease;
     }
 
     .home-button:hover {
         transform: translateY(-2px);
         box-shadow: 0 5px 15px rgba(74, 144, 226, 0.4);
+    }
+
+    /* Modal Styles */
+    .modal-content {
+        border-radius: 8px;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    }
+    
+    .modal-header {
+        background-color: #343a40;
+        color: white;
+        border-bottom: none;
+    }
+    
+    .modal-footer {
+        border-top: none;
+    }
+    
+    .btn-danger {
+        background-color: #dc3545;
+        border-color: #dc3545;
+    }
+    
+    .btn-danger:hover {
+        background-color: #c82333;
+        border-color: #bd2130;
     }
 
     /* Animations */
@@ -140,8 +154,8 @@
     }
 
     @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(20px); }
-        to { opacity: 1; transform: translateY(0); }
+        from { opacity: 0; }
+        to { opacity: 1; }
     }
 
     @keyframes pulse {
@@ -155,95 +169,180 @@
         50% { opacity: 1; }
     }
 
-    @keyframes float {
-        0% { transform: translateY(0px) rotate(0deg); }
-        50% { transform: translateY(-20px) rotate(5deg); }
-        100% { transform: translateY(0px) rotate(0deg); }
+    /* Messages styling */
+    .alert {
+        padding: 15px;
+        margin-bottom: 20px;
+        border: 1px solid transparent;
+        border-radius: 4px;
+    }
+    
+    .alert-success {
+        color: #155724;
+        background-color: #d4edda;
+        border-color: #c3e6cb;
+    }
+    
+    .alert-warning {
+        color: #856404;
+        background-color: #fff3cd;
+        border-color: #ffeeba;
+    }
+    
+    .alert-danger {
+        color: #721c24;
+        background-color: #f8d7da;
+        border-color: #f5c6cb;
     }
 </style>
 
 {% if bookings %}
-<h3 class="dashboard-title">My Bookings</h3>
+    <h3 class="dashboard-title">My Bookings</h3>
 
-<div class="table-responsive">
-    <table class="booking-table">
-        <thead>
-            <tr>
-                <th>User</th>
-                <th>Room Number</th>
-                <th>Room Type</th>
-                <th>Hotel Location</th>
-                <th>Capacity</th>
-                <th>Check-in</th>
-                <th>Check-out</th>
-                <th>Price per Night</th>
-                <th>Discount (%)</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for each_booking in bookings %}
-            {% with current_date=current_date %}
-            <tr class="{% if each_booking.check_out < current_date %}expired-row{% else %}active-row{% endif %}">
-                <td>{{ each_booking.guest.username }}</td>
-                <td>{{ each_booking.room.room_number }}</td>
-                <td>{{ each_booking.room.get_room_type_display }}</td>
-                <td>{{ each_booking.room.hotel.location }}</td>
-                <td>{{ each_booking.room.capacity }}</td>
-                <td>{{ each_booking.check_in }}</td>
-                <td>{{ each_booking.check_out }}</td>
-                <td>₹{{ each_booking.room.price }}</td>
-                <td>{{ each_booking.room.discount }}</td>
-            </tr>
-            {% endwith %}
+    {% if messages %}
+        <div class="messages">
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }}">
+                    {{ message }}
+                    {% if message.tags == 'success' and request.session.rebook_data %}
+                        <form action="{% url 'bookroom' %}" method="post" style="display:inline;">
+                            {% csrf_token %}
+                            <input type="hidden" name="room_id" value="{{ request.session.rebook_data.room_id }}">
+                            <input type="hidden" name="check_in" value="{{ request.session.rebook_data.check_in }}">
+                            <input type="hidden" name="check_out" value="{{ request.session.rebook_data.check_out }}">
+                            <input type="hidden" name="person" value="1">
+                            <button type="submit" class="btn btn-primary btn-sm">Rebook Now</button>
+                        </form>
+                    {% endif %}
+                </div>
             {% endfor %}
-        </tbody>
-    </table>
-</div>
+        </div>
+    {% endif %}
 
-{% else %}
-<div class="error-container">
-    <div class="stars" id="starsContainer"></div>
-    <div class="error-content">
-        <h1 class="error-title">Not Available</h1>
-        <div class="error-status">Make sure to add a room</div>
-        <p class="error-message">The content you're looking for is currently unavailable.<br>Please try again later.</p>
-        <a href="/" class="home-button">Return Home</a>
+    <div class="table-responsive">
+        <table class="booking-table">
+            <thead>
+                <tr>
+                    <th>Booking ID</th>
+                    <th>Room Number</th>
+                    <th>Room Type</th>
+                    <th>Hotel Location</th>
+                    <th>Check-in</th>
+                    <th>Check-out</th>
+                    <th>Price per Night</th>
+                    <th>Status</th>
+                    <th>Cancellation Reason</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for each_booking in bookings %}
+                    {% with current_date=current_date %}
+                    <tr class="{% if each_booking.check_out < current_date %}expired-row{% elif each_booking.is_cancelled %}cancelled-row{% else %}active-row{% endif %}">
+                        <td>{{ each_booking.booking_id }}</td>
+                        <td>{{ each_booking.room.room_number }}</td>
+                        <td>{{ each_booking.room.get_room_type_display }}</td>
+                        <td>{{ each_booking.room.hotel.location }}</td>
+                        <td>{{ each_booking.check_in }}</td>
+                        <td>{{ each_booking.check_out }}</td>
+                        <td>₹{{ each_booking.room.discounted_price }}</td>
+                        <td>
+                            {% if each_booking.is_cancelled %}
+                                <span class="badge bg-secondary">Cancelled</span>
+                            {% elif each_booking.check_out < current_date %}
+                                <span class="badge bg-info">Completed</span>
+                            {% else %}
+                                <span class="badge bg-success">Active</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ each_booking.cancellation_reason|default:"-" }}</td>
+                        <td>
+                            {% if not each_booking.is_cancelled and each_booking.check_in > current_date %}
+                                <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#cancelModal{{ each_booking.id }}">
+                                    Cancel
+                                </button>
+                                
+                                <!-- Cancel Booking Modal -->
+                                <div class="modal fade" id="cancelModal{{ each_booking.id }}" tabindex="-1" aria-labelledby="cancelModalLabel{{ each_booking.id }}" aria-hidden="true">
+                                    <div class="modal-dialog">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title" id="cancelModalLabel{{ each_booking.id }}">Cancel Booking #{{ each_booking.booking_id }}</h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                            </div>
+                                            <form id="cancelForm{{ each_booking.id }}" action="{% url 'cancel_booking' each_booking.id %}" method="post">
+                                                {% csrf_token %}
+                                                <div class="modal-body">
+                                                    <p>You are about to cancel your booking for <strong>{{ each_booking.room.room_type }}</strong> from <strong>{{ each_booking.check_in }}</strong> to <strong>{{ each_booking.check_out }}</strong>.</p>
+                                                    
+                                                    <div class="mb-3">
+                                                        <label for="cancellation_reason" class="form-label">Reason for cancellation:</label>
+                                                        <select class="form-select" id="cancellation_reason" name="cancellation_reason" required>
+                                                            <option value="" selected disabled>Select a reason</option>
+                                                            <option value="Change of plans">Change of plans</option>
+                                                            <option value="Found better option">Found better option</option>
+                                                            <option value="Travel restrictions">Travel restrictions</option>
+                                                            <option value="Financial reasons">Financial reasons</option>
+                                                            <option value="Other">Other (please specify)</option>
+                                                        </select>
+                                                    </div>
+                                                    
+                                                    <div class="mb-3" id="otherReasonContainer" style="display:none;">
+                                                        <label for="other_reason" class="form-label">Please specify:</label>
+                                                        <textarea class="form-control" id="other_reason" name="other_reason" rows="2"></textarea>
+                                                    </div>
+                                                </div>
+                                                <div class="modal-footer">
+                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                                    <button type="submit" class="btn btn-danger">Confirm Cancellation</button>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            {% else %}
+                                <span class="text-muted">N/A</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endwith %}
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
-</div>
+{% else %}
+    <div class="error-container">
+        <div class="stars" id="starsContainer"></div>
+        <div class="error-content">
+            <h1 class="error-title">No Bookings Found</h1>
+            <div class="error-status">You haven't made any bookings yet</div>
+            <p class="error-message">Start by exploring our available rooms and make your first reservation.</p>
+            <a href="{% url 'bookroompage' %}" class="home-button">Book a Room Now</a>
+        </div>
+    </div>
+{% endif %}
+
+<!-- Bootstrap JS for modal functionality -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
-    function createStars() {
-        const starsContainer = document.getElementById('starsContainer');
-        for (let i = 0; i < 100; i++) {
-            const star = document.createElement('div');
-            star.className = 'star';
-            
-            const x = Math.random() * 100;
-            const y = Math.random() * 100;
-            const size = Math.random() * 3;
-            const duration = 2 + Math.random() * 3;
-            
-            star.style.cssText = `
-                left: ${x}%;
-                top: ${y}%;
-                width: ${size}px;
-                height: ${size}px;
-                --duration: ${duration}s;
-            `;
-            
-            starsContainer.appendChild(star);
-        }
-    }
-
-    document.addEventListener('DOMContentLoaded', createStars);
-
-    document.addEventListener('mousemove', (e) => {
-        const errorContent = document.querySelector('.error-content');
-        const xAxis = (window.innerWidth / 2 - e.pageX) / 25;
-        const yAxis = (window.innerHeight / 2 - e.pageY) / 25;
-        errorContent.style.transform = `translate(${-xAxis/2}px, ${-yAxis/2}px)`;
+    // Show/hide other reason textarea based on selection
+    document.addEventListener('DOMContentLoaded', function() {
+        const reasonSelects = document.querySelectorAll('select[name="cancellation_reason"]');
+        
+        reasonSelects.forEach(select => {
+            select.addEventListener('change', function() {
+                const modalId = this.closest('.modal').id;
+                const otherContainer = document.querySelector(`#${modalId} #otherReasonContainer`);
+                
+                if (this.value === 'Other') {
+                    otherContainer.style.display = 'block';
+                } else {
+                    otherContainer.style.display = 'none';
+                }
+            });
+        });
     });
 </script>
-{% endif %}
 
 {% endblock %}

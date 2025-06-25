@@ -1,872 +1,313 @@
-{% extends 'rooms/room_basic.html' %}
-{% block title %}Hotel Staff Bookings Management{% endblock title %}
 
-{% block content %}
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-<link href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css" rel="stylesheet">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-<style>
-    :root {
-        --primary: #1E3A8A;
-        --secondary: #3B82F6;
-        --accent: #2a9d8f;
-        --background: #f9fbfc;
-        --card-bg: #ffffff;
-        --shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+@login_required(login_url='user:signin')
+def maintainer_all_bookings(request):
+    if not hasattr(request.user, 'maintainer_profile'):
+        messages.warning(request, "You don't have permissions to access the maintainer panel.")
+        return redirect('/')
+
+    current_date = datetime.now().date()
+    current_month = current_date.month
+    current_year = current_date.year
+    
+    # Get all hotels for the hotel filter dropdown
+    all_hotels = Hotels.objects.all()
+    
+    # Get all bookings, including cancelled ones
+    all_bookings = Reservation.objects.all().select_related(
+        'guest', 'room', 'room__hotel'
+    ).prefetch_related(
+        'room__amenities'
+    ).order_by('-booking_time')
+    
+    # Calculate total revenue for all non-cancelled bookings
+    total_revenue = sum(booking.total_price for booking in all_bookings if not booking.is_cancelled)
+    today_revenue = sum(
+        booking.total_price 
+        for booking in all_bookings 
+        if booking.booking_time.date() == current_date and not booking.is_cancelled
+    )
+    this_month_revenue = sum(
+        booking.total_price 
+        for booking in all_bookings 
+        if booking.booking_time.month == current_month and 
+           booking.booking_time.year == current_year and 
+           not booking.is_cancelled
+    )
+    
+    # Initialize bookings
+    bookings = all_bookings if all_bookings.exists() else Reservation.objects.none()
+    
+    # Calculate booking statistics for display
+    total_bookings = all_bookings.count()
+    bookings_today = all_bookings.filter(booking_time__date=current_date).count()
+    bookings_this_month = all_bookings.filter(booking_time__month=current_month, booking_time__year=current_year).count()
+    active_bookings = all_bookings.filter(check_in__lte=current_date, check_out__gte=current_date, is_cancelled=False).count()
+    check_ins_today = all_bookings.filter(check_in=current_date, is_cancelled=False).count()
+    check_outs_today = all_bookings.filter(check_out=current_date, is_cancelled=False).count()
+    check_ins_this_month = all_bookings.filter(check_in__month=current_month, check_in__year=current_year, is_cancelled=False).count()
+    check_outs_this_month = all_bookings.filter(check_out__month=current_month, check_out__year=current_year, is_cancelled=False).count()
+    cancelled_bookings = all_bookings.filter(is_cancelled=True).count()
+    
+    # Initialize filter variables
+    start_date = request.GET.get('start_date')
+    end_date = request.GET.get('end_date')
+    month = request.GET.get('month')
+    week = request.GET.get('week')
+    day = request.GET.get('day')
+    booking_date = request.GET.get('booking_date')
+    search_name = request.GET.get('search_name')
+    view_type = request.GET.get('view_type', 'all')
+    hotel_filter = request.GET.get('hotel_filter')
+    booking_status = request.GET.get('status')
+    filter_type = None
+
+    if not any([start_date, end_date, month, week, day, booking_date, search_name, view_type, hotel_filter, booking_status]):
+        day = current_date.strftime('%Y-%m-%d')
+        view_type = 'active'
+    
+    # Apply hotel filter if selected
+    if hotel_filter:
+        try:
+            bookings = bookings.filter(room__hotel__id=int(hotel_filter))
+        except (ValueError, TypeError):
+            messages.warning(request, "Invalid hotel filter selected.")
+            bookings = all_bookings
+    
+    # Apply booking status filter if selected
+    if booking_status:
+        if booking_status == 'past':
+            bookings = bookings.filter(check_out__lt=current_date, is_cancelled=False)
+        elif booking_status == 'current':
+            bookings = bookings.filter(check_in__lte=current_date, check_out__gte=current_date, is_cancelled=False)
+        elif booking_status == 'future':
+            bookings = bookings.filter(check_in__gt=current_date, is_cancelled=False)
+        elif booking_status == 'cancelled':
+            bookings = bookings.filter(is_cancelled=True)
+    
+    if view_type == 'check_in':
+        if day:
+            try:
+                day_date = datetime.strptime(day, '%Y-%m-%d').date()
+                bookings = bookings.filter(check_in=day_date)
+                filter_type = 'check_in'
+            except ValueError:
+                messages.warning(request, "Invalid day format.")
+        else:
+            bookings = bookings.filter(check_in=current_date)
+            filter_type = 'check_in'
+    elif view_type == 'check_out':
+        if day:
+            try:
+                day_date = datetime.strptime(day, '%Y-%m-%d').date()
+                bookings = bookings(check_out=day_date)
+                filter_type = 'check_out'
+            except ValueError:
+                messages.warning(request, "Invalid day format.")
+        else:
+            bookings = bookings.filter(check_out=current_date)
+            filter_type = 'check_out'
+    elif view_type == 'active':
+        if day:
+            try:
+                day_date = datetime.strptime(day, '%Y-%m-%d').date()
+                bookings = bookings(check_in__lte=day_date, check_out__gte=day_date, is_cancelled=False)
+                filter_type = 'active'
+            except ValueError:
+                messages.warning(request, "Invalid day format.")
+        else:
+            bookings = bookings.filter(check_in__lte=current_date, check_out__gte=current_date, is_cancelled=False)
+            filter_type = 'active'
+    
+    if start_date:
+        try:
+            start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
+            bookings = bookings.filter(check_in__gte=start_date)
+            filter_type = 'check_in_range'
+        except ValueError:
+            messages.warning(request, "Invalid start date format.")
+            start_date = None
+
+    if end_date:
+        try:
+            end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
+            bookings = bookings.filter(check_out__lte=end_date)
+            filter_type = 'check_out_range'
+        except ValueError:
+            messages.warning(request, "Invalid end date format.")
+            end_date = None
+
+    if month:
+        try:
+            month_num = datetime.strptime(month, '%B').month
+            bookings = bookings.filter(Q(check_in__month=month_num) | Q(check_out__month=month_num))
+            filter_type = 'month'
+        except ValueError:
+            messages.warning(request, "Invalid month selected.")
+
+    if week:
+        try:
+            week_num = int(week)
+            bookings = bookings.filter(Q(check_in__week=week_num) | Q(check_out__week=week_num))
+            filter_type = 'week'
+        except ValueError:
+            messages.warning(request, "Invalid week number.")
+
+    if booking_date:
+        try:
+            booking_date = datetime.strptime(booking_date, '%Y-%m-%d').date()
+            bookings = bookings.filter(booking_time__date=booking_date)
+            filter_type = 'booking_date'
+        except ValueError:
+            messages.warning(request, "Invalid booking date format.")
+            booking_date = None
+
+    if search_name:
+        bookings = bookings.filter(
+            Q(guest__first_name__icontains=search_name) |
+            Q(guest__last_name__icontains=search_name) |
+            Q(guest__username__icontains=search_name) |
+            Q(room__hotel__name__icontains=search_name)
+        )
+
+    # Calculate filtered revenue (exclude cancelled bookings)
+    filtered_revenue = sum(booking.total_price for booking in bookings if not booking.is_cancelled)
+    
+    # Assign status to bookings
+    for booking in bookings:
+        if booking.is_cancelled:
+            booking.status = 'cancelled'
+        elif booking.check_out < current_date:
+            booking.status = 'past'
+        elif booking.check_in <= current_date <= booking.check_out:
+            booking.status = 'current'
+        else:
+            booking.status = 'future'
+
+    months = ['January', 'February', 'March', 'April', 'May', 'June', 
+              'July', 'August', 'September', 'October', 'November', 'December']
+    weeks = [(i, f"Week {i}") for i in range(1, 53)]
+    
+    date_ranges = {
+        'today': current_date,
+        'tomorrow': current_date + timedelta(days=1),
+        'yesterday': current_date - timedelta(days=1),
+        'next_7_days': current_date + timedelta(days=7),
+        'next_30_days': current_date + timedelta(days=30),
     }
 
-    a {
-        text-decoration: none;
+    context = {
+        'bookings': bookings,
+        'current_date': current_date,
+        'start_date': start_date.strftime('%Y-%m-%d') if start_date else '',
+        'end_date': end_date.strftime('%Y-%m-%d') if end_date else '',
+        'day': day if day else current_date.strftime('%Y-%m-%d'),
+        'month': month if month else '',
+        'week': week if week else '',
+        'booking_date': booking_date.strftime('%Y-%m-%d') if booking_date else '',
+        'search_name': search_name or '',
+        'hotel_filter': hotel_filter or '',
+        'booking_status': booking_status or '',
+        'months': months,
+        'weeks': weeks,
+        'date_ranges': date_ranges,
+        'view_type': view_type,
+        'filter_type': filter_type,
+        'total_bookings': total_bookings,
+        'bookings_today': bookings_today,
+        'bookings_this_month': bookings_this_month,
+        'active_bookings': active_bookings,
+        'check_ins_today': check_ins_today,
+        'check_outs_today': check_outs_today,
+        'check_ins_this_month': check_ins_this_month,
+        'check_outs_this_month': check_outs_this_month,
+        'cancelled_bookings': cancelled_bookings,
+        'all_hotels': all_hotels,
+        'total_revenue': total_revenue,
+        'today_revenue': today_revenue,
+        'this_month_revenue': this_month_revenue,
+        'filtered_revenue': filtered_revenue,
     }
 
-    .booking-container {
-        width: 100%;
-        max-width: 1300px;
-        margin: 0 auto;
-        padding: 25px;
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    }
-
-    .booking-card {
-        background-color: var(--card-bg);
-        border-radius: 12px;
-        box-shadow: var(--shadow);
-        padding: 25px;
-        margin-bottom: 25px;
-    }
-
-    .booking-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 25px;
-        flex-wrap: wrap;
-        gap: 10px;
-    }
-
-    .booking-title {
-        font-size: 1.75rem;
-        font-weight: 600;
-        color: #264653;
-    }
-
-    .booking-date {
-        color: #495057;
-        font-size: 1rem;
-        display: flex;
-        align-items: center;
-        gap: 5px;
-    }
-
-    .filter-section {
-        background-color: #fff;
-        border-radius: 10px;
-        padding: 20px;
-        margin-bottom: 20px;
-        box-shadow: var(--shadow);
-    }
-
-    .quick-filters, .date-range-filters {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 12px;
-        align-items: center;
-        margin-bottom: 15px;
-    }
-
-    .quick-filter-btn {
-        padding: 6px 18px;
-        border-radius: 6px;
-        background-color: #fff;
-        border: 1px solid #e9ecef;
-        color: #495057;
-        transition: all 0.2s;
-    }
-
-    .quick-filter-btn:hover {
-        background-color: #e9ecef;
-    }
-
-    .quick-filter-btn.active {
-        background-color: var(--primary);
-        color: white;
-        border-color: var(--primary);
-    }
-
-    .filter-form {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-        gap: 15px;
-    }
-
-    .form-group {
-        margin-bottom: 0;
-    }
-
-    .form-control, .form-select {
-        border-radius: 6px;
-        padding: 8px;
-        border: 1px solid #ced4da;
-    }
-
-    .filter-actions {
-        display: flex;
-        gap: 12px;
-        align-items: flex-end;
-        margin-bottom: 20px;
-    }
-
-    .btn {
-        padding: 10px 20px;
-        border-radius: 6px;
-        font-weight: 500;
-        transition: all 0.2s;
-    }
-
-    .btn-primary {
-        background-color: var(--primary);
-        border-color: var(--primary);
-    }
-
-    .btn-success {
-        background-color: var(--accent);
-        border-color: var(--accent);
-    }
-
-    .btn-secondary {
-        background-color: #6c757d;
-        border-color: #6c757d;
-    }
-
-    .status-past {
-        background-color: #fef2f2;
-    }
-
-    .status-current {
-        background-color: #f0fdf4;
-    }
-
-    .status-future {
-        background-color: #eff6ff;
-    }
-
-    #calendarContainer, #bookingCalendar {
-        background-color: #fff;
-        border-radius: 10px;
-        box-shadow: var(--shadow);
-        padding: 20px;
-        transition: all 0.3s ease;
-    }
-
-    .calendar-fullscreen {
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        z-index: 1000;
-        background: var(--card-bg);
-        padding: 20px;
-    }
-
-    .fc .fc-toolbar {
-        flex-wrap: wrap;
-        gap: 10px;
-    }
-
-    .fc .fc-toolbar-title {
-        color: #264653;
-        font-weight: 600;
-    }
-
-    .fc-daygrid-day.selected-range {
-        background-color: rgba(42, 157, 143, 0.1);
-    }
-
-    .fc-daygrid-day.selected-range-start {
-        background: linear-gradient(135deg, rgba(42, 157, 143, 0.2) 50%, transparent 50%);
-    }
-
-    .fc-daygrid-day.selected-range-end {
-        background: linear-gradient(-45deg, rgba(42, 157, 143, 0.2) 50%, transparent 50%);
-    }
-
-    .fc-daygrid-day.selected-range-middle {
-        background-color: rgba(42, 157, 143, 0.2);
-    }
-
-    .fc-event-booking {
-        border-left: 4px solid var(--secondary);
-        background-color: var(--secondary);
-        color: white;
-        border-radius: 6px;
-        padding: 2px 5px;
-    }
-
-    .fc-event-check-in, .fc-event-check-out {
-        border-left: 4px solid var(--accent);
-        background-color: var(--accent);
-        color: white;
-        border-radius: 6px;
-        padding: 2px 5px;
-    }
-
-    .booking-popup {
-        position: fixed;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        background: linear-gradient(145deg, #ffffff, #f9fbfc);
-        padding: 25px;
-        border-radius: 12px;
-        box-shadow: var(--shadow);
-        z-index: 1001;
-        max-width: 90%;
-        width: 450px;
-        animation: fadeIn 0.3s ease-in-out;
-    }
-
-    @keyframes fadeIn {
-        from { opacity: 0; transform: translate(-50%, -55%); }
-        to { opacity: 1; transform: translate(-50%, -50%); }
-    }
-
-    .booking-popup .close-btn {
-        position: absolute;
-        top: 12px;
-        right: 12px;
-        cursor: pointer;
-        font-size: 1.8rem;
-        color: #777;
-        transition: color 0.2s;
-    }
-
-    .booking-popup .close-btn:hover {
-        color: #e63946;
-    }
-
-    .booking-line {
-        color: var(--accent);
-        font-weight: 600;
-        margin: 15px 0;
-        display: flex;
-        align-items: center;
-        flex-wrap: wrap;
-    }
-
-    .date-range-connector {
-        display: inline-flex;
-        align-items: center;
-        margin: 5px 0;
-        width: 100%;
-    }
-
-    .date-range-connector .date-box {
-        padding: 8px 12px;
-        background-color: var(--accent);
-        color: white;
-        border-radius: 6px;
-        margin: 0 8px;
-        font-size: 0.95rem;
-    }
-
-    .date-range-connector .connector-line {
-        flex-grow: 1;
-        height: 3px;
-        background: linear-gradient(to right, var(--accent), #48cae4);
-        margin: 0 8px;
-    }
-
-    .guest-info {
-        margin-top: 15px;
-        padding: 15px;
-        background-color: #fff;
-        border-radius: 8px;
-        border: 1px solid #e9ecef;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-    }
-
-    .guest-info div {
-        margin-bottom: 8px;
-    }
-
-    .guest-info strong {
-        color: #264653;
-        font-weight: 600;
-        display: inline-block;
-        min-width: 120px;
-    }
-
-    .revenue-cards .card {
-        border-radius: 8px;
-        box-shadow: var(--shadow);
-        transition: transform 0.2s;
-    }
-
-    .revenue-cards .card:hover {
-        transform: translateY(-3px);
-    }
-
-    .revenue-cards .card-title {
-        font-size: 1.1rem;
-        color: #264653;
-    }
-
-    .revenue-cards .card-text {
-        font-size: 1.5rem;
-        font-weight: 600;
-        color: #2a9d8f;
-    }
-
-    @media (max-width: 768px) {
-        .booking-container {
-            padding: 15px;
-        }
-
-        .booking-title {
-            font-size: 1.5rem;
-        }
-
-        .filter-form {
-            grid-template-columns: 1fr;
-        }
-
-        .fc .fc-toolbar {
-            flex-direction: column;
-            align-items: center;
-        }
-
-        .fc .fc-toolbar-title {
-            margin: 0.5rem 0;
-        }
-
-        .booking-popup {
-            width: 90%;
-            max-width: 350px;
-        }
-
-        .date-range-connector {
-            justify-content: center;
-        }
-    }
-
-    @media (max-width: 480px) {
-        .booking-header {
-            flex-direction: column;
-            align-items: flex-start;
-        }
-
-        .quick-filters, .date-range-filters {
-            flex-direction: column;
-            align-items: flex-start;
-        }
-
-        .fc-daygrid-main {
-            display: none;
-        }
-
-        .fc-list-main {
-            display: block;
-        }
-
-        .booking-popup {
-            width: 95%;
-            padding: 15px;
-        }
-
-        .revenue-cards .card {
-            margin-bottom: 15px;
-        }
-    }
-</style>
-
-<div class="booking-container">
-    <div class="booking-card">
-        <div class="booking-header">
-            <h1 class="booking-title">
-                <i class="fas fa-calendar-alt mr-2" style="color: var(--secondary);"></i>Hotel Staff Bookings Management
-            </h1>
-            <div class="booking-date">
-                <i class="fas fa-clock mr-1"></i> Current Date: {{ current_date|date:"M d, Y" }}
-            </div>
-        </div>
-
-        <div class="filter-section">
-            <div class="quick-filters">
-                <span class="font-medium" style="color: #495057;">Quick Filters:</span>
-                <a href="?view_type=all" class="quick-filter-btn {% if view_type == 'all' %}active{% endif %}">All Bookings</a>
-                <a href="?view_type=active&day={{ current_date|date:'Y-m-d' }}" class="quick-filter-btn {% if view_type == 'active' %}active{% endif %}">Today's Active</a>
-                <a href="?view_type=check_in&day={{ current_date|date:'Y-m-d' }}" class="quick-filter-btn {% if view_type == 'check_in' %}active{% endif %}">Today's Check-ins</a>
-                <a href="?view_type=check_out&day={{ current_date|date:'Y-m-d' }}" class="quick-filter-btn {% if view_type == 'check_out' %}active{% endif %}">Today's Check-outs</a>
-                <a href="?booking_status=past" class="quick-filter-btn {% if booking_status == 'past' %}active{% endif %}">Past Bookings</a>
-                <a href="?booking_status=current" class="quick-filter-btn {% if booking_status == 'current' %}active{% endif %}">Current Bookings</a>
-                <a href="?booking_status=future" class="quick-filter-btn {% if booking_status == 'future' %}active{% endif %}">Future Bookings</a>
-            </div>
-            
-            <div class="date-range-filters">
-                <span class="font-medium" style="color: #495057;">Date Range:</span>
-                {% for label, date in date_ranges.items %}
-                <a href="?start_date={{ current_date|date:'Y-m-d' }}&end_date={{ date|date:'Y-m-d' }}" class="quick-filter-btn">{{ label|title }} ({{ date|date:"M d" }})</a>
-                {% endfor %}
-            </div>
-        </div>
-
-        <div class="filter-section">
-            <form id="bookingFilterForm" method="get" class="filter-form">
-                <div class="form-group">
-                    <label for="view_type" class="form-label">View Type</label>
-                    <select name="view_type" id="view_type" class="form-control">
-                        <option value="all" {% if view_type == 'all' %}selected{% endif %}>All Bookings</option>
-                        <option value="active" {% if view_type == 'active' %}selected{% endif %}>Active Bookings</option>
-                        <option value="check_in" {% if view_type == 'check_in' %}selected{% endif %}>Check-ins</option>
-                        <option value="check_out" {% if view_type == 'check_out' %}selected{% endif %}>Check-outs</option>
-                    </select>
-                </div>
-
-                <div class="form-group">
-                    <label for="hotel_filter" class="form-label">Hotel</label>
-                    <select name="hotel_filter" id="hotel_filter" class="form-control">
-                        <option value="">All Hotels</option>
-                        {% for hotel in all_accessible_hotels %}
-                            <option value="{{ hotel.id }}" {% if hotel_filter == hotel.id|stringformat:"s" %}selected{% endif %}>
-                                {{ hotel.name }} ({{ hotel.location }})
-                            </option>
-                        {% endfor %}
-                    </select>
-                </div>
-
-                <div class="form-group">
-                    <label for="booking_status" class="form-label">Booking Status</label>
-                    <select name="booking_status" id="booking_status" class="form-control">
-                        <option value="" {% if not booking_status %}selected{% endif %}>All Statuses</option>
-                        <option value="past" {% if booking_status == 'past' %}selected{% endif %}>Past</option>
-                        <option value="current" {% if booking_status == 'current' %}selected{% endif %}>Current</option>
-                        <option value="future" {% if booking_status == 'future' %}selected %}Future</option>
-                    </select>
-                </div>
-                
-                <div class="form-group">
-                    <label for="day" class="form-label">Specific Date</label>
-                    <input type="date" class="form-control" id="day" name="day" value="{{ day }}">
-                </div>
-                
-                <div class="form-group">
-                    <label for="start_date" class="form-label">Date Range Start</label>
-                    <input type="date" class="form-control" id="start_date" name="start_date" value="{{ start_date }}">
-                </div>
-                
-                <div class="form-group">
-                    <label for="end_date" class="form-label">Date Range End</label>
-                    <input type="date" class="form-control" id="end_date" name="end_date" value="{{ end_date }}">
-                </div>
-                
-                <div class="form-group">
-                    <label for="month" class="form-label">Month</label>
-                    <select class="form-control" id="month" name="month">
-                        <option value="">All Months</option>
-                        {% for m in months %}
-                            <option value="{{ m }}" {% if m == month %}selected{% endif %}>{{ m }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                
-                <div class="form-group">
-                    <label for="booking_date" class="form-label">Booking Made On</label>
-                    <input type="date" class="form-control" id="booking_date" name="booking_date" value="{{ booking_date }}">
-                </div>
-                
-                <div class="form-group">
-                    <label for="search_name" class="form-label">Search Guest</label>
-                    <input type="text" class="form-control" id="search_name" name="search_name" placeholder="Name or username" value="{{ search_name }}">
-                </div>
-
-                <div class="filter-actions">
-                    <button type="submit" class="btn btn-primary"><i class="fas fa-filter mr-1"></i> Apply Filters</button>
-                    <button type="button" id="toggleCalendarBtn" class="btn btn-success"><i class="fas fa-calendar mr-1"></i> Show Calendar</button>
-                    <a href="{% url 'allbookings' %}" class="btn btn-secondary"><i class="fas fa-sync-alt mr-1"></i> Reset</a>
-                </div>
-            </form>
-        </div>
-
-        <div class="row mb-4 revenue-cards">
-            <div class="col-md-4">
-                <div class="card border-primary">
-                    <div class="card-body">
-                        <h5 class="card-title">Total Revenue</h5>
-                        <p class="card-text">₹{{ total_revenue|floatformat:2 }}</p>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="card border-success">
-                    <div class="card-body">
-                        <h5 class="card-title">Today's Revenue</h5>
-                        <p class="card-text">₹{{ today_revenue|floatformat:2 }}</p>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="card border-info">
-                    <div class="card-body">
-                        <h5 class="card-title">Filtered Revenue</h5>
-                        <p class="card-text">₹{{ filtered_revenue|floatformat:2 }}</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div id="calendarContainer" class="d-none mb-4">
-            <div class="calendar-header d-flex justify-content-between align-items-center mb-3">
-                <h2 id="calendar-title" class="m-0" style="font-size: 1.5em; font-weight: bold; color: #264653;">Booking Calendar</h2>
-                <button id="fullscreenToggleBtn" class="btn btn-primary btn-sm"><i class="fas fa-expand"></i> Full Screen</button>
-            </div>
-            <div id="bookingCalendar"></div>
-        </div>
-
-        <div class="table-responsive">
-            <div id="bookingTableContainer">
-                {% include 'hotel_staff/booking_table.html' %}
-            </div>
-        </div>
-    </div>
-</div>
-
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js"></script>
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const calendarEl = document.getElementById('bookingCalendar');
-        let calendar;
-
-        function initializeCalendar() {
-            if (calendarEl) {
-                calendar = new FullCalendar.Calendar(calendarEl, {
-                    initialView: window.innerWidth <= 480 ? 'listWeek' : 'dayGridMonth',
-                    initialDate: '{{ current_date|date:"Y-m-d" }}',
-                    headerToolbar: {
-                        left: 'prev,next today',
-                        center: 'title',
-                        right: 'dayGridMonth,timeGridWeek,timeGridDay,listWeek'
-                    },
-                    events: [
-                        {% for booking in bookings %}
-                        {
-                            title: '{{ booking.room.hotel.name }}: {{ booking.room.room_number }} - {{ booking.guest.get_full_name|default:booking.guest.username }}',
-                            start: '{{ booking.check_in|date:"Y-m-d" }}',
-                            url: '{% url "user:user_profile_detail" username=booking.guest.username %}',
-                            extendedProps: {
-                                type: 'booking',
-                                status: '{{ booking.status }}',
-                                guest: '{{ booking.guest.get_full_name|default:booking.guest.username }}',
-                                room: '{% if booking.room.room_type %}{{ booking.room.room_type.name }}{% else %}N/A{% endif %} (Room {{ booking.room.room_number }})',
-                                hotel: '{{ booking.room.hotel.name }}',
-                                check_in: '{{ booking.check_in|date:"Y-m-d" }}',
-                                check_in_display: '{{ booking.check_in|date:"M d, Y" }}',
-                                check_out: '{{ booking.check_out|date:"Y-m-d" }}',
-                                check_out_display: '{{ booking.check_out|date:"M d, Y" }}',
-                                nights: '{{ booking.nights }}',
-                                base_amount: '{{ booking.base_price|floatformat:2 }}',
-                                gst_rate: '{{ booking.gst_rate|floatformat:2 }}',
-                                booking_date: '{{ booking.booking_time|date:"M d, Y h:i A" }}'
-                            },
-                            className: 'fc-event-booking',
-                            backgroundColor: '{{ booking.status }}' === 'past' ? '#ffdddd' : '{{ booking.status }}' === 'current' ? '#dfffdf' : '#e6f2ff',
-                            textColor: '#333'
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        action = request.GET.get('action', 'table')
+        if action == 'events':
+            events = []
+            for booking in bookings:
+                room_type_name = booking.room.room_type if isinstance(booking.room.room_type, str) else getattr(booking.room.room_type, 'name', 'N/A')
+                events.extend([
+                    {
+                        'title': f'{booking.room.hotel.name}: {booking.room.room_number} - {booking.guest.get_full_name or booking.guest.username}',
+                        'start': booking.booking_time.strftime('%Y-%m-%d'),
+                        'url': reverse('user:user_profile_detail', kwargs={'username': booking.guest.username}),
+                        'extendedProps': {
+                            'type': 'booking',
+                            'status': booking.status,
+                            'guest': booking.guest.get_full_name or booking.guest.username,
+                            'room': f'{room_type_name} (Room {booking.room.room_number})',
+                            'hotel': booking.room.hotel.name,
+                            'check_in': booking.check_in.strftime('%Y-%m-%d'),
+                            'check_in_display': booking.check_in.strftime('%b %d, %Y'),
+                            'check_out': booking.check_out.strftime('%Y-%m-%d'),
+                            'check_out_display': booking.check_out.strftime('%b %d, %Y'),
+                            'nights': booking.nights,
+                            'amount': f'₹{booking.total_price:.2f}',
+                            'booking_date': booking.booking_time.strftime('%b %d, %Y %I:%M %p'),
+                            'cancellation_reason': booking.cancellation_reason or 'N/A',
                         },
-                        {
-                            title: 'Check-in: {{ booking.room.hotel.name }} - {{ booking.room.room_number }}',
-                            start: '{{ booking.check_in|date:"Y-m-d" }}',
-                            url: '{% url "user:user_profile_detail" username=booking.guest.username %}',
-                            extendedProps: {
-                                type: 'check-in',
-                                status: '{{ booking.status }}',
-                                guest: '{{ booking.guest.get_full_name|default:booking.guest.username }}',
-                                room: '{% if booking.room.room_type %}{{ booking.room.room_type.name }}{% else %}N/A{% endif %} (Room {{ booking.room.room_number }})',
-                                hotel: '{{ booking.room.hotel.name }}',
-                                check_in: '{{ booking.check_in|date:"Y-m-d" }}',
-                                check_in_display: '{{ booking.check_in|date:"M d, Y" }}',
-                                check_out: '{{ booking.check_out|date:"Y-m-d" }}',
-                                check_out_display: '{{ booking.check_out|date:"M d, Y" }}',
-                                nights: '{{ booking.nights }}',
-                                base_amount: '{{ booking.base_price|floatformat:2 }}',
-                                gst_rate: '{{ booking.gst_rate|floatformat:2 }}',
-                                booking_date: '{{ booking.booking_time|date:"M d, Y h:i A" }}'
-                            },
-                            className: 'fc-event-check-in',
-                            backgroundColor: '{{ booking.status }}' === 'past' ? '#ffdddd' : '{{ booking.status }}' === 'current' ? '#dfffdf' : '#e6f2ff',
-                            textColor: '#333'
+                        'className': 'fc-event-booking',
+                        'backgroundColor': '#DC3545' if booking.status == 'cancelled' else '#3B82F6',
+                        'textColor': 'white'
+                    },
+                    {
+                        'title': f'Check-in: {booking.room.hotel.name} - {booking.room.room_number}',
+                        'start': booking.check_in.strftime('%Y-%m-%d'),
+                        'url': reverse('user:user_profile_detail', kwargs={'username': booking.guest.username}),
+                        'extendedProps': {
+                            'type': 'check-in',
+                            'status': booking.status,
+                            'guest': booking.guest.get_full_name or booking.guest.username,
+                            'room': f'{room_type_name} (Room {booking.room.room_number})',
+                            'hotel': booking.room.hotel.name,
+                            'check_in': booking.check_in.strftime('%Y-%m-%d'),
+                            'check_in_display': booking.check_in.strftime('%b %d, %Y'),
+                            'check_out': booking.check_out.strftime('%Y-%m-%d'),
+                            'check_out_display': booking.check_out.strftime('%b %d, %Y'),
+                            'nights': booking.nights,
+                            'amount': f'₹{booking.total_price:.2f}',
+                            'booking_date': booking.booking_time.strftime('%b %d, %Y %I:%M %p'),
+                            'cancellation_reason': booking.cancellation_reason or 'N/A',
                         },
-                        {
-                            title: 'Check-out: {{ booking.room.hotel.name }} - {{ booking.room.room_number }}',
-                            start: '{{ booking.check_out|date:"Y-m-d" }}',
-                            url: '{% url "user:user_profile_detail" username=booking.guest.username %}',
-                            extendedProps: {
-                                type: 'check-out',
-                                status: '{{ booking.status }}',
-                                guest: '{{ booking.guest.get_full_name|default:booking.guest.username }}',
-                                room: '{% if booking.room.room_type %}{{ booking.room.room_type.name }}{% else %}N/A{% endif %} (Room {{ booking.room.room_number }})',
-                                hotel: '{{ booking.room.hotel.name }}',
-                                check_in: '{{ booking.check_in|date:"Y-m-d" }}',
-                                check_in_display: '{{ booking.check_in|date:"M d, Y" }}',
-                                check_out: '{{ booking.check_out|date:"Y-m-d" }}',
-                                check_out_display: '{{ booking.check_out|date:"M d, Y" }}',
-                                nights: '{{ booking.nights }}',
-                                base_amount: '{{ booking.base_price|floatformat:2 }}',
-                                gst_rate: '{{ booking.gst_rate|floatformat:2 }}',
-                                booking_date: '{{ booking.booking_time|date:"M d, Y h:i A" }}'
-                            },
-                            className: 'fc-event-check-out',
-                            backgroundColor: '{{ booking.status }}' === 'past' ? '#ffdddd' : '{{ booking.status }}' === 'current' ? '#dfffdf' : '#e6f2ff',
-                            textColor: '#333'
-                        }{% if not forloop.last %},{% endif %}
-                        {% endfor %}
-                    ],
-                    datesSet: function(info) {
-                        const dayEls = document.querySelectorAll('.fc-daygrid-day');
-                        dayEls.forEach(el => {
-                            const dateStr = el.getAttribute('data-date');
-                            if (!dateStr) return;
-                            const date = new Date(dateStr);
-                            el.classList.remove('selected-range', 'selected-range-start', 'selected-range-end', 'selected-range-middle');
-                            {% for booking in bookings %}
-                            const startDate_{{ forloop.counter }} = new Date('{{ booking.check_in|date:"Y-m-d" }}');
-                            const endDate_{{ forloop.counter }} = new Date('{{ booking.check_out|date:"Y-m-d" }}');
-                            if (date >= startDate_{{ forloop.counter }} && date <= endDate_{{ forloop.counter }}) {
-                                if (dateStr === '{{ booking.check_in|date:"Y-m-d" }}') {
-                                    el.classList.add('selected-range-start');
-                                } else if (dateStr === '{{ booking.check_out|date:"Y-m-d" }}') {
-                                    el.classList.add('selected-range-end');
-                                } else {
-                                    el.classList.add('selected-range-middle');
-                                }
-                            }
-                            {% endfor %}
-                        });
+                        'className': 'fc-event-check-in',
+                        'backgroundColor': '#DC3545' if booking.status == 'cancelled' else '#10B981',
+                        'textColor': 'white'
                     },
-                    eventDidMount: function(info) {
-                        const baseAmount = parseFloat(info.event.extendedProps.base_amount);
-                        const gstRate = parseFloat(info.event.extendedProps.gst_rate) || 12.00;
-                        const gstAmount = baseAmount * (gstRate / 100);
-                        const totalWithGst = baseAmount + gstAmount;
-                        const tooltipContent = `
-                            <div class="p-3">
-                                <strong>${info.event.title}</strong><br>
-                                <small>Status: ${info.event.extendedProps.status}</small><br>
-                                <small>Type: ${info.event.extendedProps.type}</small><br>
-                                <small>Guest: <a href="${info.event.url}" style="color: var(--secondary);">${info.event.extendedProps.guest}</a></small><br>
-                                <small>Hotel: ${info.event.extendedProps.hotel}</small><br>
-                                <small>Room: ${info.event.extendedProps.room}</small><br>
-                                <small>Check-in: ${info.event.extendedProps.check_in_display}</small><br>
-                                <small>Check-out: ${info.event.extendedProps.check_out_display}</small><br>
-                                <small>Nights: ${info.event.extendedProps.nights}</small><br>
-                                <small>Base Amount: ₹${baseAmount.toFixed(2)}</small><br>
-                                <small>GST (${gstRate.toFixed(2)}%): ₹${gstAmount.toFixed(2)}</small><br>
-                                <small>Total with GST: ₹${totalWithGst.toFixed(2)}</small>
-                            </div>
-                        `;
-                        $(info.el).tooltip({
-                            title: tooltipContent,
-                            placement: 'top',
-                            trigger: 'hover',
-                            html: true
-                        });
-                    },
-                    dateClick: function(info) {
-                        const clickedDate = new Date(info.dateStr);
-                        let isInRange = false;
-                        let selectedBooking = null;
-                        {% for booking in bookings %}
-                        const startDate_{{ forloop.counter }} = new Date('{{ booking.check_in|date:"Y-m-d" }}');
-                        const endDate_{{ forloop.counter }} = new Date('{{ booking.check_out|date:"Y-m-d" }}');
-                        if (clickedDate >= startDate_{{ forloop.counter }} && clickedDate <= endDate_{{ forloop.counter }}) {
-                            isInRange = true;
-                            selectedBooking = {
-                                extendedProps: {
-                                    guest: '{{ booking.guest.get_full_name|default:booking.guest.username }}',
-                                    room: '{% if booking.room.room_type %}{{ booking.room.room_type.name }}{% else %}N/A{% endif %} (Room {{ booking.room.room_number }})',
-                                    hotel: '{{ booking.room.hotel.name }}',
-                                    check_in_display: '{{ booking.check_in|date:"M d, Y" }}',
-                                    check_out_display: '{{ booking.check_out|date:"M d, Y" }}',
-                                    nights: '{{ booking.nights }}',
-                                    base_amount: '{{ booking.base_price|floatformat:2 }}',
-                                    gst_rate: '{{ booking.gst_rate|floatformat:2 }}',
-                                    booking_date: '{{ booking.booking_time|date:"M d, Y h:i A" }}'
-                                }
-                            };
-                        }
-                        {% endfor %}
-                        if (isInRange && selectedBooking) {
-                            showBookingPopup(selectedBooking);
-                        } else {
-                            document.getElementById('day').value = info.dateStr;
-                            document.getElementById('view_type').value = 'active';
-                            document.getElementById('bookingFilterForm').submit();
-                        }
-                    },
-                    eventClick: function(info) {
-                        const eventDate = new Date(info.event.start);
-                        let isInRange = false;
-                        {% for booking in bookings %}
-                        const startDate_{{ forloop.counter }} = new Date('{{ booking.check_in|date:"Y-m-d" }}');
-                        const endDate_{{ forloop.counter }} = new Date('{{ booking.check_out|date:"Y-m-d" }}');
-                        if (eventDate >= startDate_{{ forloop.counter }} && eventDate <= endDate_{{ forloop.counter }}) {
-                            isInRange = true;
-                        }
-                        {% endfor %}
-                        if (isInRange) {
-                            showBookingPopup(info);
-                            info.jsEvent.preventDefault();
-                        } else {
-                            window.location.href = info.event.url;
-                        }
+                    {
+                        'title': f'Check-out: {booking.room.hotel.name} - {booking.room.room_number}',
+                        'start': booking.check_out.strftime('%Y-%m-%d'),
+                        'url': reverse('user:user_profile_detail', kwargs={'username': booking.guest.username}),
+                        'extendedProps': {
+                            'type': 'check-out',
+                            'status': booking.status,
+                            'guest': booking.guest.get_full_name or booking.guest.username,
+                            'room': f'{room_type_name} (Room {booking.room.room_number})',
+                            'hotel': booking.room.hotel.name,
+                            'check_in': booking.check_in.strftime('%Y-%m-%d'),
+                            'check_in_display': booking.check_in.strftime('%b %d, %Y'),
+                            'check_out': booking.check_out.strftime('%Y-%m-%d'),
+                            'check_out_display': booking.check_out.strftime('%b %d, %Y'),
+                            'nights': booking.nights,
+                            'amount': f'₹{booking.total_price:.2f}',
+                            'booking_date': booking.booking_time.strftime('%b %d, %Y %I:%M %p'),
+                            'cancellation_reason': booking.cancellation_reason or 'N/A',
+                        },
+                        'className': 'fc-event-check-out',
+                        'backgroundColor': '#DC3545' if booking.status == 'cancelled' else '#F59E0B',
+                        'textColor': 'white'
                     }
-                });
-                calendar.render();
-            }
-        }
+                ])
+            return JsonResponse({'events': events})
+        elif action == 'calendar':
+            return render(request, 'maintainer/booking_calendar.html', context)
+        return render(request, 'maintainer/booking_table.html', context)
 
-        function showBookingPopup(info) {
-            const existingPopup = document.querySelector('.booking-popup');
-            if (existingPopup) existingPopup.remove();
-
-            const booking = info.event ? info.event : info;
-            const checkInDate = booking.extendedProps.check_in_display;
-            const checkOutDate = booking.extendedProps.check_out_display;
-            const checkInDay = checkInDate.split(',')[0].split(' ')[1];
-            const checkOutDay = checkOutDate.split(',')[0].split(' ')[1];
-            const checkInMonth = checkInDate.split(',')[0].split(' ')[0];
-            const checkOutMonth = checkOutDate.split(',')[0].split(' ')[0];
-            const baseAmount = parseFloat(booking.extendedProps.base_amount);
-            const gstRate = parseFloat(booking.extendedProps.gst_rate) || 12.00;
-            const gstAmount = baseAmount * (gstRate / 100);
-            const totalWithGst = baseAmount + gstAmount;
-
-            const popup = document.createElement('div');
-            popup.className = 'booking-popup';
-            popup.innerHTML = `
-                <span class="close-btn">×</span>
-                <h3>Booking Details</h3>
-                <div class="booking-line">
-                    <div class="date-range-connector">
-                        <div class="date-box">${checkInMonth} ${checkInDay}</div>
-                        <div class="connector-line"></div>
-                        <div class="date-box">${checkOutMonth} ${checkOutDay}</div>
-                    </div>
-                </div>
-                <div class="guest-info">
-                    <div><strong>Guest:</strong> ${booking.extendedProps.guest}</div>
-                    <div><strong>Room:</strong> ${booking.extendedProps.room}</div>
-                    <div><strong>Hotel:</strong> ${booking.extendedProps.hotel}</div>
-                    <div><strong>Check-in:</strong> ${checkInDate}</div>
-                    <div><strong>Check-out:</strong> ${checkOutDate}</div>
-                    <div><strong>Nights:</strong> ${booking.extendedProps.nights}</div>
-                    <div><strong>Booking Date:</strong> ${booking.extendedProps.booking_date}</div>
-                    <div><strong>Base Amount:</strong> ₹${baseAmount.toFixed(2)} (₹${(baseAmount / booking.extendedProps.nights).toFixed(2)} × ${booking.extendedProps.nights} nights)</div>
-                    <div><strong>GST (${gstRate.toFixed(2)}%):</strong> ₹${gstAmount.toFixed(2)}</div>
-                    <div><strong>Total with GST:</strong> ₹${totalWithGst.toFixed(2)}</div>
-                </div>
-                <div class="text-center mt-3">
-                    <button class="btn btn-success">
-                        <i class="fas fa-comment-alt mr-2"></i>Connect with us
-                    </button>
-                </div>
-            `;
-            document.body.appendChild(popup);
-
-            popup.querySelector('.close-btn').addEventListener('click', () => {
-                popup.remove();
-            });
-
-            document.addEventListener('click', function outsideClickListener(event) {
-                if (!popup.contains(event.target) && !event.target.closest('.fc-event') && !event.target.closest('.fc-daygrid-day')) {
-                    popup.remove();
-                    document.removeEventListener('click', outsideClickListener);
-                }
-            });
-        }
-
-        const toggleCalendarBtn = document.getElementById('toggleCalendarBtn');
-        const calendarContainer = document.getElementById('calendarContainer');
-        toggleCalendarBtn.addEventListener('click', function() {
-            calendarContainer.classList.toggle('d-none');
-            if (!calendarContainer.classList.contains('d-none') && !calendar) {
-                initializeCalendar();
-            }
-            toggleCalendarBtn.innerHTML = calendarContainer.classList.contains('d-none')
-                ? '<i class="fas fa-calendar mr-1"></i> Show Calendar'
-                : '<i class="fas fa-calendar mr-1"></i> Hide Calendar';
-        });
-
-        const fullscreenToggleBtn = document.getElementById('fullscreenToggleBtn');
-        fullscreenToggleBtn.addEventListener('click', function() {
-            calendarContainer.classList.toggle('calendar-fullscreen');
-            fullscreenToggleBtn.innerHTML = calendarContainer.classList.contains('calendar-fullscreen')
-                ? '<i class="fas fa-compress"></i> Exit Full Screen'
-                : '<i class="fas fa-expand"></i> Full Screen';
-            if (calendar) {
-                calendar.updateSize();
-            }
-        });
-
-        const form = document.getElementById('bookingFilterForm');
-        form.addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            fetch(window.location.pathname + '?' + new URLSearchParams(new FormData(form)), {
-                headers: { 'X-Requested-With': 'XMLHttpRequest' }
-            })
-            .then(response => response.text())
-            .then(html => {
-                document.getElementById('bookingTableContainer').innerHTML = html;
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('An error occurred while fetching bookings.');
-            });
-
-            if (!calendarContainer.classList.contains('d-none')) {
-                fetch(window.location.pathname + '?' + new URLSearchParams(new FormData(form)) + '&action=calendar', {
-                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
-                })
-                .then(response => response.text())
-                .then(html => {
-                    calendarEl.innerHTML = html;
-                    if (calendar) {
-                        calendar.destroy();
-                    }
-                    initializeCalendar();
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    alert('An error occurred while updating the calendar.');
-                });
-            }
-        });
-
-        document.getElementById('view_type').addEventListener('change', function() {
-            if (this.value === 'active' || this.value === 'check_in' || this.value === 'check_out') {
-                document.getElementById('start_date').value = '';
-                document.getElementById('end_date').value = '';
-                document.getElementById('month').value = '';
-                document.getElementById('booking_date').value = '';
-                if (!document.getElementById('day').value) {
-                    document.getElementById('day').value = '{{ current_date|date:"Y-m-d" }}';
-                }
-            } else if (this.value === 'all') {
-                document.getElementById('day').value = '';
-            }
-        });
-
-        document.getElementById('booking_status').addEventListener('change', function() {
-            if (this.value) {
-                document.getElementById('view_type').value = 'all';
-            }
-        });
-
-        if (!calendarContainer.classList.contains('d-none')) {
-            initializeCalendar();
-        }
-    });
-</script>
-{% endblock %}
+    return render(request, 'maintainer/bookings.html', context)

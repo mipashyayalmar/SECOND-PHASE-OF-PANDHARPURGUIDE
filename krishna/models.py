@@ -99,9 +99,17 @@ class Rooms(models.Model):
         ("2", "deluxe"),
         ("3", "basic"),
     )
+    capacity = models.IntegerField(
+        validators=[MinValueValidator(1)],
+        help_text="Base capacity of the room"
+    )
+    extra_capacity = models.IntegerField(
+        default=0,
+        validators=[MinValueValidator(0)],
+        help_text="Extra capacity beyond base (e.g., with extra beds)"
+    )
     hotel = models.ForeignKey(Hotels, on_delete=models.CASCADE, related_name='rooms')
     room_type = models.CharField(max_length=50, choices=ROOM_TYPE)
-    capacity = models.IntegerField(validators=[MinValueValidator(1)])
     price = models.DecimalField(max_digits=10, decimal_places=2)
     size = models.IntegerField(help_text="Room size in square feet")
     hotel = models.ForeignKey('Hotels', on_delete=models.CASCADE, related_name='rooms')
@@ -194,6 +202,28 @@ class Rooms(models.Model):
         help_text="Languages spoken by staff"
     )
 
+    # In your Rooms model
+    def display_capacity(self):
+        """Display capacity as '3+2' if extra capacity exists, or just '3' if no extra"""
+        if self.extra_capacity > 0:
+            return f"{self.capacity}+{self.extra_capacity}"
+        return str(self.capacity)
+
+    def total_capacity(self):
+        """Calculate total capacity (base + extra)"""
+        return self.capacity + self.extra_capacity
+
+    def get_extra_person_info(self):
+        """Return formatted string about extra person charges if applicable"""
+        if self.extra_capacity > 0 and self.extra_person_charges > 0:
+            return f"Extra person charge: ${self.extra_person_charges} per person (max {self.extra_capacity})"
+        return ""
+    
+    # In your Reservation model
+    @property
+    def extra_persons(self):
+        return max(0, self.number_of_guests - self.room.capacity)
+
     def discounted_price(self):
         """Calculate price after applying the discount."""
         if self.discount > 0:
@@ -237,23 +267,39 @@ class Replies(models.Model):
     def __str__(self):
         return f"Reply by {self.user.username} on {self.comment}"
 
+
 class Reservation(models.Model):
     check_in = models.DateField()
     check_out = models.DateField()
-    room = models.ForeignKey(Rooms, on_delete=models.CASCADE, related_name='reservations')
+    room = models.ForeignKey('Rooms', on_delete=models.CASCADE, related_name='reservations')
     guest = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     booking_id = models.CharField(max_length=100, default="null")
     booking_time = models.DateTimeField(default=timezone.now)
+    is_cancelled = models.BooleanField(default=False)
+    cancelled_at = models.DateTimeField(null=True, blank=True)
+    cancellation_reason = models.TextField(null=True, blank=True)
+    spy = models.CharField(max_length=100, null=True, blank=True)
+    number_of_guests = models.PositiveIntegerField(
+        validators=[MinValueValidator(1)],
+        default=1,
+        help_text="Total number of guests for the reservation"
+    )
+    base_price_value = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    gst_amount_value = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+
+    def clean(self):
+        """Validate that number_of_guests does not exceed room's total capacity."""
+        from django.core.exceptions import ValidationError
+        max_capacity = self.room.capacity + self.room.extra_capacity
+        if self.number_of_guests > max_capacity:
+            raise ValidationError(
+                f"Number of guests ({self.number_of_guests}) exceeds room's maximum capacity ({max_capacity})."
+            )
 
     @property
     def nights(self):
         """Calculate the number of nights for the stay."""
-        return (self.check_out - self.check_in).days
-
-    @property
-    def base_price(self):
-        """Calculate base price for the stay, including extra person charges."""
-        return (self.room.discounted_price() * self.nights) + (self.room.extra_person_charges or Decimal('0'))
+        return max((self.check_out - self.check_in).days, 1)
 
     @property
     def gst_rate(self):
@@ -261,11 +307,49 @@ class Reservation(models.Model):
         return self.room.hotel.gst_rate or Decimal('12.00')
 
     @property
+    def extra_guests(self):
+        """Number of guests beyond room capacity."""
+        return max(self.number_of_guests - self.room.capacity, 0)
+
+    @property
+    def extra_guest_charges(self):
+        """Total charges for extra guests."""
+        return self.room.extra_person_charges * self.extra_guests * self.nights
+
+    @property
+    def base_price(self):
+        """Base price for the stay (room price * nights)."""
+        return self.room.discounted_price() * self.nights
+
+    @property
+    def total_before_tax(self):
+        """Total before GST (base price + extra guest charges)."""
+        return self.base_price + self.extra_guest_charges
+
+    @property
     def gst_amount(self):
-        """Calculate GST amount based on hotel's GST rate."""
-        return (self.base_price * self.gst_rate) / Decimal('100')
+        """Calculate GST amount based on total_before_tax."""
+        return (self.total_before_tax * self.gst_rate) / Decimal('100')
 
     @property
     def total_price(self):
-        """Calculate total price including GST."""
-        return self.base_price + self.gst_amount
+        """Final total including GST."""
+        return self.total_before_tax + self.gst_amount
+
+    def save(self, *args, **kwargs):
+        """Override save to compute and store base_price_value and gst_amount_value."""
+        self.clean()  # Validate number_of_guests before saving
+        self.base_price_value = self.base_price
+        self.gst_amount_value = self.gst_amount
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"Reservation for {self.room} by {self.guest.username} ({self.check_in} to {self.check_out})"
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(
+                check=models.Q(check_out__gt=models.F('check_in')),
+                name='check_out_after_check_in'
+            )
+        ]
