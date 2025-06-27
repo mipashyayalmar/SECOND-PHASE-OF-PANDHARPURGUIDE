@@ -353,3 +353,19 @@ class Reservation(models.Model):
                 name='check_out_after_check_in'
             )
         ]
+
+
+
+
+class Customer(models.Model):
+    reservation = models.ForeignKey('Reservation', on_delete=models.CASCADE, related_name='customers')
+    full_name = models.CharField(max_length=200)
+    phone_number = models.CharField(max_length=15)
+    email = models.EmailField()
+    aadhar_front = models.ImageField(upload_to='documents/aadhar_front/')
+    aadhar_back = models.ImageField(upload_to='documents/aadhar_back/')
+    pan_card = models.ImageField(upload_to='documents/pan_card/')
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    def __str__(self):
+        return f"{self.full_name} - {self.reservation}"

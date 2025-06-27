@@ -22,12 +22,23 @@
                 {% for booking in bookings %}
                 <tr class="status-{{ booking.status }}">
                     <td>{{ booking.id }}</td>
-                    <td class="fw-medium">
-                        <a href="{% url 'user:user_profile_detail' username=booking.guest.username %}" 
-                           class="text-primary text-decoration-none">
-                            {{ booking.guest.get_full_name|default:booking.guest.username }}
-                        </a>
-                    </td>
+                  <td class="fw-medium">
+    <a href="{% url 'user:user_profile_detail' username=booking.guest.username %}" 
+       class="text-primary text-decoration-none">
+        {{ booking.guest.get_full_name|default:booking.guest.username }}
+    </a>
+    <br>
+    {% if booking.status == 'current' %}
+        {% with customer=booking.customers.first %}
+            {% if customer %}
+                <a href="{% url 'view_customer_info' reservation_id=booking.id %}" 
+                   class="text-info text-decoration-none">
+                    {{ customer.full_name }}
+                </a>
+            {% endif %}
+        {% endwith %}
+    {% endif %}
+</td>
                     <td>
                         <a href="{% url 'viewroom' booking.room.id %}" class="text-decoration-none">
                             {{ booking.room.room_number }} ({{ booking.room.get_room_type_display }})
