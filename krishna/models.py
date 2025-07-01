@@ -268,6 +268,13 @@ class Replies(models.Model):
         return f"Reply by {self.user.username} on {self.comment}"
 
 
+from django.db import models
+from django.conf import settings
+from django.core.validators import MinValueValidator, RegexValidator
+from django.core.exceptions import ValidationError
+from django.utils import timezone
+from decimal import Decimal
+
 class Reservation(models.Model):
     check_in = models.DateField()
     check_out = models.DateField()
@@ -286,15 +293,36 @@ class Reservation(models.Model):
     )
     base_price_value = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     gst_amount_value = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    apply_gst = models.BooleanField(default=False, help_text="Whether to apply GST to this reservation")
+    gst_number = models.CharField(
+        max_length=15,
+        null=True,
+        blank=True,
+        help_text="GST number if applicable",
+        validators=[
+            RegexValidator(
+                regex=r'^\d{2}[A-Z0-9]{5}\d{4}[A-Z0-9]{1}\d{1}[A-Z0-9]{1}$',
+                message="GST number must be in the format: 2 digits, 5 alphanumeric, 4 digits, 1 alphanumeric, 1 digit, 1 alphanumeric (e.g., 12ABCDE1234F5GH)."
+            )
+        ]
+    )
 
     def clean(self):
-        """Validate that number_of_guests does not exceed room's total capacity."""
-        from django.core.exceptions import ValidationError
+        """Validate number_of_guests, GST number, and GST applicability."""
         max_capacity = self.room.capacity + self.room.extra_capacity
         if self.number_of_guests > max_capacity:
             raise ValidationError(
                 f"Number of guests ({self.number_of_guests}) exceeds room's maximum capacity ({max_capacity})."
             )
+        if self.apply_gst and not self.gst_number:
+            raise ValidationError("GST number is required if GST is applied.")
+        if self.gst_number and not self.apply_gst:
+            raise ValidationError("GST number should not be provided if GST is not applied.")
+        if self.apply_gst and self.gst_number:
+            try:
+                self._meta.get_field('gst_number').run_validators(self.gst_number)
+            except ValidationError as e:
+                raise ValidationError({'gst_number': e})
 
     @property
     def nights(self):
@@ -304,7 +332,7 @@ class Reservation(models.Model):
     @property
     def gst_rate(self):
         """Get the GST rate from the hotel, defaulting to 12%."""
-        return self.room.hotel.gst_rate or Decimal('12.00')
+        return self.room.hotel.gst_rate or Decimal('12.00') if self.apply_gst else Decimal('0.00')
 
     @property
     def extra_guests(self):
@@ -329,7 +357,7 @@ class Reservation(models.Model):
     @property
     def gst_amount(self):
         """Calculate GST amount based on total_before_tax."""
-        return (self.total_before_tax * self.gst_rate) / Decimal('100')
+        return (self.total_before_tax * self.gst_rate) / Decimal('100') if self.apply_gst else Decimal('0.00')
 
     @property
     def total_price(self):
@@ -338,7 +366,7 @@ class Reservation(models.Model):
 
     def save(self, *args, **kwargs):
         """Override save to compute and store base_price_value and gst_amount_value."""
-        self.clean()  # Validate number_of_guests before saving
+        self.clean()  # Validate number_of_guests and GST before saving
         self.base_price_value = self.base_price
         self.gst_amount_value = self.gst_amount
         super().save(*args, **kwargs)
@@ -353,3 +381,16 @@ class Reservation(models.Model):
                 name='check_out_after_check_in'
             )
         ]
+        
+class Customer(models.Model):
+    reservation = models.ForeignKey('Reservation', on_delete=models.CASCADE, related_name='customers')
+    full_name = models.CharField(max_length=200)
+    phone_number = models.CharField(max_length=15)
+    email = models.EmailField()
+    aadhar_front = models.ImageField(upload_to='documents/aadhar_front/')
+    aadhar_back = models.ImageField(upload_to='documents/aadhar_back/')
+    pan_card = models.ImageField(upload_to='documents/pan_card/')
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    def __str__(self):
+        return f"{self.full_name} - {self.reservation}"

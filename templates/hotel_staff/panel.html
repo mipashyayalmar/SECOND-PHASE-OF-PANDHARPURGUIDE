@@ -1,107 +1,13 @@
 {% extends 'rooms/room_basic.html' %}
-{% block title %} staff panel {% endblock title %}
+{% block title %} Staff Dashboard {% endblock title %}
 {%load static%}
-{% block css %}
-<link rel="stylesheet" href="{% static 'staff/panel.css' %}">
-
-<style>
-    
-    /* Custom Styles */
-    .stat-card {
-        transition: transform 0.3s ease, box-shadow 0.3s ease;
-        background: white;
-        border-radius: 10px;
-    }
-    
-    .stat-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
-    }
-    
-    .progress {
-        width: 150px;
-        height: 150px;
-        position: relative;
-    }
-    
-    .progress-value {
-        position: absolute;
-        top: 0;
-        left: 0;
-    }
-    
-    .table-responsive {
-        overflow-x: auto;
-        box-shadow: 0 0 20px rgba(0,0,0,0.1);
-        border-radius: 10px;
-    }
-    
-    .btn-action {
-        padding: 5px 10px;
-        font-size: 0.9rem;
-        margin: 2px;
-    }
-    
-    /* Modal Enhancements */
-    .modal-content {
-        border-radius: 15px;
-        border: none;
-    }
-    
-    .modal-header {
-        background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
-        color: white;
-        border-radius: 15px 15px 0 0 !important;
-    }
-    
-    /* Feature Checkboxes */
-    .feature-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-        gap: 10px;
-    }
-    
-    .feature-item {
-        display: flex;
-        align-items: center;
-        padding: 8px;
-        background: #f8f9fa;
-        border-radius: 5px;
-        transition: all 0.3s ease;
-    }
-    
-    .feature-item:hover {
-        background: #e9ecef;
-        transform: translateX(5px);
-    }
-    
-    /* Toast Notification */
-    .toast-container {
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        z-index: 1100;
-    }
-    
-    /* Responsive Adjustments */
-    @media (max-width: 768px) {
-        .stat-card {
-            margin-bottom: 20px;
-        }
-        
-        .feature-grid {
-            grid-template-columns: 1fr;
-        }
-    }
-</style>
-{% endblock css %}
 
 {% block content %}
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Pandharpur Guide</title>
+<title>Professional Hotel Dashboard</title>
 <link rel="icon" href="{% static 'favicon/logo.png' %}" type="image/x-icon">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <link rel="stylesheet" href="{% static 'bootstrap/bootstrap.css' %}">
 
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
@@ -109,305 +15,931 @@
 <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.0/js/bootstrap.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
 
-<!--Staff section -->
+<style>
+    :root {
+    --primary-color: #2563eb;
+    --primary-dark:rgb(142, 163, 222);
+    --success-color: #10b981;
+    --warning-color: #f59e0b;
+    --danger-color: #ef4444;
+    --info-color: #06b6d4;
+    --dark-color: #1f2937;
+    --light-gray: #f8fafc;
+    --medium-gray: #e5e7eb;
+    --text-primary: #111827;
+    --text-secondary: #6b7280;
+    --shadow-light: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+    --shadow-medium: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    --shadow-large: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    --border-radius: 12px;
+    --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
 
-                <!-- Display form errors -->
-                <div class="text-danger">
-                    {% for field in form %}
-                    {% if field.errors %}
-                    <div>
-                        <strong>{{ field.label }}:</strong>
-                        <ul>
-                            {% for error in field.errors %}
-                            <li>{{ error }}</li>
-                            {% endfor %}
-                        </ul>
-                    </div>
-                    {% endif %}
-                    {% endfor %}
-                </div>
-<!--Room Stats section starts here-->
+    * {
+    box-sizing: border-box;
+    }
+    a{
+        text-decoration:none;
+    }
 
+    body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background:transparent;
+    min-height: 100vh;
+    line-height: 1.6;
+    }
 
-</head>
-<body>
-<section class="my-5">
-    <h2 class="text-center text-primary mb-4">Hotel Room Statistics</h2>
-    <div class="container-fluid px-4 py-5 border rounded-3 bg-light section-container">
-    {%  if user.is_employee %}
-        <center>
-            <div class="col-md-4 mb-3">
-                <div class="card bg-success text-white">
-                    <div class="card-body text-center">
-                        <h5 class="card-title">Today's Revenue</h5>
-                        <p class="h2">₹{{ today_revenue|floatformat:2 }}</p>
-                    </div>
-                </div>
-            </div>
-        </center>
-       {% else %}
-        <!-- Revenue Summary Section -->
-        <div class="row mb-4">
-            <div class="col-md-4 mb-3">
-                <div class="card bg-primary text-white">
-                    <div class="card-body text-center">
-                        <h5 class="card-title">Total Revenue</h5>
-                        <p class="h2">₹{{ total_revenue|floatformat:2 }}</p>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-4 mb-3">
-                <div class="card bg-success text-white">
-                    <div class="card-body text-center">
-                        <h5 class="card-title">Today's Revenue</h5>
-                        <p class="h2">₹{{ today_revenue|floatformat:2 }}</p>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-4 mb-3">
-                <div class="card bg-info text-white">
-                    <div class="card-body text-center">
-                        <h5 class="card-title">This Month's Revenue</h5>
-                        <p class="h2">₹{{ this_month_revenue|floatformat:2 }}</p>
-                    </div>
-                </div>
-            </div>
+    .dashboard-container {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-large);
+    margin: 2rem auto;
+    max-width: calc(100% - 0px);
+    overflow: hidden;
+    }
+    .dashboard-header {
+    background: linear-gradient(135deg, #0639a812 0%, var(--primary-dark) 100%);
+    color: white;
+    padding: 2rem;
+    text-align: center;
+    position: relative;
+    }
+
+    .dashboard-header::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse"><path d="M 10 0 L 0 0 0 10" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="0.5"/></pattern></defs><rect width="100" height="100" fill="url(%23grid)"/></svg>');
+    opacity: 0.3;
+    }
+
+    .dashboard-title {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin: 0;
+    position: relative;
+    z-index: 1;
+    }
+
+    .dashboard-subtitle {
+    font-size: 1.1rem;
+    opacity: 0.9;
+    margin-top: 0.5rem;
+    position: relative;
+    z-index: 1;
+    }
+
+    .section-container {
+    background: white;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-medium);
+    margin: 2rem 0;
+    overflow: hidden;
+    }
+
+    .section-header {
+    background: linear-gradient(135deg, var(--light-gray) 0%, #ffffff 100%);
+    border-bottom: 2px solid var(--medium-gray);
+    padding: 1.5rem 2rem;
+    }
+
+    .section-title {
+    color: var(--text-primary);
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    }
+
+    .section-content {
+    padding: 2rem;
+    }
+
+    .revenue-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+    }
+
+    .revenue-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: var(--border-radius);
+    color: white;
+    padding: 2rem;
+    text-align: center;
+    transition: var(--transition);
+    position: relative;
+    overflow: hidden;
+    }
+
+    .revenue-card::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 50%);
+    transform: rotate(45deg);
+    transition: var(--transition);
+    }
+
+    .revenue-card:hover::before {
+    transform: rotate(45deg) scale(1.1);
+    }
+
+    .revenue-card.success {
+    background: linear-gradient(135deg, var(--success-color) 0%, #059669 100%);
+    }
+
+    .revenue-card.info {
+    background: linear-gradient(135deg, var(--info-color) 0%, #0891b2 100%);
+    }
+
+    .revenue-card.primary {
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+    }
+
+    .revenue-amount {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin: 0.5rem 0;
+    position: relative;
+    z-index: 1;
+    }
+
+    .revenue-label {
+    font-size: 1rem;
+    opacity: 0.9;
+    position: relative;
+    z-index: 1;
+    }
+
+    .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
+    }
+
+    .stat-card {
+    background: white;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-light);
+    padding: 1.5rem;
+    text-decoration: none;
+    color: inherit;
+    transition: var(--transition);
+    border: 1px solid var(--medium-gray);
+    position: relative;
+    overflow: hidden;
+    }
+
+    .stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 100%;
+    background: var(--primary-color);
+    transform: translateX(-4px);
+    transition: var(--transition);
+    }
+
+    .stat-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-large);
+    text-decoration: none;
+    color: inherit;
+    }
+
+    .stat-card:hover::before {
+    transform: translateX(0);
+    }
+
+    .stat-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    }
+
+    .stat-title {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin: 0;
+    }
+
+    .stat-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    color: white;
+    }
+
+    .stat-icon.primary { background: var(--primary-color); }
+    .stat-icon.success { background: var(--success-color); }
+    .stat-icon.warning { background: var(--warning-color); }
+    .stat-icon.danger { background: var(--danger-color); }
+    .stat-icon.info { background: var(--info-color); }
+
+    .stat-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0.5rem 0;
+    }
+
+    .stat-description {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    margin: 0;
+    }
+
+    .stat-revenue {
+    font-size: 0.75rem;
+    color: var(--success-color);
+    font-weight: 600;
+    margin-top: 0.25rem;
+    }
+
+    .progress-circle {
+    width: 80px;
+    height: 80px;
+    margin: 1rem auto;
+    position: relative;
+    }
+
+    .progress-circle svg {
+    width: 100%;
+    height: 100%;
+    transform: rotate(-90deg);
+    }
+
+    .progress-circle .bg {
+    fill: none;
+    stroke: var(--medium-gray);
+    stroke-width: 8;
+    }
+
+    .progress-circle .progress {
+    fill: none;
+    stroke: var(--primary-color);
+    stroke-width: 8;
+    stroke-dasharray: 251.2;
+    stroke-dashoffset: 251.2;
+    transition: stroke-dashoffset 1s ease-in-out;
+    stroke-linecap: round;
+    }
+
+    .progress-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    }
+
+    .filter-section {
+    background: white;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-light);
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    }
+
+    .filter-form {
+    display: grid;
+    grid-template-columns: 1fr 1fr auto;
+    gap: 1.5rem;
+    align-items: end;
+    }
+
+    .form-group {
+    display: flex;
+    flex-direction: column;
+    }
+
+    .form-label {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+    }
+
+    .form-select, .form-control {
+    padding: 0.75rem;
+    border: 2px solid var(--medium-gray);
+    border-radius: 8px;
+    font-size: 0.875rem;
+    transition: var(--transition);
+    background: white;
+    }
+
+    .form-select:focus, .form-control:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+
+    .btn {
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    font-weight: 600;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: var(--transition);
+    border: none;
+    cursor: pointer;
+    font-size: 0.875rem;
+    }
+
+    .btn-primary {
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+    color: white;
+    }
+
+    .btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-medium);
+    }
+
+    .btn-warning {
+    background: var(--warning-color);
+    color: white;
+    }
+
+    .btn-info {
+    background: var(--info-color);
+    color: white;
+    }
+
+    .btn-sm {
+    padding: 0.5rem 1rem;
+    font-size: 0.75rem;
+    }
+
+    .table-container {
+    background: white;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-light);
+    overflow: hidden;
+    }
+
+    .table-responsive {
+    padding: 0 21px;
+    overflow-x: auto;
+    }
+
+    .table {
+    width: 100%;
+    margin: 0;
+    font-size: 0.875rem;
+    }
+
+    .table th {
+    background: var(--light-gray);
+    color: var(--text-primary);
+    font-weight: 600;
+    padding: 1rem 0.75rem;
+    border: none;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.05em;
+    }
+
+    .table td {
+    padding: 1rem 0.75rem;
+    border-bottom: 1px solid var(--medium-gray);
+    vertical-align: middle;
+    }
+
+    .table tbody tr:hover {
+    background: rgba(37, 99, 235, 0.05);
+    }
+
+    .status-available {
+    color: var(--success-color);
+    font-weight: 600;
+    }
+
+    .status-unavailable {
+    color: var(--danger-color);
+    font-weight: 600;
+    }
+
+    .alert {
+    border-radius: var(--border-radius);
+    border: none;
+    padding: 1rem 1.5rem;
+    }
+
+    .alert-warning {
+    background: rgba(245, 158, 11, 0.1);
+    color: #92400e;
+    border-left: 4px solid var(--warning-color);
+    }
+
+    .action-buttons {
+    display: flex;
+    justify-content: space-between;
+    margin: 2rem 0;
+    gap: 1rem;
+    }
+
+    .text-danger {
+    background: rgba(239, 68, 68, 0.1);
+    border: 2px solid rgba(239, 68, 68, 0.2);
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    }
+
+    /* Responsive Design */
+    @media (max-width: 1200px) {
+    .stats-grid {
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    }
+    }
+
+    @media (max-width: 768px) {
+    .dashboard-container {
+        margin: 1rem;
+    }
+    
+    .dashboard-header {
+        padding: 1.5rem;
+    }
+    
+    .dashboard-title {
+        font-size: 2rem;
+    }
+    
+    .section-content {
+        padding: 1.5rem;
+    }
+    
+    .revenue-cards {
+        grid-template-columns: 1fr;
+    }
+    
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .filter-form {
+        grid-template-columns: 1fr;
+    }
+    
+    .action-buttons {
+        flex-direction: column;
+    }
+    
+    .table-responsive {
+        font-size: 0.75rem;
+    }
+    
+    .table th,
+    .table td {
+        padding: 0.5rem;
+    }
+    }
+
+    @media (max-width: 480px) {
+    .dashboard-header {
+        padding: 1rem;
+    }
+    
+    .dashboard-title {
+        font-size: 1.75rem;
+    }
+    
+    .section-content {
+        padding: 1rem;
+    }
+    
+    .revenue-amount {
+        font-size: 2rem;
+    }
+    
+    .stat-value {
+        font-size: 1.5rem;
+    }
+    }
+
+    /* Animation for progress circles */
+    @keyframes progressFill {
+    from {
+        stroke-dashoffset: 251.2;
+    }
+    to {
+        stroke-dashoffset: var(--progress-offset);
+    }
+    }
+
+    .progress-circle .progress.animate {
+    animation: progressFill 1.5s ease-in-out forwards;
+    }
+
+    /* Loading animation */
+    @keyframes shimmer {
+    0% {
+        background-position: -468px 0;
+    }
+    100% {
+        background-position: 468px 0;
+    }
+    }
+
+    .loading {
+    animation: shimmer 1.2s ease-in-out infinite;
+    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+    background-size: 400% 100%;
+    }
+</style>
+
+<div class="dashboard-container">
+  <div class="dashboard-header">
+    <h1 class="dashboard-title">
+      <i class="fas fa-chart-line"></i>
+      Hotel Management Dashboard
+    </h1>
+    <p class="dashboard-subtitle">
+      Real-time insights and comprehensive hotel operations overview
+    </p>
+  </div>
+
+  <!-- Error Messages -->
+  {% if form.errors %}
+  <div class="text-danger">
+    {% for field in form %}
+      {% if field.errors %}
+        <div>
+          <strong>{{ field.label }}:</strong>
+          <ul>
+            {% for error in field.errors %}
+              <li>{{ error }}</li>
+            {% endfor %}
+          </ul>
         </div>
+      {% endif %}
+    {% endfor %}
+  </div>
+  {% endif %}
 
-    {% endif %}
-
-        <div class="row">
-            {% if not user.is_employee %}
-            <!-- Total Rooms -->
-            <div class="col-xl-3 col-lg-6 col-sm-12 mb-4">
-                <a href="{% url 'allbookings' %}?view_type=all" class="text-decoration-none">
-                    <div class="rounded-lg p-4 shadow stat-card h-100 hover:bg-gray-100 transition duration-200">
-                        <h2 class="h6 font-weight-bold text-center mb-4">Total Rooms</h2>
-                        <div class="progress mx-auto" data-value="100">
-                            <span class="progress-left">
-                                <span class="progress-bar border-primary"></span>
-                            </span>
-                            <span class="progress-right">
-                                <span class="progress-bar border-primary"></span>
-                            </span>
-                            <div class="progress-value w-100 h-100 rounded-circle d-flex align-items-center justify-content-center">
-                                <div class="h2 font-weight-bold">{{ total_rooms|default:0 }}</div>
-                            </div>
-                        </div>
-                        <div class="text-center mt-3">
-                            <small class="text-muted">All rooms in your hotel</small>
-                        </div>
-                    </div>
-                </a>
-            </div>
-
-            {% endif %}
-            <!-- Active Bookings -->
-            <div class="col-xl-3 col-lg-6 col-sm-12 mb-4">
-                <a href="{% url 'allbookings' %}?view_type=active&day={{ current_date|date:'Y-m-d' }}" class="text-decoration-none">
-                    <div class="rounded-lg p-4 shadow stat-card h-100 hover:bg-gray-100 transition duration-200">
-                        <h2 class="h6 font-weight-bold text-center mb-4">Active Bookings</h2>
-                        <div class="progress mx-auto" data-value="{{ active_bookings_percent|floatformat:'0' }}">
-                            <span class="progress-left">
-                                <span class="progress-bar border-info"></span>
-                            </span>
-                            <span class="progress-right">
-                                <span class="progress-bar border-info"></span>
-                            </span>
-                            <div class="progress-value w-100 h-100 rounded-circle d-flex align-items-center justify-content-center">
-                                <div class="h2 font-weight-bold">{{ active_bookings|default:0 }}</div>
-                            </div>
-                        </div>
-                        <div class="text-center mt-3">
-                            <small class="text-muted">Currently checked-in ({{ current_date|date:'M d, Y' }})</small><br>
-                            <small class="text-muted">Revenue: ₹{{ active_bookings_revenue|floatformat:2 }}</small>
-                        </div>
-                    </div>
-                </a>
-            </div>
-
-            <!-- Bookings Today -->
-            <div class="col-xl-3 col-lg-6 col-sm-12 mb-4">
-                <a href="{% url 'allbookings' %}?booking_date={{ current_date|date:'Y-m-d' }}" class="text-decoration-none">
-                    <div class="rounded-lg p-4 shadow stat-card h-100 hover:bg-gray-100 transition duration-200">
-                        <h2 class="h6 font-weight-bold text-center mb-4">Bookings Today</h2>
-                        <div class="progress mx-auto" data-value="{{ bookings_today_percent|floatformat:'0' }}">
-                            <span class="progress-left">
-                                <span class="progress-bar border-primary"></span>
-                            </span>
-                            <span class="progress-right">
-                                <span class="progress-bar border-primary"></span>
-                            </span>
-                            <div class="progress-value w-100 h-100 rounded-circle d-flex align-items-center justify-content-center">
-                                <div class="h2 font-weight-bold">{{ bookings_today|default:0 }}</div>
-                            </div>
-                        </div>
-                        <div class="text-center mt-3">
-                            <small class="text-muted">Made today ({{ current_date|date:'M d, Y' }})</small><br>
-                            <small class="text-muted">Revenue: ₹{{ today_revenue|floatformat:2 }}</small>
-                        </div>
-                    </div>
-                </a>
-            </div>
-
-            <!-- Check-ins Today -->
-            <div class="col-xl-3 col-lg-6 col-sm-12 mb-4">
-                <a href="{% url 'allbookings' %}?view_type=check_in&day={{ current_date|date:'Y-m-d' }}" class="text-decoration-none">
-                    <div class="rounded-lg p-4 shadow stat-card h-100 hover:bg-gray-100 transition duration-200">
-                        <h2 class="h6 font-weight-bold text-center mb-4">Check-ins Today</h2>
-                        <div class="progress mx-auto" data-value="{{ check_ins_today_percent|floatformat:'0' }}">
-                            <span class="progress-left">
-                                <span class="progress-bar border-success"></span>
-                            </span>
-                            <span class="progress-right">
-                                <span class="progress-bar border-success"></span>
-                            </span>
-                            <div class="progress-value w-100 h-100 rounded-circle d-flex align-items-center justify-content-center">
-                                <div class="h2 font-weight-bold">{{ check_ins_today|default:0 }}</div>
-                            </div>
-                        </div>
-                        <div class="text-center mt-3">
-                            <small class="text-muted">Scheduled for today</small><br>
-                            <small class="text-muted">Revenue: ₹{{ check_ins_today_revenue|floatformat:2 }}</small>
-                        </div>
-                    </div>
-                </a>
-            </div>
-
-            <!-- Check-outs Today -->
-            <div class="col-xl-3 col-lg-6 col-sm-12 mb-4">
-                <a href="{% url 'allbookings' %}?view_type=check_out&day={{ current_date|date:'Y-m-d' }}" class="text-decoration-none">
-                    <div class="rounded-lg p-4 shadow stat-card h-100 hover:bg-gray-100 transition duration-200">
-                        <h2 class="h6 font-weight-bold text-center mb-4">Check-outs Today</h2>
-                        <div class="progress mx-auto" data-value="{{ check_outs_today_percent|floatformat:'0' }}">
-                            <span class="progress-left">
-                                <span class="progress-bar border-danger"></span>
-                            </span>
-                            <span class="progress-right">
-                                <span class="progress-bar border-danger"></span>
-                            </span>
-                            <div class="progress-value w-100 h-100 rounded-circle d-flex align-items-center justify-content-center">
-                                <div class="h2 font-weight-bold">{{ check_outs_today|default:0 }}</div>
-                            </div>
-                        </div>
-                        <div class="text-center mt-3">
-                            <small class="text-muted">Scheduled for today</small><br>
-                            <small class="text-muted">Revenue: ₹{{ check_outs_today_revenue|floatformat:2 }}</small>
-                        </div>
-                    </div>
-                </a>
-            </div>
-            {%  if not user.is_employee %}
-               
-
-            <!-- Bookings This Month -->
-            <div class="col-xl-3 col-lg-6 col-sm-12 mb-4">
-                <a href="{% url 'allbookings' %}?month={{ current_date|date:'F' }}" class="text-decoration-none">
-                    <div class="rounded-lg p-4 shadow stat-card h-100 hover:bg-gray-100 transition duration-200">
-                        <h2 class="h6 font-weight-bold text-center mb-4">Bookings This Month</h2>
-                        <div class="progress mx-auto" data-value="{{ bookings_this_month_percent|floatformat:'0' }}">
-                            <span class="progress-left">
-                                <span class="progress-bar border-warning"></span>
-                            </span>
-                            <span class="progress-right">
-                                <span class="progress-bar border-warning"></span>
-                            </span>
-                            <div class="progress-value w-100 h-100 rounded-circle d-flex align-items-center justify-content-center">
-                                <div class="h2 font-weight-bold">{{ bookings_this_month|default:0 }}</div>
-                            </div>
-                        </div>
-                        <div class="text-center mt-3">
-                            <small class="text-muted">Made in {{ current_date|date:'F Y' }}</small><br>
-                            <small class="text-muted">Revenue: ₹{{ this_month_revenue|floatformat:2 }}</small>
-                        </div>
-                    </div>
-                </a>
-            </div>
-
-            <!-- Available Rooms -->
-            <div class="col-xl-3 col-lg-6 col-sm-12 mb-4">
-                <a href="{% url 'rooms_status' %}" class="text-decoration-none">
-                    <div class="rounded-lg p-4 shadow stat-card h-100 hover:bg-gray-100 transition duration-200">
-                        <h2 class="h6 font-weight-bold text-center mb-4">Available Rooms</h2>
-                        <div class="progress mx-auto" data-value="{{ available_percent|floatformat:'0' }}">
-                            <span class="progress-left">
-                                <span class="progress-bar border-success"></span>
-                            </span>
-                            <span class="progress-right">
-                                <span class="progress-bar border-success"></span>
-                            </span>
-                            <div class="progress-value w-100 h-100 rounded-circle d-flex align-items-center justify-content-center">
-                                <div class="h2 font-weight-bold">{{ available_rooms|default:0 }}</div>
-                            </div>
-                        </div>
-                        <div class="text-center mt-3">
-                            <small class="text-muted">{{ available_percent|floatformat:'0'|default:0 }}% of total</small>
-                        </div>
-                    </div>
-                </a>
-            </div>
-
-            <!-- Not Available -->
-            <div class="col-xl-3 col-lg-6 col-sm-12 mb-4">
-                <a href="{% url 'allbookings' %}?view_type=active&day={{ current_date|date:'Y-m-d' }}" class="text-decoration-none">
-                    <div class="rounded-lg p-4 shadow stat-card h-100 hover:bg-gray-100 transition duration-200">
-                        <h2 class="h6 font-weight-bold text-center mb-4">Not Available</h2>
-                        <div class="progress mx-auto" data-value="{{ unavailable_percent|floatformat:'0' }}">
-                            <span class="progress-left">
-                                <span class="progress-bar border-danger"></span>
-                            </span>
-                            <span class="progress-right">
-                                <span class="progress-bar border-danger"></span>
-                            </span>
-                            <div class="progress-value w-100 h-100 rounded-circle d-flex align-items-center justify-content-center">
-                                <div class="h2 font-weight-bold">{{ unavailable_rooms|default:0 }}</div>
-                            </div>
-                        </div>
-                        <div class="text-center mt-3">
-                            <small class="text-muted">{{ unavailable_percent|floatformat:'0'|default:0 }}% of total</small>
-                        </div>
-                    </div>
-                </a>
-            </div>
-
-            <!-- Total Bookings -->
-            <div class="col-xl-3 col-lg-6 col-sm-12 mb-4">
-                <a href="{% url 'allbookings' %}?view_type=all" class="text-decoration-none">
-                    <div class="rounded-lg p-4 shadow stat-card h-100 hover:bg-gray-100 transition duration-200">
-                        <h2 class="h6 font-weight-bold text-center mb-4">Total Bookings</h2>
-                        <div class="progress mx-auto" data-value="{{ total_bookings_percent|floatformat:'0' }}">
-                            <span class="progress-left">
-                                <span class="progress-bar border-warning"></span>
-                            </span>
-                            <span class="progress-right">
-                                <span class="progress-bar border-warning"></span>
-                            </span>
-                            <div class="progress-value w-100 h-100 rounded-circle d-flex align-items-center justify-content-center">
-                                <div class="h2 font-weight-bold">{{ total_bookings|default:0 }}</div>
-                            </div>
-                        </div>
-                        <div class="text-center mt-3">
-                            <small class="text-muted">Revenue: ₹{{ total_revenue|floatformat:2 }}</small>
-                        </div>
-                    </div>
-                </a>
-            </div>
-
-           {% endif %}
-
-            
-        </div>
+  <!-- Revenue Section -->
+  <div class="section-container">
+    <div class="section-header">
+      <h2 class="section-title">
+        <i class="fas fa-rupee-sign"></i>
+        Revenue Overview
+      </h2>
     </div>
-</section>
+    <div class="section-content">
+      {% if user.is_employee %}
+        <div class="revenue-cards">
+          <div class="revenue-card success">
+            <div class="revenue-label">Today's Revenue</div>
+            <div class="revenue-amount">₹{{ today_revenue|floatformat:2 }}</div>
+          </div>
+        </div>
+      {% else %}
+        <div class="revenue-cards">
+          <div class="revenue-card primary">
+            <div class="revenue-label">Total Revenue</div>
+            <div class="revenue-amount">₹{{ total_revenue|floatformat:2 }}</div>
+          </div>
+          <div class="revenue-card success">
+            <div class="revenue-label">Today's Revenue</div>
+            <div class="revenue-amount">₹{{ today_revenue|floatformat:2 }}</div>
+          </div>
+          <div class="revenue-card info">
+            <div class="revenue-label">This Month's Revenue</div>
+            <div class="revenue-amount">₹{{ this_month_revenue|floatformat:2 }}</div>
+          </div>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Statistics Section -->
+  <div class="section-container">
+    <div class="section-header">
+      <h2 class="section-title">
+        <i class="fas fa-chart-bar"></i>
+        Hotel Statistics
+      </h2>
+    </div>
+    <div class="section-content">
+      <div class="stats-grid">
+        {% if not user.is_employee %}
+        <a href="{% url 'allbookings' %}?view_type=all" class="stat-card">
+          <div class="stat-header">
+            <h3 class="stat-title">Total Rooms</h3>
+            <div class="stat-icon primary">
+              <i class="fas fa-bed"></i>
+            </div>
+          </div>
+          <div class="stat-value">{{ total_rooms|default:0 }}</div>
+          <p class="stat-description">All rooms in your hotel</p>
+        </a>
+        {% endif %}
+
+        <a href="{% url 'allbookings' %}?view_type=active&day={{ current_date|date:'Y-m-d' }}" class="stat-card">
+          <div class="stat-header">
+            <h3 class="stat-title">Active Bookings</h3>
+            <div class="stat-icon info">
+              <i class="fas fa-calendar-check"></i>
+            </div>
+          </div>
+          <div class="stat-value">{{ active_bookings|default:0 }}</div>
+          <p class="stat-description">Currently checked-in ({{ current_date|date:'M d, Y' }})</p>
+          <p class="stat-revenue">Revenue: ₹{{ active_bookings_revenue|floatformat:2 }}</p>
+        </a>
+
+        <a href="{% url 'allbookings' %}?booking_date={{ current_date|date:'Y-m-d' }}" class="stat-card">
+          <div class="stat-header">
+            <h3 class="stat-title">Bookings Today</h3>
+            <div class="stat-icon primary">
+              <i class="fas fa-plus-circle"></i>
+            </div>
+          </div>
+          <div class="stat-value">{{ bookings_today|default:0 }}</div>
+          <p class="stat-description">Made today ({{ current_date|date:'M d, Y' }})</p>
+          <p class="stat-revenue">Revenue: ₹{{ today_revenue|floatformat:2 }}</p>
+        </a>
+
+        <a href="{% url 'allbookings' %}?view_type=check_in&day={{ current_date|date:'Y-m-d' }}" class="stat-card">
+          <div class="stat-header">
+            <h3 class="stat-title">Check-ins Today</h3>
+            <div class="stat-icon success">
+              <i class="fas fa-sign-in-alt"></i>
+            </div>
+          </div>
+          <div class="stat-value">{{ check_ins_today|default:0 }}</div>
+          <p class="stat-description">Scheduled for today</p>
+          <p class="stat-revenue">Revenue: ₹{{ check_ins_today_revenue|floatformat:2 }}</p>
+        </a>
+
+        <a href="{% url 'allbookings' %}?view_type=check_out&day={{ current_date|date:'Y-m-d' }}" class="stat-card">
+          <div class="stat-header">
+            <h3 class="stat-title">Check-outs Today</h3>
+            <div class="stat-icon warning">
+              <i class="fas fa-sign-out-alt"></i>
+            </div>
+          </div>
+          <div class="stat-value">{{ check_outs_today|default:0 }}</div>
+          <p class="stat-description">Scheduled for today</p>
+          <p class="stat-revenue">Revenue: ₹{{ check_outs_today_revenue|floatformat:2 }}</p>
+        </a>
+
+        {% if not user.is_employee %}
+        <a href="{% url 'allbookings' %}?month={{ current_date|date:'F' }}" class="stat-card">
+          <div class="stat-header">
+            <h3 class="stat-title">Bookings This Month</h3>
+            <div class="stat-icon warning">
+              <i class="fas fa-calendar-alt"></i>
+            </div>
+          </div>
+          <div class="stat-value">{{ bookings_this_month|default:0 }}</div>
+          <p class="stat-description">Made in {{ current_date|date:'F Y' }}</p>
+          <p class="stat-revenue">Revenue: ₹{{ this_month_revenue|floatformat:2 }}</p>
+        </a>
+
+        <a href="{% url 'rooms_status' %}" class="stat-card">
+          <div class="stat-header">
+            <h3 class="stat-title">Available Rooms</h3>
+            <div class="stat-icon success">
+              <i class="fas fa-check-circle"></i>
+            </div>
+          </div>
+          <div class="stat-value">{{ available_rooms|default:0 }}</div>
+          <p class="stat-description">{{ available_percent|floatformat:'0'|default:0 }}% of total</p>
+        </a>
+
+        <a href="{% url 'allbookings' %}?view_type=active&day={{ current_date|date:'Y-m-d' }}" class="stat-card">
+          <div class="stat-header">
+            <h3 class="stat-title">Not Available</h3>
+            <div class="stat-icon danger">
+              <i class="fas fa-times-circle"></i>
+            </div>
+          </div>
+          <div class="stat-value">{{ unavailable_rooms|default:0 }}</div>
+          <p class="stat-description">{{ unavailable_percent|floatformat:'0'|default:0 }}% of total</p>
+        </a>
+
+        <a href="{% url 'allbookings' %}?view_type=all" class="stat-card">
+          <div class="stat-header">
+            <h3 class="stat-title">Total Bookings</h3>
+            <div class="stat-icon primary">
+              <i class="fas fa-list"></i>
+            </div>
+          </div>
+          <div class="stat-value">{{ total_bookings|default:0 }}</div>
+          <p class="stat-revenue">Revenue: ₹{{ total_revenue|floatformat:2 }}</p>
+        </a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Bookings Table Section -->
+  <div class="section-container">
+    <div class="section-header">
+      <h2 class="section-title">
+        <i class="fas fa-table"></i>
+        Recent Bookings
+      </h2>
+    </div>
+    <div class="section-content">
+      {% include 'maintainer/booking_table.html' %}
+    </div>
+  </div>
+
+  <!-- Hotel View Link -->
+  <div style="text-align: center; margin: 2rem 0;">
+    <a href="{% url 'viewhotel' %}" class="btn btn-info">
+      <i class="fas fa-eye"></i>
+      View Hotel Details
+    </a>
+  </div>
+
+  <!-- Filter Section -->
+  <div class="filter-section">
+    <h3 style="margin-bottom: 1.5rem; color: var(--text-primary);">
+      <i class="fas fa-filter"></i>
+      Filter Rooms
+    </h3>
+    <form method="get" class="filter-form">
+      <div class="form-group">
+        <label for="hotel_filter" class="form-label">Hotel Name</label>
+        <select class="form-select" id="hotel_filter" name="hotel_filter">
+          <option value="all">All Hotels</option>
+          {% for hotel in hotels %}
+          <option value="{{ hotel.name }}" {% if selected_hotel == hotel.name %}selected{% endif %}>
+            {{ hotel.name }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="status_filter" class="form-label">Room Status</label>
+        <select class="form-select" id="status_filter" name="status_filter">
+          <option value="all">All Statuses</option>
+          <option value="1" {% if selected_status == '1' %}selected{% endif %}>Available</option>
+          <option value="2" {% if selected_status == '2' %}selected{% endif %}>Not Available</option>
+        </select>
+      </div>
+      <button type="submit" class="btn btn-primary">
+        <i class="fas fa-search"></i>
+        Apply Filters
+      </button>
+    </form>
+  </div>
+
+  <!-- Action Buttons -->
+  {% if not user.is_employee %}
+  <div class="action-buttons">
+    <button class="btn btn-primary" data-toggle="modal" data-target="#newroom">
+      <i class="fas fa-plus"></i>
+      Add New Room
+    </button>
+    <button class="btn btn-primary" data-toggle="modal" data-target="#newlocation">
+      <i class="fas fa-map-marker-alt"></i>
+      Add New Location
+    </button>
+  </div>
+  {% endif %}
+
+  <!-- Rooms Table -->
+  <div class="table-container">
+    <div class="table-responsive">
+      <table class="table">
+        <thead>
+          <tr>
+            <th><i class="fas fa-hashtag"></i> Room Number</th>
+            <th><i class="fas fa-home"></i> Type</th>
+            <th><i class="fas fa-info-circle"></i> Status</th>
+            <th><i class="fas fa-rupee-sign"></i> Original Price</th>
+            <th><i class="fas fa-percent"></i> Discount</th>
+            <th><i class="fas fa-tag"></i> Discounted Price</th>
+            <th><i class="fas fa-piggy-bank"></i> Saved Money</th>
+            <th><i class="fas fa-users"></i> Capacity</th>
+            <th><i class="fas fa-expand-arrows-alt"></i> Size (sq.ft)</th>
+            <th><i class="fas fa-building"></i> Hotel Name</th>
+            <th><i class="fas fa-user-plus"></i> Extra Person Charges</th>
+            <th><i class="fas fa-clock"></i> Check-in Time</th>
+            <th><i class="fas fa-clock"></i> Check-out Time</th>
+            {% if not user.is_employee %}
+            <th colspan="2" class="text-center"><i class="fas fa-cogs"></i> Actions</th>
+            {% endif %}
+          </tr>
+        </thead>
+        <tbody>
+          {% if rooms %}
+          {% for each_room in rooms %}
+          <tr>
+            <td><strong>{{ each_room.room_number }}</strong></td>
+            <td>{{ each_room.get_room_type_display }}</td>
+            <td>
+              <span class="{% if each_room.get_status_display == 'not available' %}status-unavailable{% else %}status-available{% endif %}">
+                <i class="fas {% if each_room.get_status_display == 'not available' %}fa-times-circle{% else %}fa-check-circle{% endif %}"></i>
+                {{ each_room.get_status_display|title }}
+              </span>
+            </td>
+            <td>₹{{ each_room.price|floatformat:2 }}</td>
+            <td>
+              {% if each_room.discount > 0 %}
+                <span class="badge bg-warning">{{ each_room.discount }}%</span>
+              {% else %}
+                <span class="text-muted">0%</span>
+              {% endif %}
+            </td>
+            <td><strong>₹{{ each_room.discounted_price|floatformat:2 }}</strong></td>
+            <td>
+              {% if each_room.saved_money > 0 %}
+                <span class="text-success">₹{{ each_room.saved_money|floatformat:2 }}</span>
+              {% else %}
+                <span class="text-muted">₹0.00</span>
+              {% endif %}
+            </td>
+            <td>
+              <i class="fas fa-user"></i>
+              {{ each_room.capacity }}
+            </td>
+            <td>{{ each_room.size }}</td>
+            <td>
+              <span class="badge bg-primary">{{ each_room.hotel.name }}</span>
+            </td>
+            <td>₹{{ each_room.extra_person_charges|floatformat:2|default_if_none:"0.00" }}</td>
+            <td>
+              <i class="fas fa-clock text-success"></i>
+              {{ each_room.check_in_time|default_if_none:"N/A" }}
+            </td>
+            <td>
+              <i class="fas fa-clock text-danger"></i>
+              {{ each_room.check_out_time|default_if_none:"N/A" }}
+            </td>
+            {% if not user.is_employee %}
+            <td>
+              <a href="{% url 'editroom' each_room.id %}" class="btn btn-warning btn-sm">
+                <i class="fas fa-edit"></i> Edit
+              </a>
+            </td>
+            <td>
+              <a href="{% url 'viewroom' each_room.id %}" class="btn btn-info btn-sm">
+                <i class="fas fa-eye"></i> View
+              </a>
+            </td>
+            {% endif %}
+          </tr>
+          {% endfor %}
+          {% else %}
+          <tr>
+            <td colspan="15" class="text-center">
+              <div class="alert alert-warning">
+                <i class="fas fa-exclamation-triangle"></i>
+                No rooms found in your assigned hotels.
+                <a href="{% url 'staffpanel' %}" class="alert-link">
+                  Add your first room
+                </a>
+              </div>
+            </td>
+          </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+
+
+
+
+
+
+
 
 <!-- Bookings Table -->
-<section class="my-5">
-    <h2 class="text-center text-primary mb-4">Bookings</h2>
-    <div class="container-fluid px-4 py-5 border rounded-3 section-container">
-        {% include 'maintainer/booking_table.html' %}
-    </div>
-</section>
-
 <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.1.3/css/bootstrap.min.css" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 
@@ -502,547 +1034,8 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 
-<style>
-    :root {
-        --primary-color: #0d6efd;
-        --secondary-color: #6c757d;
-        --success-color: #198754;
-        --info-color: #0dcaf0;
-        --warning-color: #ffc107;
-        --danger-color: #dc3545;
-        --light-color: #f8f9fa;
-        --dark-color: #212529;
-    }
 
-    body {
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        background-color: #f5f8fa;
-        color: #495057;
-    }
-
-    /* Dashboard Main Styling */
-    .dashboard-header {
-        background-color: #fff;
-        box-shadow: 0 2px 15px rgba(0, 0, 0, 0.05);
-        padding: 1.5rem 0;
-        margin-bottom: 2rem;
-    }
-
-    h2.text-primary {
-        font-weight: 600;
-        position: relative;
-        display: inline-block;
-        padding-bottom: 10px;
-    }
-
-    h2.text-primary:after {
-        content: '';
-        display: block;
-        width: 70%;
-        height: 3px;
-        background: var(--primary-color);
-        position: absolute;
-        bottom: 0;
-        left: 15%;
-        border-radius: 3px;
-    }
-
-    .section-container {
-        background-color: #fff;
-        border: none !important;
-        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
-        transition: all 0.3s ease;
-    }
-
-    /* Improved Stat Cards */
-    .stat-card {
-        background-color: #fff;
-        border-radius: 12px;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-        transition: all 0.3s ease;
-        position: relative;
-        overflow: hidden;
-        height: 100%;
-    }
-
-    .stat-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
-    }
-
-    .stat-card h2.h6 {
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        color: var(--dark-color);
-    }
-
-    .stat-card small.text-muted {
-        font-size: 0.85rem;
-    }
-
-    /* Enhanced Circular Progress Bars */
-    .progress {
-        width: 100px;
-        height: 100px;
-        background: none;
-        position: relative;
-        transition: opacity 0.5s ease;
-    }
-
-    .progress::after {
-        content: "";
-        width: 100%;
-        height: 100%;
-        border-radius: 50%;
-        border: 6px solid #eee;
-        position: absolute;
-        top: 0;
-        left: 0;
-    }
-
-    .progress>span {
-        width: 50%;
-        height: 100%;
-        overflow: hidden;
-        position: absolute;
-        top: 0;
-        z-index: 1;
-    }
-
-    .progress .progress-left {
-        left: 0;
-    }
-
-    .progress .progress-right {
-        right: 0;
-    }
-
-    .progress .progress-bar {
-        width: 100%;
-        height: 100%;
-        background: none;
-        border-width: 6px;
-        border-style: solid;
-        position: absolute;
-        top: 0;
-        border-color: var(--primary-color);
-    }
-
-    .progress .progress-left .progress-bar {
-        left: 100%;
-        border-top-right-radius: 50px;
-        border-bottom-right-radius: 50px;
-        border-left: 0;
-        transform-origin: center left;
-        animation: loading-1 1.5s linear forwards;
-    }
-
-    .progress .progress-right .progress-bar {
-        left: -100%;
-        border-top-left-radius: 50px;
-        border-bottom-left-radius: 50px;
-        border-right: 0;
-        transform-origin: center right;
-        animation: loading-2 1.5s linear forwards;
-    }
-
-    /* Custom colors for different stats */
-    .progress-bar.border-primary {
-        border-color: var(--primary-color);
-    }
-
-    .progress-bar.border-success {
-        border-color: var(--success-color);
-    }
-
-    .progress-bar.border-info {
-        border-color: var(--info-color);
-    }
-
-    .progress-bar.border-warning {
-        border-color: var(--warning-color);
-    }
-
-    .progress-bar.border-danger {
-        border-color: var(--danger-color);
-    }
-
-    /* Center circle with value */
-    .progress .progress-value {
-        display: flex;
-        border-radius: 50%;
-        font-size: 24px;
-        text-align: center;
-        line-height: 20px;
-        align-items: center;
-        justify-content: center;
-        background-color: #fff;
-        box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.1);
-    }
-
-    .progress-value div {
-        margin-top: 0;
-        font-weight: 700;
-        color: #444;
-    }
-
-    /* Improved Form Controls */
-    .form-control, .btn {
-        border-radius: 8px;
-        font-size: 0.95rem;
-        padding: 0.6rem 1rem;
-    }
-
-    .form-control:focus {
-        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.15);
-    }
-
-    .btn-primary {
-        background-color: var(--primary-color);
-        border-color: var(--primary-color);
-        font-weight: 500;
-        padding: 0.6rem 1.5rem;
-        transition: all 0.3s ease;
-    }
-
-    .btn-primary:hover {
-        background-color: #0b5ed7;
-        border-color: #0a58ca;
-        transform: translateY(-2px);
-        box-shadow: 0 4px 8px rgba(13, 110, 253, 0.2);
-    }
-
-    label {
-        font-weight: 500;
-        margin-bottom: 0.5rem;
-        color: var(--dark-color);
-    }
-
-    /* Table Styling */
-    .booking-table {
-        border-radius: 8px;
-        overflow: hidden;
-    }
-
-    .table {
-        margin-bottom: 0;
-    }
-
-    .table th {
-        background-color: #f8f9fa;
-        font-weight: 600;
-        border-top: none;
-        text-transform: uppercase;
-        font-size: 0.85rem;
-        letter-spacing: 0.5px;
-        color:black;
-    }
-
-    .table td {
-        vertical-align: middle;
-        font-size: 0.95rem;
-    }
-
-    /* Animation for Progress Bar */
-    @keyframes loading-1 {
-        0% {
-            transform: rotate(0deg);
-        }
-        100% {
-            transform: rotate(180deg);
-        }
-    }
-
-    @keyframes loading-2 {
-        0% {
-            transform: rotate(0deg);
-        }
-        100% {
-            transform: rotate(180deg);
-        }
-    }
-
-    /* Status Colors */
-    .status-badge {
-        font-size: 0.8rem;
-        padding: 0.35rem 0.65rem;
-        border-radius: 50rem;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-    }
-
-    /* Tooltip Styling */
-    .stat-tooltip {
-        pointer-events: none;
-        animation: fadeIn 0.3s ease;
-    }
-
-    @keyframes fadeIn {
-        from { opacity: 0; }
-        to { opacity: 1; }
-    }
-
-    /* Responsive Adjustments */
-    @media (max-width: 1199px) {
-        .progress {
-            width: 90px;
-            height: 90px;
-        }
-        .progress-value div {
-            font-size: 20px;
-        }
-    }
-
-    @media (max-width: 992px) {
-        .progress {
-            width: 100px;
-            height: 100px;
-        }
-    }
-
-    @media (max-width: 768px) {
-        .section-container {
-            padding: 1.5rem !important;
-        }
-        h2.text-primary {
-            font-size: 1.5rem;
-        }
-        .table-responsive {
-            border: none;
-        }
-        .btn {
-            width: 100%;
-            margin-bottom: 1rem;
-        }
-    }
-
-    @media (max-width: 576px) {
-        .progress {
-            width: 80px;
-            height: 80px;
-        }
-        .progress::after, .progress .progress-bar {
-            border-width: 5px;
-        }
-        .progress-value div {
-            font-size: 18px;
-        }
-        .stat-card h2.h6 {
-            font-size: 0.9rem;
-        }
-        .dashboard-header {
-            padding: 1rem 0;
-        }
-    }
-
-    /* Modern Dashboard Navigation */
-    .dashboard-nav {
-        background-color: #fff;
-        border-radius: 12px;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-        margin-bottom: 2rem;
-    }
-
-    .dashboard-nav .nav-link {
-        padding: 1rem;
-        color: var(--secondary-color);
-        border-radius: 0;
-        transition: all 0.3s ease;
-        position: relative;
-        font-weight: 500;
-    }
-
-    .dashboard-nav .nav-link.active {
-        color: var(--primary-color);
-        background-color: transparent;
-    }
-
-    .dashboard-nav .nav-link.active::after {
-        content: '';
-        position: absolute;
-        bottom: 0;
-        left: 50%;
-        transform: translateX(-50%);
-        width: 40%;
-        height: 3px;
-        background-color: var(--primary-color);
-        border-radius: 3px;
-    }
-
-    .dashboard-nav .nav-link:hover {
-        color: var(--primary-color);
-        background-color: rgba(13, 110, 253, 0.05);
-    }
-
-    .dashboard-nav .nav-link i {
-        margin-right: 0.5rem;
-    }
-
-    /* Date Range Selector */
-    .date-range-selector {
-        display: flex;
-        align-items: center;
-        background-color: #fff;
-        border-radius: 8px;
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-        padding: 0.5rem 1rem;
-        margin-bottom: 1.5rem;
-    }
-
-    .date-range-selector label {
-        margin-bottom: 0;
-        margin-right: 1rem;
-        white-space: nowrap;
-    }
-
-    .date-range-selector .form-control {
-        border: none;
-        box-shadow: none;
-        padding: 0.4rem 0.5rem;
-    }
-
-    .date-range-selector .btn {
-        padding: 0.4rem 1rem;
-        margin-left: 1rem;
-    }
-
-    a {
-        text-decoration: none;
-    }
-</style>
-
-
-<div id="roomsdetails"aria-labelledby="l">
-
-    <center>
-        <a href="{% url 'viewhotel' %}" class="btn btn-info btn-sm" style= "padding-left:50%;">
-             <i class="fas fa-eye"></i>hotel
-        </a>
-    </center>
-</div>
-
-
-<!-- Filter Form -->
-<div class="card mb-4">
-    <div class="card-header">
-        <h5 class="mb-0">Filter Rooms</h5>
-    </div>
-    <div class="card-body">
-        <form method="get" class="row g-3">
-            <div class="col-md-5">
-                <label for="hotel_filter" class="form-label">Hotel Name</label>
-                <select class="form-select" id="hotel_filter" name="hotel_filter">
-                    <option value="all">All Hotels</option>
-                    {% for hotel in hotels %}
-                    <option value="{{ hotel.name }}" {% if selected_hotel == hotel.name %}selected{% endif %}>
-                        {{ hotel.name }}
-                    </option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div class="col-md-5">
-                <label for="status_filter" class="form-label">Room Status</label>
-                <select class="form-select" id="status_filter" name="status_filter">
-                    <option value="all">All Statuses</option>
-                    <option value="1" {% if selected_status == '1' %}selected{% endif %}>Available</option>
-                    <option value="2" {% if selected_status == '2' %}selected{% endif %}>Not Available</option>
-                </select>
-            </div>
-            <div class="col-md-2 d-flex align-items-end">
-                <button type="submit" class="btn btn-primary w-100">Apply Filters</button>
-            </div>
-        </form>
-    </div>
-</div>
-
-{%  if user.is_employee %}
-{% else %}
-<!-- Buttons for Adding New Room and Location -->
-<div class="d-flex justify-content-between my-3"id="table-responsive">
-    <Button class="btn btn-primary" data-toggle="modal" data-target="#newroom">Add New Room</Button>
-    <Button class="btn btn-primary" data-toggle="modal" data-target="#newlocation">Add New Location</Button>
-</div>
-{% endif%}
-<!-- Rest of your existing table code -->
-
-<div class="table-responsive" >
-    <table class="table table-striped table-bordered">
-        <thead class="">
-            <tr>
-                <th>Room Number</th>
-                <th>Type</th>
-                <th>Status</th>
-                <th>Original Price (₹)</th>
-                <th>Discount (%)</th>
-                <th>Discounted Price (₹)</th>
-                <th>Saved Money (₹)</th>
-                <th>Capacity</th>
-                <th>Size (sq.ft)</th>
-                <th>Hotel Name</th>
-                <th>Extra Person Charges (₹)</th>
-                <th>Check-in Time</th>
-                <th>Check-out Time</th>
-                {%  if user.is_employee %}
-                {% else %}
-                <th colspan="2" class="text-center">Room Actions</th>
-                {% endif %}
-            </tr>
-        </thead>
-        <tbody>
-            {% if rooms %}
-            {% for each_room in rooms %}
-            <tr>
-                <td>{{ each_room.room_number }}</td>
-                <td>{{ each_room.get_room_type_display }}</td>
-                <td style="color: {% if each_room.get_status_display == 'not available' %}red{% else %}green{% endif %};">
-                    {{ each_room.get_status_display }}
-                </td>
-                <td>₹{{ each_room.price|floatformat:2 }}</td>
-                <td>{{ each_room.discount }}%</td>
-                <td>₹{{ each_room.discounted_price|floatformat:2 }}</td>
-                <td>₹{{ each_room.saved_money|floatformat:2 }}</td>
-                <td>{{ each_room.capacity }}</td>
-                <td>{{ each_room.size }}</td>
-                <td>{{ each_room.hotel.name }}</td>
-                <td>₹{{ each_room.extra_person_charges|floatformat:2|default_if_none:"0.00" }}</td>
-                <td>{{ each_room.check_in_time|default_if_none:"N/A" }}</td>
-                <td>{{ each_room.check_out_time|default_if_none:"N/A" }}</td>
-                {%  if user.is_employee %}
-                {% else %}
-                <td>
-                    <a href="{% url 'editroom' each_room.id %}" class="btn btn-warning btn-sm">
-                        <i class="fas fa-edit"></i> Edit
-                    </a>
-                </td>
-                <td>
-                    <a href="{% url 'viewroom' each_room.id %}" class="btn btn-info btn-sm">
-                        <i class="fas fa-eye"></i> View
-                    </a>
-                </td>
-                {% endif %}
-            </tr>
-            {% endfor %}
-            {% else %}
-            <tr>
-                <td colspan="15" class="text-center">
-                    <div class="alert alert-warning">
-                        <i class="fas fa-exclamation-triangle me-2"></i>
-                        No rooms found in your assigned hotels.
-                        <a href="{% url 'staffpanel' %}" class="alert-link">
-                            Add your first room
-                        </a>
-                    </div>
-                </td>
-            </tr>
-            {% endif %}
-        </tbody>
-    </table>
-</div>
-
-
-
+<!-- end Bookings Table -->
 
 
     <script>
@@ -1976,7 +1969,9 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 <style>
-    
+    a{
+        text-decoration:none;
+    }
     .form-check {
     position: relative;
     display: block;
@@ -2013,7 +2008,7 @@ document.addEventListener('DOMContentLoaded', function() {
             <div class="modal-header bg-gradient-primary text-white">
                 <h2 class="modal-title fs-5" id="newlocationLabel">
                     <i class="fas fa-map-marker-alt me-2"></i>
-                    Add New Location
+                    Add New Hotel
                 </h2>
                 <button type="button" class="btn-close btn-close-white" data-dismiss="modal"></button>
             </div>
@@ -2522,67 +2517,6 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 
-<!--Modal for Add New Location starts from here-->
-
-<!-- The Modal -->
-{% comment %} <div class="modal" id="newlocation">
-    <div class="modal-dialog">
-        <div class="modal-content">
-
-            <!-- Modal Header -->
-            <div class="modal-header">
-                <h4 class="modal-title">Add New Location</h4>
-                <button type="button" class="close" data-dismiss="modal">&times;</button>
-            </div>
-
-            <!-- Modal body -->
-            <div class="modal-body">
-                <div class="container">
-
-                    <div class="row">
-                        <div class="col mx-auto">
-
-                            <form action="{%url 'addnewlocation'%}" method="POST">
-                                {% csrf_token %}
-
-                                <div class="form-group">
-                                    <label for="hotel_name">Hotel Name:</label>
-                                    <input type="text" class="form-control " id="new_hotel_name" name="new_hotel_name">
-                                </div>
-
-                                <div class="form-group">
-                                    <label for="Owner">Owner:</label>
-                                    <input type="text" class="form-control " id="new_owner" name="new_owner">
-                                </div>
-                                <div class="form-group">
-                                    <label for="city">City:</label>
-                                    <input type="text" class="form-control " id="new_city" name="new_city">
-                                </div>
-                                <div class="form-group">
-                                    <label for="">State:</label>
-                                    <input type="text" class="form-control " id="new_state" name="new_state">
-                                </div>
-                                <div class="form-group">
-                                    <label for="country">Country:</label>
-                                    <input type="text" class="form-control " id="new_country" name="new_country">
-                                </div>
-
-
-                                <button type="submit" class="btn btn-primary">Add Location</button>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-
-
-        </div>
-    </div>
-</div> {% endcomment %}
-<!--Modal for Add New location Ends here-->
-
-<!--Modal for Add New Room starts from here-->
 
 <!-- The Modal -->
 <div class="modal" id="newroom">
@@ -2657,4 +2591,193 @@ document.addEventListener('DOMContentLoaded', function() {
 </div>
 
 
-{% endblock  %} 
+
+
+
+<script>
+// Initialize progress circles animation on page load
+document.addEventListener('DOMContentLoaded', function() {
+  // Animate stat cards on scroll
+  const observerOptions = {
+    threshold: 0.1,
+    rootMargin: '0px 0px -50px 0px'
+  };
+
+  const observer = new IntersectionObserver(function(entries) {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.style.opacity = '1';
+        entry.target.style.transform = 'translateY(0)';
+      }
+    });
+  }, observerOptions);
+
+  // Observe all stat cards
+  document.querySelectorAll('.stat-card').forEach(card => {
+    card.style.opacity = '0';
+    card.style.transform = 'translateY(20px)';
+    card.style.transition = 'all 0.6s ease-out';
+    observer.observe(card);
+  });
+
+  // Add loading animation to revenue cards
+  document.querySelectorAll('.revenue-card').forEach((card, index) => {
+    card.style.opacity = '0';
+    card.style.transform = 'translateY(30px)';
+    setTimeout(() => {
+      card.style.transition = 'all 0.6s ease-out';
+      card.style.opacity = '1';
+      card.style.transform = 'translateY(0)';
+    }, index * 200);
+  });
+
+  // Add hover effects to table rows
+  document.querySelectorAll('.table tbody tr').forEach(row => {
+    row.addEventListener('mouseenter', function() {
+      this.style.transform = 'scale(1.01)';
+      this.style.transition = 'transform 0.2s ease';
+    });
+    
+    row.addEventListener('mouseleave', function() {
+      this.style.transform = 'scale(1)';
+    });
+  });
+
+  // Add click ripple effect to buttons
+  document.querySelectorAll('.btn').forEach(button => {
+    button.addEventListener('click', function(e) {
+      const ripple = document.createElement('span');
+      const rect = this.getBoundingClientRect();
+      const size = Math.max(rect.width, rect.height);
+      const x = e.clientX - rect.left - size / 2;
+      const y = e.clientY - rect.top - size / 2;
+      
+      ripple.style.cssText = `
+        position: absolute;
+        width: ${size}px;
+        height: ${size}px;
+        left: ${x}px;
+        top: ${y}px;
+        background: rgba(255, 255, 255, 0.5);
+        border-radius: 50%;
+        transform: scale(0);
+        animation: ripple 0.6s linear;
+        pointer-events: none;
+      `;
+      
+      this.style.position = 'relative';
+      this.style.overflow = 'hidden';
+      this.appendChild(ripple);
+      
+      setTimeout(() => {
+        ripple.remove();
+      }, 600);
+    });
+  });
+
+  // Add smooth scrolling for anchor links
+  document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+    anchor.addEventListener('click', function (e) {
+      e.preventDefault();
+      const target = document.querySelector(this.getAttribute('href'));
+      if (target) {
+        target.scrollIntoView({
+          behavior: 'smooth',
+          block: 'start'
+        });
+      }
+    });
+  });
+
+  // Add dynamic counter animation for stat values
+  function animateCounters() {
+    document.querySelectorAll('.stat-value, .revenue-amount').forEach(counter => {
+      const target = parseInt(counter.textContent.replace(/[₹,]/g, ''));
+      if (isNaN(target)) return;
+      
+      let current = 0;
+      const increment = target / 50;
+      const timer = setInterval(() => {
+        current += increment;
+        if (current >= target) {
+          current = target;
+          clearInterval(timer);
+        }
+        
+        if (counter.classList.contains('revenue-amount')) {
+          counter.textContent = '₹' + Math.floor(current).toLocaleString('en-IN');
+        } else {
+          counter.textContent = Math.floor(current).toLocaleString();
+        }
+      }, 40);
+    });
+  }
+
+  // Trigger counter animation when stats section is visible
+  const statsSection = document.querySelector('.stats-grid');
+  if (statsSection) {
+    const statsObserver = new IntersectionObserver(function(entries) {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          animateCounters();
+          statsObserver.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.3 });
+    
+    statsObserver.observe(statsSection);
+  }
+});
+
+// Add CSS animations
+const style = document.createElement('style');
+style.textContent = `
+  @keyframes ripple {
+    to {
+      transform: scale(4);
+      opacity: 0;
+    }
+  }
+  
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(30px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  .badge {
+    padding: 0.375rem 0.75rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    border-radius: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  
+  .bg-warning {
+    background-color: var(--warning-color) !important;
+    color: white;
+  }
+  
+  .bg-primary {
+    background-color: var(--primary-color) !important;
+    color: white;
+  }
+  
+  .text-success {
+    color: var(--success-color) !important;
+  }
+  
+  .text-muted {
+    color: var(--text-secondary) !important;
+  }
+`;
+document.head.appendChild(style);
+</script>
+
+{% endblock %}

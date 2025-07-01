@@ -2,6 +2,7 @@
 {% load static %}
 
 {% block content %}
+<link href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css" rel="stylesheet">
 <style>
     a { text-decoration: none; }
     :root {
@@ -283,7 +284,7 @@
                                             {% endif %}
                                         {% endif %}
                                     </td>
-                                    <td>
+                                     <td>
                                         <div class="btn-group" role="group">
                                             <button type="button" class="btn btn-sm btn-outline-primary view-room" 
                                                 data-room-id="{{ room.id }}"
@@ -313,11 +314,11 @@
                                                 data-nights="{{ room.current_booking.nights }}"
                                                 {% endif %}
                                             >
-                                                <i class="fas fa-eye"></i> View
+                                                <i class="fas fa-eye"></i> View Room Detail
                                             </button>
                                             {% if room.display_status == '1' %}
                                                 {% if not room.is_past_date %}
-                                                    <button type="button" class="btn btn-sm btn-success book-now" 
+                                                    {% comment %} <button type="button" class="btn btn-sm btn-success book-now" 
                                                         data-room-id="{{ room.id }}"
                                                         data-room-number="{{ room.room_number }}"
                                                         data-room-type="{{ room.get_room_type_display }}"
@@ -332,10 +333,9 @@
                                                         data-extra-person-charge="{{ room.extra_person_charges|default:'0.0' }}"
                                                         data-total-capacity="{{ room.total_capacity }}">
                                                         <i class="fas fa-calendar-plus"></i> Book Now
-                                                    </button>
-                                                    <button type="button" class="btn btn-sm btn-outline-danger mark-unavailable" data-room-id="{{ room.id }}">
-                                                        <i class="fas fa-times"></i> Unavailable
-                                                    </button>
+                                                    </button> {% endcomment %}
+                                                    <button type="button" class="btn btn-sm btn-success "><i class="fas fa-calendar-plus"></i> Available booking</button>
+                                                   
                                                 {% else %}
                                                     <button class="btn btn-sm btn-secondary" disabled>
                                                         <i class="fas fa-clock"></i> Past Date
@@ -345,6 +345,10 @@
                                                 <button type="button" class="btn btn-sm btn-outline-success mark-available" data-room-id="{{ room.id }}">
                                                     <i class="fas fa-check"></i> Available
                                                 </button>
+                                            {% elif room.display_status == '3' %}
+                                                <a href="{% url 'view_customer_info' reservation_id=room.current_booking.id %}" class="btn btn-sm btn-info">
+                                                    <i class="fas fa-user"></i> View All Info
+                                                </a>
                                             {% endif %}
                                         </div>
                                     </td>

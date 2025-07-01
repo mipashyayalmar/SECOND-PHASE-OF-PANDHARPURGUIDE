@@ -1,1069 +1,1267 @@
-{% extends 'rooms/room_basic.html' %}
-{% load static %}
 
-{% block content %}
-
-<style>
-    a{
-        text-decoration: none;
-    }
-    :root {
-        --available: #10B981;
-        --booked: #F59E0B;
-        --unavailable: #EF4444;
-        --primary: #1E3A8A;
-    }
-
-    .room-container {
-        width: 100%;
-        margin: 0 auto;
-        padding: 20px;
-    }
     
-    .room-card {
-        background-color: white;
-        border-radius: 10px;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        padding: 20px;
-        margin-bottom: 20px;
-    }
-    
-    .room-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 20px;
-    }
-    
-    .room-title {
-        font-size: 1.5rem;
-        font-weight: bold;
-        color: #333;
-    }
-    
-    .room-date {
-        color: #666;
-        font-size: 0.9rem;
-    }
-    
-    .filter-section {
-        background-color: #f8f9fa;
-        border-radius: 8px;
-        padding: 15px;
-        margin-bottom: 20px;
-    }
-    
-    .quick-filters {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 10px;
-        margin-bottom: 15px;
-    }
-    
-    .quick-filter-btn {
-        padding: 5px 15px;
-        border-radius: 5px;
-        background-color: white;
-        border: 1px solid #dee2e6;
-        color: #495057;
-        text-decoration: none;
-        transition: all 0.2s;
-    }
-    
-    .quick-filter-btn:hover {
-        background-color: #e9ecef;
-    }
-    
-    .quick-filter-btn.active {
-        background-color: var(--primary);
-        color: white;
-        border-color: var(--primary);
-    }
-    
-    .filter-form {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-        gap: 15px;
-    }
-    
-    .form-group {
-        margin-bottom: 0;
-    }
-    
-    .form-control {
-        width: 100%;
-    }
-    
-    .filter-actions {
-        display: flex;
-        gap: 10px;
-        align-items: flex-end;
-    }
-    
-    .fc-event-available {
-        background-color: var(--available);
-        border-color: var(--available);
-        color: white;
-    }
-    
-    .fc-event-booked {
-        background-color: var(--booked);
-        border-color: var(--booked);
-        color: white;
-    }
-    
-    .fc-event-unavailable {
-        background-color: var(--unavailable);
-        border-color: var(--unavailable);
-        color: white;
-    }
-
-    #roomCalendar {
-        max-width: 100%;
-        margin: 0 auto;
-        transition: all 0.3s ease;
-    }
-
-    .calendar-fullscreen {
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        z-index: 1000;
-        background: white;
-        padding: 1rem;
-    }
-
-    .room-popup {
-        position: fixed;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        background: white;
-        padding: 20px;
-        border-radius: 8px;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.2);
-        z-index: 1001;
-        max-width: 90%;
-        width: 400px;
-    }
-
-    .room-popup .close-btn {
-        position: absolute;
-        top: 10px;
-        right: 10px;
-        cursor: pointer;
-        font-size: 1.5rem;
-        color: #666;
-    }
-
-    .booking-modal .modal-dialog {
-        max-width: 600px;
-    }
-
-    .price-breakdown {
-        background-color: #f8f9fa;
-        padding: 10px;
-        border-radius: 4px;
-    }
-
-    .price-details {
-        font-size: 0.85rem;
-        color: #6c757d;
-    }
-
-    .price-details strong {
-        color: #495057;
-    }
-
-    @media (max-width: 768px) {
-        .filter-form {
-            grid-template-columns: 1fr;
-        }
-        
-        .filter-actions {
-            grid-column: 1;
-        }
-        
-        .fc .fc-toolbar {
-            flex-direction: column;
-            align-items: center;
-        }
-        
-        .fc .fc-toolbar-title {
-            margin: 0.5rem 0;
-        }
-        
-        .fc .fc-button-group {
-            margin: 0.5rem 0;
-        }
-
-        .room-popup, .booking-modal .modal-dialog {
-            width: 90%;
-            max-width: 320px;
-        }
-    }
-
-    @media (max-width: 480px) {
-        .room-header {
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 10px;
-        }
-        
-        .quick-filters {
-            flex-direction: column;
-        }
-        
-        .fc-daygrid-main {
-            display: none;
-        }
-        
-        .fc-list-main {
-            display: block;
-        }
-
-        .room-popup, .booking-modal .modal-dialog {
-            width: 95%;
-            padding: 15px;
-        }
-    }
-
-    /* Status badges */
-    .badge-available {
-        background-color: var(--available);
-    }
-    
-    .badge-booked {
-        background-color: var(--booked);
-    }
-    
-    .badge-unavailable {
-        background-color: var(--unavailable);
-    }
-    
-    .badge-past {
-        background-color: #6B7280;
-    }
-
-    /* Table row colors */
-    .table-available {
-        background-color: rgba(16, 185, 129, 0.1);
-    }
-    
-    .table-booked {
-        background-color: rgba(245, 158, 11, 0.1);
-    }
-    
-    .table-unavailable {
-        background-color: rgba(239, 68, 68, 0.1);
-    }
-    
-    .table-past {
-        background-color: rgba(107, 114, 128, 0.1);
-    }
-</style>
-
-<div class="room-container">
-    <div class="room-card">
-        <div class="room-header">
-            <h1 class="room-title">
-                <i class="fas fa-door-open mr-2" style="color: var(--primary);"></i>Rooms Status Dashboard
-            </h1>
-            <div class="room-date">
-                <i class="fas fa-clock mr-1"></i> Current Date: {{ current_date|date:"F j, Y" }}
+<!-- Add New Room Modal -->
+<div class="modal fade" id="newroom" tabindex="-1" aria-labelledby="newroomLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content border-0 shadow-lg">
+            <!-- Modal Header -->
+            <div class="modal-header bg-gradient-primary text-white">
+                <h2 class="modal-title fs-5" id="newroomLabel">
+                    <i class="fas fa-door-open me-2"></i>
+                    Add New Room
+                </h2>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close" data-toggle="modal" data-target="#newroom"></button>
             </div>
-        </div>
-
-        <!-- Messages -->
-        {% if messages %}
-        <div class="mb-3">
-            {% for message in messages %}
-            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
-                {{ message }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>
-            {% endfor %}
-        </div>
-        {% endif %}
-
-        <!-- Filters Section -->
-        <div class="filter-section">
-            <form method="get" id="filter-form">
-                <div class="row">
-                    <div class="col-md-3">
-                        <div class="form-group">
-                            <label for="hotel-filter">Hotel</label>
-                            <select class="form-control" id="hotel-filter" name="hotel_filter">
-                                <option value="all">All Hotels</option>
-                                {% for hotel in hotels %}
-                                <option value="{{ hotel.name }}" {% if selected_hotel == hotel.name %}selected{% endif %}>{{ hotel.name }}</option>
+            
+            <!-- Modal Body -->
+            <div class="modal-body p-4">
+                <form action="{% url 'maintainer_add_new_room' %}" method="POST" enctype="multipart/form-data" id="roomForm" class="needs-validation" novalidate>
+                    {% csrf_token %}
+                    
+                    <!-- Progress Steps -->
+                    <div class="stepper mb-4">
+                        <div class="stepper-progress">
+                            <div class="stepper-progress-bar" id="formProgress"></div>
+                        </div>
+                        <div class="stepper-steps">
+                            <div class="stepper-step active" data-step="1">
+                                <div class="stepper-circle">1</div>
+                                <div class="stepper-label">Basic Info</div>
+                            </div>
+                            <div class="stepper-step" data-step="2">
+                                <div class="stepper-circle">2</div>
+                                <div class="stepper-label">Pricing</div>
+                            </div>
+                            <div class="stepper-step" data-step="3">
+                                <div class="stepper-circle">3</div>
+                                <div class="stepper-label">Features</div>
+                            </div>
+                            <div class="stepper-step" data-step="4">
+                                <div class="stepper-circle">4</div>
+                                <div class="stepper-label">Images</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Step 1: Basic Information -->
+                    <div class="form-step active" id="step1">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="room_number" class="form-label">Room Number *</label>
+                                <div class="input-group has-validation">
+                                    <span class="input-group-text bg-light"><i class="fas fa-hashtag text-primary"></i></span>
+                                    <input type="text" class="form-control" id="room_number" name="room_number" required>
+                                    <div class="invalid-feedback">Please enter room number.</div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <label for="roomtype" class="form-label">Room Type *</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light"><i class="fas fa-bed text-primary"></i></span>
+                                    <select class="form-select" name="roomtype" id="roomtype" required>
+                                        <option value="" selected disabled>Select type</option>
+                                        <option value="1">Premium</option>
+                                        <option value="2">Deluxe</option>
+                                        <option value="3">Basic</option>
+                                    </select>
+                                    <div class="invalid-feedback">Please select room type.</div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-4">
+                                <label for="capacity" class="form-label">Capacity *</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light"><i class="fas fa-users text-primary"></i></span>
+                                    <input type="number" class="form-control" id="capacity" name="capacity" min="1" required>
+                                    <div class="invalid-feedback">Minimum capacity is 1.</div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-4">
+                                <label for="size" class="form-label">Size (sq ft) *</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light"><i class="fas fa-ruler-combined text-primary"></i></span>
+                                    <input type="number" class="form-control" id="size" name="size" min="50" required>
+                                    <div class="invalid-feedback">Minimum size is 50 sq ft.</div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-4">
+                                <label for="hotel" class="form-label">Hotel *</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light"><i class="fas fa-hotel text-primary"></i></span>
+                                    <select class="form-select" name="hotel" id="hotel" required>
+                                        <option value="" selected disabled>Select hotel</option>
+                                        {% if user.maintainer_profile %}
+                                            {# For maintainers - show all hotels with detailed info #}
+                                            {% for hotel in all_hotels %}
+                                            <option value="{{ hotel.id }}">{{ hotel.name }} ({{ hotel.location }}, {{ hotel.state }})</option>
+                                            {% empty %}
+                                            <option value="" disabled>No hotels available. Create one first.</option>
+                                            {% endfor %}
+                                        {% else %}
+                                            {# Fallback for other users #}
+                                            {% for hotel_name, hotel_id in location %}
+                                            <option value="{{ hotel_id }}">{{ hotel_name }}</option>
+                                            {% empty %}
+                                            <option value="" disabled>No hotels available</option>
+                                            {% endfor %}
+                                        {% endif %}
+                                    </select>
+                                    <div class="invalid-feedback">Please select hotel.</div>
+                                </div>
+                                {% if user.maintainer_profile and not all_hotels.exists %}
+                                <div class="alert alert-info mt-2 small">
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    No hotels found. Please add a hotel location first.
+                                </div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <label for="status" class="form-label">Status *</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light"><i class="fas fa-toggle-on text-primary"></i></span>
+                                    <select class="form-select" name="status" id="status" required>
+                                        <option value="" selected disabled>Select status</option>
+                                        <option value="1">Available</option>
+                                        <option value="2">Not Available</option>
+                                    </select>
+                                    <div class="invalid-feedback">Please select status.</div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <label for="languages_spoken" class="form-label">Languages Spoken</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light"><i class="fas fa-language text-primary"></i></span>
+                                    <select class="form-select" id="languages_spoken" name="languages_spoken" multiple>
+                                        <option value="marathi">Marathi</option>
+                                        <option value="english">English</option>
+                                        <option value="hindi">Hindi</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div class="col-12">
+                                <label for="heading" class="form-label">Room Heading</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light"><i class="fas fa-heading text-primary"></i></span>
+                                    <input type="text" class="form-control" id="heading" name="heading" placeholder="E.g., Luxury Suite with Ocean View">
+                                </div>
+                            </div>
+                            
+                            <div class="col-12">
+                                <label for="description" class="form-label">Description</label>
+                                <textarea class="form-control" id="description" name="description" rows="3" placeholder="Describe the room features and amenities..."></textarea>
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex justify-content-end mt-4">
+                            <button type="button" class="btn btn-primary next-step">
+                                Next <i class="fas fa-arrow-right ms-2"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Step 2: Pricing & Timing -->
+                    <div class="form-step" id="step2">
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label for="price" class="form-label">Base Price (₹) *</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light">₹</span>
+                                    <input type="number" step="0.01" class="form-control" id="price" name="price" min="100" required>
+                                    <div class="invalid-feedback">Minimum price is ₹100.</div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-4">
+                                <label for="discount" class="form-label">Discount (%)</label>
+                                <div class="input-group">
+                                    <input type="number" step="0.01" class="form-control" id="discount" name="discount" min="0" max="100" value="0">
+                                    <span class="input-group-text bg-light">%</span>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-4">
+                                <label for="extra_person_charges" class="form-label">Extra Person Charge (₹)</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light">₹</span>
+                                    <input type="number" step="0.01" class="form-control" id="extra_person_charges" name="extra_person_charges" min="0" value="0">
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <label for="check_in_time" class="form-label">Check-In Time</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light"><i class="fas fa-clock text-primary"></i></span>
+                                    <input type="time" class="form-control" id="check_in_time" name="check_in_time" value="14:00">
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <label for="check_out_time" class="form-label">Check-Out Time</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light"><i class="fas fa-clock text-primary"></i></span>
+                                    <input type="time" class="form-control" id="check_out_time" name="check_out_time" value="12:00">
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <label for="food_facility" class="form-label">Food Facility</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light"><i class="fas fa-utensils text-primary"></i></span>
+                                    <input type="text" class="form-control" id="food_facility" name="food_facility" placeholder="Describe food options">
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <label for="parking" class="form-label">Parking</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light"><i class="fas fa-parking text-primary"></i></span>
+                                    <input type="text" class="form-control" id="parking" name="parking" placeholder="Parking details">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between mt-4">
+                            <button type="button" class="btn btn-outline-secondary prev-step">
+                                <i class="fas fa-arrow-left me-2"></i> Previous
+                            </button>
+                            <button type="button" class="btn btn-primary next-step">
+                                Next <i class="fas fa-arrow-right ms-2"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Step 3: Features & Amenities -->
+                    <div class="form-step" id="step3">
+                        <div class="row">
+                            <div class="col-12">
+                                <h5 class="mb-3"><i class="fas fa-concierge-bell me-2 text-primary"></i>Room Features</h5>
+                                <div class="feature-grid">
+                                    <div class="feature-item">
+                                        <input type="checkbox" class="feature-checkbox" id="wifi" name="wifi">
+                                        <label for="wifi" class="feature-label">
+                                            <i class="fas fa-wifi feature-icon"></i>
+                                            <span>Wi-Fi</span>
+                                        </label>
+                                    </div>
+                                    
+                                    <div class="feature-item">
+                                        <input type="checkbox" class="feature-checkbox" id="ac" name="ac">
+                                        <label for="ac" class="feature-label">
+                                            <i class="fas fa-snowflake feature-icon"></i>
+                                            <span>Air Conditioning</span>
+                                        </label>
+                                    </div>
+                                    
+                                    <div class="feature-item">
+                                        <input type="checkbox" class="feature-checkbox" id="fan" name="fan">
+                                        <label for="fan" class="feature-label">
+                                            <i class="fas fa-fan feature-icon"></i>
+                                            <span>Fan</span>
+                                        </label>
+                                    </div>
+                                    
+                                    <div class="feature-item">
+                                        <input type="checkbox" class="feature-checkbox" id="heater" name="heater">
+                                        <label for="heater" class="feature-label">
+                                            <i class="fas fa-fire feature-icon"></i>
+                                            <span>Heater</span>
+                                        </label>
+                                    </div>
+                                    
+                                    <div class="feature-item">
+                                        <input type="checkbox" class="feature-checkbox" id="comfortable_bed" name="comfortable_bed">
+                                        <label for="comfortable_bed" class="feature-label">
+                                            <i class="fas fa-bed feature-icon"></i>
+                                            <span>Comfortable Bed</span>
+                                        </label>
+                                    </div>
+                                    
+                                    <div class="feature-item">
+                                        <input type="checkbox" class="feature-checkbox" id="private_bathroom" name="private_bathroom">
+                                        <label for="private_bathroom" class="feature-label">
+                                            <i class="fas fa-bath feature-icon"></i>
+                                            <span>Private Bathroom</span>
+                                        </label>
+                                    </div>
+                                    
+                                    <div class="feature-item">
+                                        <input type="checkbox" class="feature-checkbox" id="cleanliness" name="cleanliness">
+                                        <label for="cleanliness" class="feature-label">
+                                            <i class="fas fa-broom feature-icon"></i>
+                                            <span>Daily Cleaning</span>
+                                        </label>
+                                    </div>
+                                    
+                                    <div class="feature-item">
+                                        <input type="checkbox" class="feature-checkbox" id="safety_security" name="safety_security">
+                                        <label for="safety_security" class="feature-label">
+                                            <i class="fas fa-shield-alt feature-icon"></i>
+                                            <span>Safety & Security</span>
+                                        </label>
+                                    </div>
+                                    
+                                    <div class="feature-item">
+                                        <input type="checkbox" class="feature-checkbox" id="entertainment_options" name="entertainment_options">
+                                        <label for="entertainment_options" class="feature-label">
+                                            <i class="fas fa-tv feature-icon"></i>
+                                            <span>Entertainment</span>
+                                        </label>
+                                    </div>
+                                    
+                                    <div class="feature-item">
+                                        <input type="checkbox" class="feature-checkbox" id="laundry_facility" name="laundry_facility">
+                                        <label for="laundry_facility" class="feature-label">
+                                            <i class="fas fa-tshirt feature-icon"></i>
+                                            <span>Laundry</span>
+                                        </label>
+                                    </div>
+                                    
+                                    <div class="feature-item">
+                                        <input type="checkbox" class="feature-checkbox" id="outdoor_balcony" name="outdoor_balcony">
+                                        <label for="outdoor_balcony" class="feature-label">
+                                            <i class="fas fa-door-open feature-icon"></i>
+                                            <span>Balcony</span>
+                                        </label>
+                                    </div>
+                                    
+                                    <div class="feature-item">
+                                        <input type="checkbox" class="feature-checkbox" id="concierge_service" name="concierge_service">
+                                        <label for="concierge_service" class="feature-label">
+                                            <i class="fas fa-concierge-bell feature-icon"></i>
+                                            <span>Concierge</span>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between mt-4">
+                            <button type="button" class="btn btn-outline-secondary prev-step">
+                                <i class="fas fa-arrow-left me-2"></i> Previous
+                            </button>
+                            <button type="button" class="btn btn-primary next-step">
+                                Next <i class="fas fa-arrow-right ms-2"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Step 4: Images -->
+                    <div class="form-step" id="step4">
+                        <div class="row">
+                            <div class="col-12 mb-4">
+                                <div class="alert alert-primary">
+                                    <i class="fas fa-info-circle me-2"></i>
+                                    Upload high-quality images (max 15 images, 5MB each) to showcase your room
+                                </div>
+                            </div>
+                            
+                            <div class="image-upload-grid">
+                                {% for i in "123456789"|make_list %}
+                                <div class="image-upload-card">
+                                    <div class="image-preview-container" id="preview-image{{ i }}">
+                                        <div class="image-placeholder">
+                                            <i class="fas fa-camera fa-2x"></i>
+                                            <span>Image {{ i }}</span>
+                                        </div>
+                                    </div>
+                                    <div class="image-upload-controls">
+                                        <label class="upload-btn btn btn-sm btn-primary">
+                                            <i class="fas fa-upload me-1"></i> Upload
+                                            <input type="file" class="d-none" 
+                                                   id="image{{ i }}" name="image{{ i }}" 
+                                                   accept="image/*" 
+                                                   onchange="previewImage(this, 'preview-image{{ i }}')">
+                                        </label>
+                                        <button type="button" class="btn btn-sm btn-outline-danger clear-btn" 
+                                                onclick="clearImage('image{{ i }}', 'preview-image{{ i }}')">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </div>
+                                    <div class="image-options mt-2">
+                                        <select class="form-select form-select-sm" name="image_type{{ i }}">
+                                            <option value="room">Room View</option>
+                                            <option value="bathroom">Bathroom</option>
+                                            <option value="view">Outside View</option>
+                                            <option value="amenity">Amenity</option>
+                                        </select>
+                                    </div>
+                                </div>
                                 {% endfor %}
-                            </select>
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between mt-4">
+                            <button type="button" class="btn btn-outline-secondary prev-step">
+                                <i class="fas fa-arrow-left me-2"></i> Previous
+                            </button>
+                            <button type="submit" class="btn btn-success">
+                                <i class="fas fa-save me-2"></i> Save Room
+                            </button>
                         </div>
                     </div>
-                    <div class="col-md-3">
-                        <div class="form-group">
-                            <label for="date-filter">Date</label>
-                            <input type="date" class="form-control" id="date-filter" name="date_filter" value="{{ selected_date|date:'Y-m-d' }}">
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add New Location Modal -->
+<div class="modal fade" id="newlocation" tabindex="-1" aria-labelledby="newlocationLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content border-0 shadow-lg">
+            <!-- Modal Header -->
+            <div class="modal-header bg-gradient-primary text-white">
+                <h2 class="modal-title fs-5" id="newlocationLabel">
+                    <i class="fas fa-map-marker-alt me-2"></i>
+                    Add New Location
+                </h2>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"class="btn btn-primary" data-toggle="modal" data-target="#newlocation"></button>
+            </div>
+            
+            <!-- Modal Body -->
+            <div class="modal-body p-4">
+                <form action="{% url 'maintainer_add_new_location' %}" method="POST" id="locationForm" class="needs-validation" novalidate>
+                    {% csrf_token %}
+                    
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label for="hotel_name" class="form-label">Hotel Name*</label>
+                            <div class="input-group has-validation">
+                                <span class="input-group-text bg-light"><i class="fas fa-hotel text-primary"></i></span>
+                                <input type="text" class="form-control" id="hotel_name" name="hotel_name" required>
+                                <div class="invalid-feedback">Please enter owner name.</div>
+                            </div>
+                        </div>
+                        
+                        <!-- Owner -->
+                        <div class="col-12">
+                            <label for="new_owner" class="form-label">Owner *</label>
+                            <div class="input-group has-validation">
+                                <span class="input-group-text bg-light"><i class="fas fa-user text-primary"></i></span>
+                                <input type="text" class="form-control" id="new_owner" name="new_owner" required>
+                                <div class="invalid-feedback">Please enter owner name.</div>
+                            </div>
+                        </div>
+                        
+                        <!-- City -->
+                        <div class="col-md-6">
+                            <label for="new_city" class="form-label">City *</label>
+                            <div class="input-group has-validation">
+                                <span class="input-group-text bg-light"><i class="fas fa-city text-primary"></i></span>
+                                <input type="text" class="form-control" id="new_city" name="new_city" required>
+                                <div class="invalid-feedback">Please enter city.</div>
+                            </div>
+                        </div>
+                        
+                        <!-- State -->
+                        <div class="col-md-6">
+                            <label for="new_state" class="form-label">State *</label>
+                            <div class="input-group has-validation">
+                                <span class="input-group-text bg-light"><i class="fas fa-landmark text-primary"></i></span>
+                                <input type="text" class="form-control" id="new_state" name="new_state" required>
+                                <div class="invalid-feedback">Please enter state.</div>
+                            </div>
+                        </div>
+                        
+                        <!-- Country -->
+                        <div class="col-12">
+                            <label for="new_country" class="form-label">Country *</label>
+                            <div class="input-group has-validation">
+                                <span class="input-group-text bg-light"><i class="fas fa-globe text-primary"></i></span>
+                                <input type="text" class="form-control" id="new_country" name="new_country" required>
+                                <div class="invalid-feedback">Please enter country.</div>
+                            </div>
                         </div>
                     </div>
-                    <div class="col-md-3">
-                        <div class="form-group">
-                            <label for="status-filter">Status</label>
-                            <select class="form-control" id="status-filter" name="status_filter">
-                                <option value="all" {% if selected_status == 'all' %}selected{% endif %}>All Statuses</option>
-                                <option value="available" {% if selected_status == 'available' %}selected{% endif %}>Available</option>
-                                <option value="booked" {% if selected_status == 'booked' %}selected{% endif %}>Booked</option>
-                                <option value="unavailable" {% if selected_status == 'unavailable' %}selected{% endif %}>Unavailable</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="col-md-3 d-flex align-items-end">
-                        <button type="submit" class="btn btn-primary w-100">
-                            <i class="fas fa-filter mr-1"></i> Apply Filters
+                    
+                    <div class="d-flex justify-content-end mt-4">
+                        <button type="button" class="btn btn-outline-secondary me-3" data-bs-dismiss="modal" class="btn btn-primary" data-toggle="modal" data-target="#newlocation">
+                            Cancel
+                        </button>
+                        <button type="submit" class="btn btn-success" id="submitButton" disabled>
+                            <i class="fas fa-save me-2"></i> Save Location
                         </button>
                     </div>
-                </div>
-            </form>
-        </div>
-
-        <!-- Summary Cards -->
-        <div class="row mb-4">
-            <div class="col-xl-3 col-md-6">
-                <div class="card bg-primary text-white mb-4">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                                <h5 class="card-title">Total Rooms</h5>
-                                <h2 class="mb-0">{{ total_rooms }}</h2>
-                            </div>
-                            <i class="fas fa-door-open fa-3x"></i>
-                        </div>
-                    </div>
-                    <div class="card-footer d-flex align-items-center justify-content-between">
-                        <a class="small text-white stretched-link" href="#" data-filter="all">View All</a>
-                        <div class="small text-white"><i class="fas fa-angle-right"></i></div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-xl-3 col-md-6">
-                <div class="card bg-success text-white mb-4">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                                <h5 class="card-title">Available Rooms</h5>
-                                <h2 class="mb-0">{{ available_rooms }}</h2>
-                            </div>
-                            <i class="fas fa-check-circle fa-3x"></i>
-                        </div>
-                    </div>
-                    <div class="card-footer d-flex align-items-center justify-content-between">
-                        <a class="small text-white stretched-link" href="#" data-filter="available">View Available</a>
-                        <div class="small text-white"><i class="fas fa-angle-right"></i></div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-xl-3 col-md-6">
-                <div class="card bg-warning text-white mb-4">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                                <h5 class="card-title">Booked Rooms</h5>
-                                <h2 class="mb-0">{{ booked_rooms }}</h2>
-                            </div>
-                            <i class="fas fa-bed fa-3x"></i>
-                        </div>
-                    </div>
-                    <div class="card-footer d-flex align-items-center justify-content-between">
-                        <a class="small text-white stretched-link" href="#" data-filter="booked">View Booked</a>
-                        <div class="small text-white"><i class="fas fa-angle-right"></i></div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-xl-3 col-md-6">
-                <div class="card bg-danger text-white mb-4">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                                <h5 class="card-title">Unavailable Rooms</h5>
-                                <h2 class="mb-0">{{ unavailable_rooms }}</h2>
-                            </div>
-                            <i class="fas fa-times-circle fa-3x"></i>
-                        </div>
-                    </div>
-                    <div class="card-footer d-flex align-items-center justify-content-between">
-                        <a class="small text-white stretched-link" href="#" data-filter="unavailable">View Unavailable</a>
-                        <div class="small text-white"><i class="fas fa-angle-right"></i></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Calendar Toggle Button -->
-        <div class="text-center mb-3">
-            <button id="toggleCalendarBtn" class="btn btn-success">
-                <i class="fas fa-calendar mr-2"></i>Toggle Calendar View
-            </button>
-        </div>
-
-        <!-- Calendar Container (Hidden by default) -->
-        <div id="calendarContainer" class="d-none mb-4" style="background-color: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); padding: 15px;">
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <h2 class="m-0" style="font-size: 1.25rem; font-weight: 600;">Room Availability Calendar</h2>
-                <button id="fullscreenToggleBtn" class="btn btn-primary btn-sm">
-                    <i class="fas fa-expand"></i> Full Screen
-                </button>
-            </div>
-            <div id="roomCalendar"></div>
-        </div>
-
-        <!-- Rooms Table -->
-        <div class="card mb-4">
-            <div class="card-header">
-                <i class="fas fa-table me-1"></i>
-                Rooms Status for {{ selected_date|date:"F j, Y" }}
-            </div>
-            <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table table-bordered table-hover" id="roomsTable" width="100%" cellspacing="0">
-                        <thead class="table-light">
-                            <tr>
-                                <th>Hotel</th>
-                                <th>Room No.</th>
-                                <th>Type</th>
-                                <th>Price Details</th>
-                                <th>Status</th>
-                                <th>Booking Details</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for room in rooms %}
-                            <tr class="{% if room.display_status == '1' %}{% if room.is_past_date %}table-past{% else %}table-available{% endif %}{% elif room.display_status == '2' %}table-unavailable{% else %}table-booked{% endif %}">
-                                <td><a href="{% url 'viewhotel' %}" class="text-decoration-none">{{ room.hotel.name }}</a></td>
-                                
-                                <td><a href="{% url 'viewroom' room.id %}" class="text-decoration-none">{{ room.room_number }}</a></td>
-                               
-                                <td>{{ room.get_room_type_display }}</td>
-                                 <td>
-                                    <div class="price-details">
-                                       <span class="original-price" style="text-decoration: line-through;">₹{{ room.price }}</span>
-                                     <span class="discounted-price">₹{{ room.discounted_price_value }}</span><br>
-                                     <span class="discount-badge">Save ₹{{ room.saved_amount }} ({{ room.discount }}%)</span>
-                                     </td>
-                                <td>{{ room.gst_rate }}% GST</td>
-                                <td>
-                                    {% if room.display_status == '1' %}
-                                        {% if room.is_past_date %}
-                                            <span class="badge badge-past">Past Date</span>
-                                        {% else %}
-                                            <span class="badge badge-available">Available</span>
-                                        {% endif %}
-                                    {% elif room.display_status == '2' %}
-                                        <span class="badge badge-unavailable">Unavailable</span>
-                                    {% else %}
-                                        <span class="badge badge-booked">Booked</span>
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    {% if room.current_booking %}
-                                    <div class="booking-details">
-                                        <a href="{% url 'user:user_profile_detail' username=room.current_booking.guest.username %}" 
-                                        class="text-primary text-decoration-none">
-                                            {{ room.current_booking.guest.get_full_name|default:room.current_booking.guest.username }}
-                                        </a><br>
-                                        <strong>Check-in:</strong> {{ room.current_booking.check_in|date:"M d, Y" }}<br>
-                                        <strong>Check-out:</strong> {{ room.current_booking.check_out|date:"M d, Y" }}<br>
-                                        <strong>Total:</strong> ₹{{ room.current_booking.total_price }}
-                                    </div>
-                                    {% else %}
-                                        {% if room.is_past_date %}
-                                            <span class="text-muted">No booking (Past Date)</span>
-                                        {% else %}
-                                            <span class="text-muted">Available for booking</span>
-                                        {% endif %}
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    <div class="btn-group" role="group">
-                                        <!-- View Button -->
-                                        <button type="button" class="btn btn-sm btn-outline-primary view-room" 
-                                            data-room-id="{{ room.id }}"
-                                            data-room-number="{{ room.room_number }}"
-                                            data-room-type="{{ room.get_room_type_display }}"
-                                            data-room-price="{{ room.price_details.price_per_night }}"
-                                            data-room-status="{{ room.display_status }}"
-                                            data-hotel-name="{{ room.hotel.name }}"
-                                            data-hotel-location="{{ room.hotel.location }}"
-                                            data-room-capacity="{{ room.capacity }}"
-                                            data-gst-rate="{{ room.hotel.gst_rate|default:'0.0' }}"
-                                            data-extra-person-charge="{{ room.price_details.extra_person_charge }}"
-                                            {% if room.current_booking %}
-                                            data-booking-id="{{ room.current_booking.id }}"
-                                            data-guest-name="{{ room.current_booking.guest.get_full_name }}"
-                                            data-check-in="{{ room.current_booking.check_in|date:'Y-m-d' }}"
-                                            data-check-out="{{ room.current_booking.check_out|date:'Y-m-d' }}"
-                                            data-total-price="{{ room.current_booking.total_price }}"
-                                            {% endif %}>
-                                            <i class="fas fa-eye"></i> View
-                                        </button>
-                                        
-                                        <!-- Conditional Actions -->
-                                        {% if room.display_status == '1' %}
-                                            {% if not room.is_past_date %}
-                                                <button type="button" class="btn btn-sm btn-success book-now" 
-                                                    data-room-id="{{ room.id }}"
-                                                    data-room-number="{{ room.room_number }}"
-                                                    data-room-type="{{ room.get_room_type_display }}"
-                                                    data-room-price="{{ room.price }}"
-                                                    data-room-discount="{{ room.discount }}"
-                                                    data-hotel-name="{{ room.hotel.name }}"
-                                                    data-room-capacity="{{ room.capacity }}"
-                                                    data-check-in="{{ selected_date|date:'Y-m-d' }}"
-                                                    data-gst-rate="{{ room.gst_rate|default:'12.0' }}"
-                                                    data-extra-person-charge="{{ room.extra_person_charges|default:'0.0' }}">
-                                                    <i class="fas fa-calendar-plus"></i> Book Now
-                                                </button>
-                                                <button type="button" class="btn btn-sm btn-outline-danger mark-unavailable" data-room-id="{{ room.id }}">
-                                                    <i class="fas fa-times"></i> Unavailable
-                                                </button>
-                                            {% else %}
-                                                <button class="btn btn-sm btn-secondary" disabled>
-                                                    <i class="fas fa-clock"></i> Past Date
-                                                </button>
-                                            {% endif %}
-                                            <button type="button" class="btn btn-sm btn-outline-danger mark-unavailable" data-room-id="{{ room.id }}">
-                                                <i class="fas fa-times"></i> Unavailable
-                                            </button>
-                                        {% elif room.display_status == '2' %}
-                                            <button type="button" class="btn btn-sm btn-outline-success mark-available" data-room-id="{{ room.id }}">
-                                                <i class="fas fa-check"></i> Available
-                                            </button>
-                                        {% endif %}
-                                    </div>
-                                </td>
-                            </tr>
-                            {% empty %}
-                            <tr>
-                                <td colspan="7" class="text-center text-muted py-4">
-                                    No rooms found matching your criteria.
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Room Details Modal -->
-<div class="modal fade" id="roomModal" tabindex="-1" aria-labelledby="roomModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="roomModalLabel">Room Details</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <div class="row">
-                    <div class="col-md-6">
-                        <h4>Room Information</h4>
-                        <ul class="list-group list-group-flush">
-                            <li class="list-group-item d-flex justify-content-between align-items-center">
-                                <strong>Room Number:</strong>
-                                <span id="modal-room-number"></span>
-                            </li>
-                            <li class="list-group-item d-flex justify-content-between align-items-center">
-                                <strong>Room Type:</strong>
-                                <span id="modal-room-type"></span>
-                            </li>
-                            <li class="list-group-item d-flex justify-content-between align-items-center">
-                                <strong>Base Price:</strong>
-                                <span id="modal-room-price"></span>
-                            </li>
-                            <li class="list-group-item d-flex justify-content-between align-items-center">
-                                <strong>GST Rate:</strong>
-                                <span id="modal-gst-rate"></span>
-                            </li>
-                            <li class="list-group-item d-flex justify-content-between align-items-center">
-                                <strong>Extra Person Charge:</strong>
-                                <span id="modal-extra-person-charge"></span>
-                            </li>
-                            <li class="list-group-item d-flex justify-content-between align-items-center">
-                                <strong>Capacity:</strong>
-                                <span id="modal-room-capacity"></span>
-                            </li>
-                            <li class="list-group-item d-flex justify-content-between align-items-center">
-                                <strong>Status:</strong>
-                                <span id="modal-room-status"></span>
-                            </li>
-                            <li class="list-group-item d-flex justify-content-between align-items-center">
-                                <strong>Hotel:</strong>
-                                <span id="modal-hotel-name"></span>
-                            </li>
-                        </ul>
-                    </div>
-                    <div class="col-md-6">
-                        <h4>Booking Information</h4>
-                        <div id="modal-booking-info">
-                            <p class="text-muted">No active booking for this room.</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                <button type="button" class="btn btn-primary">Edit Room</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Booking Modal -->
-<div class="modal fade" id="bookingModal" tabindex="-1" aria-labelledby="bookingModalLabel" aria-hidden="true">
-    <div class="modal-dialog booking-modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="bookingModalLabel">Confirm Your Booking</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <form id="bookingForm" method="POST">
-                    {% csrf_token %}
-                    <div class="form-group mb-3">
-                        <label for="booking-hotel" class="form-label">Hotel:</label>
-                        <input type="text" class="form-control" id="booking-hotel" name="hotel" readonly>
-                    </div>
-                    <div class="form-group mb-3">
-                        <label for="booking-room-number" class="form-label">Room Number:</label>
-                        <input type="text" class="form-control" id="booking-room-number" name="room_number" readonly>
-                    </div>
-                    <div class="form-group mb-3">
-                        <label for="booking-room-type" class="form-label">Room Type:</label>
-                        <input type="text" class="form-control" id="booking-room-type" name="room_type" readonly>
-                    </div>
-                    <div class="form-group mb-3">
-                        <label for="booking-username" class="form-label">Username:</label>
-                        <input type="text" class="form-control" id="booking-username" name="username" readonly value="{{ request.user.username }}">
-                    </div>
-                    <div class="form-group mb-3">
-                        <label for="booking-person" class="form-label">Guests (Max: <span id="booking-max-capacity"></span>):</label>
-                        <input type="number" class="form-control" id="booking-person" name="person" min="1" required>
-                    </div>
-                    <div class="row mb-3">
-                        <div class="col-md-6">
-                            <label for="booking-check-in" class="form-label">Check-in:</label>
-                            <input type="date" class="form-control" id="booking-check-in" name="check_in" required>
-                        </div>
-                        <div class="col-md-6">
-                            <label for="booking-check-out" class="form-label">Check-out:</label>
-                            <input type="date" class="form-control" id="booking-check-out" name="check_out" required>
-                        </div>
-                    </div>
-                    <div class="form-group mb-3">
-                        <label class="form-label">Price Breakdown:</label>
-                        <div class="price-breakdown" id="booking-price-breakdown">
-                            <div class="d-flex justify-content-between">
-                                <span>Base Price <span id="booking-room-info"></span>:</span>
-                                <span id="booking-base-price">₹0.00</span>
-                            </div>
-                            <div class="d-flex justify-content-between" id="booking-discount-row">
-                                <span>Discount (<span id="booking-discount-rate"></span>%):</span>
-                                <span id="booking-discount-amount">₹0.00</span>
-                            </div>
-                            <div class="d-flex justify-content-between" id="booking-extra-person-row">
-                                <span>Extra Person Charge:</span>
-                                <span id="booking-extra-person-amount">₹0.00</span>
-                            </div>
-                            <div class="d-flex justify-content-between" id="booking-gst-row">
-                                <span>GST (<span id="booking-gst-rate"></span>%):</span>
-                                <span id="booking-gst-amount">₹0.00</span>
-                            </div>
-                            <hr>
-                            <div class="d-flex justify-content-between fw-bold">
-                                <span>Total Amount:</span>
-                                <span id="booking-total-price">₹0.00</span>
-                            </div>
-                        </div>
-                    </div>
-                    <input type="hidden" id="booking-room-id" name="room_id">
-                    <div class="d-grid gap-2">
-                        <button type="submit" class="btn btn-primary btn-lg">Confirm Booking</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-</div><div class="modal fade" id="bookingModal" tabindex="-1" aria-labelledby="bookingModalLabel" aria-hidden="true">
-    <div class="modal-dialog booking-modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="bookingModalLabel">Confirm Your Booking</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <form id="bookingForm" method="POST">
-                    {% csrf_token %}
-                    <div class="form-group mb-3">
-                        <label for="booking-hotel" class="form-label">Hotel:</label>
-                        <input type="text" class="form-control" id="booking-hotel" name="hotel" readonly>
-                    </div>
-                    <div class="form-group mb-3">
-                        <label for="booking-location" class="form-label">Location:</label>
-                        <input type="text" class="form-control" id="booking-location" name="location" readonly>
-                    </div>
-                    <div class="form-group mb-3">
-                        <label for="booking-room-type" class="form-label">Room Type:</label>
-                        <input type="text" class="form-control" id="booking-room-type" name="room_type" readonly>
-                    </div>
-                    <div class="form-group mb-3">
-                        <label for="booking-username" class="form-label">Username:</label>
-                        <input type="text" class="form-control" id="booking-username" name="username" readonly value="{{ request.user.username }}">
-                    </div>
-                    <div class="form-group mb-3">
-                        <label for="booking-person" class="form-label">Guests:</label>
-                        <input type="number" class="form-control" id="booking-person" name="person" min="1" required>
-                    </div>
-                    <div class="row mb-3">
-                        <div class="col-md-6">
-                            <label for="booking-check-in" class="form-label">Check-in:</label>
-                            <input type="date" class="form-control" id="booking-check-in" name="check_in" required>
-                        </div>
-                        <div class="col-md-6">
-                            <label for="booking-check-out" class="form-label">Check-out:</label>
-                            <input type="date" class="form-control" id="booking-check-out" name="check_out" required>
-                        </div>
-                    </div>
-                    <div class="form-group mb-3">
-                        <label class="form-label">Price Breakdown:</label>
-                        <div class="price-breakdown" id="booking-price-breakdown">
-                            <div class="d-flex justify-content-between">
-                                <span>Room Price <span id="booking-room-info"></span>:</span>
-                                <span id="booking-base-price">₹0.00</span>
-                            </div>
-                            <div class="d-flex justify-content-between" id="booking-gst-row">
-                                <span>GST:</span>
-                                <span id="booking-gst-amount">₹0.00</span>
-                            </div>
-                            <div class="d-flex justify-content-between" id="booking-extra-person-row">
-                                <span>Extra Person Charge:</span>
-                                <span id="booking-extra-person-amount">₹0.00</span>
-                            </div>
-                            <hr>
-                            <div class="d-flex justify-content-between fw-bold">
-                                <span>Total Amount:</span>
-                                <span id="booking-total-price">₹0.00</span>
-                            </div>
-                        </div>
-                    </div>
-                    <input type="hidden" id="booking-room-id" name="room_id">
-                    <div class="d-grid gap-2">
-                        <button type="submit" class="btn btn-primary btn-lg">Confirm Booking</button>
-                    </div>
                 </form>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Room Calendar Popup -->
-<div id="roomCalendarPopup" class="room-popup d-none">
-    <span class="close-btn">×</span>
-    <h3 id="popup-room-title">Room Details</h3>
-    <div id="popup-room-content"></div>
+<!-- The Modal -->
+<div class="modal" id="newroom">
+    <div class="modal-dialog">
+        <div class="modal-content">
+
+            <!-- Modal Header -->
+            <div class="modal-header">
+                <h4 class="modal-title">Add New Room</h4>
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+            </div>
+
+            <!-- Modal Body -->
+            <div class="modal-body">
+                <div class="container">
+                    <div class="row">
+                        <div class="col mx-auto">
+                            <form action="{%url 'maintainer_add_new_room' %}" method="POST">
+                                {% csrf_token %}
+
+                                <div class="form-group">
+                                    <label for="room_number">Room Number:</label>
+                                    <input type="text" class="form-control" id="room_number" name="room_number" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="roomtype">Room Type:</label>
+                                    <select class="form-control" name="roomtype" id="roomtype" required>
+                                        <option value="1">Premium</option>
+                                        <option value="2">Deluxe</option>
+                                        <option value="3">Basic</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="capacity">Capacity:</label>
+                                    <input type="number" class="form-control" id="capacity" name="capacity" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="price">Price:</label>
+                                    <input type="number" step="0.01" class="form-control" id="price" name="price" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="discount">Discount (%):</label>
+                                    <input type="number" step="0.01" class="form-control" id="discount" name="discount">
+                                </div>
+                                <div class="form-group">
+                                    <label for="size">Size:</label>
+                                    <input type="number" class="form-control" id="size" name="size" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="roomstatus">Status:</label>
+                                    <select class="form-control" name="status" id="roomstatus" required>
+                                        <option value="1">Available</option>
+                                        <option value="2">Not Available</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="hotel">Location:</label>
+                                    <select class="form-control" name="hotel" id="hotel" required>
+                                        {% for each_location, eachid in location %}
+                                            <option value="{{ eachid }}">{{ each_location }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <button type="submit" class="btn btn-primary">Add Room</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
-
-
-<script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js"></script>
 <script>
-$(document).ready(function() {
-    // Initialize FullCalendar
-    var calendarEl = document.getElementById('roomCalendar');
-    var calendar = new FullCalendar.Calendar(calendarEl, {
-        initialView: 'dayGridMonth',
-        headerToolbar: {
-            left: 'prev,next today',
-            center: 'title',
-            right: 'dayGridMonth,timeGridWeek,timeGridDay'
-        },
-        events: [
-            {% for room in rooms %}
-                {% if room.current_booking %}
-                    {
-                        title: 'Booked: Room {{ room.room_number }}',
-                        start: '{{ room.current_booking.check_in|date:"Y-m-d" }}',
-                        end: '{{ room.current_booking.check_out|date:"Y-m-d" }}',
-                        className: 'fc-event-booked',
-                        extendedProps: {
-                            roomId: {{ room.id }},
-                            roomNumber: '{{ room.room_number }}',
-                            roomType: '{{ room.get_room_type_display }}',
-                            hotel: '{{ room.hotel.name }}',
-                            guest: '{{ room.current_booking.guest.get_full_name }}',
-                            totalPrice: {{ room.current_booking.total_price }}
-                        }
-                    },
-                {% elif room.display_status == '2' %}
-                    {
-                        title: 'Unavailable: Room {{ room.room_number }}',
-                        start: '{{ selected_date|date:"Y-m-d" }}',
-                        className: 'fc-event-unavailable',
-                        extendedProps: {
-                            roomId: {{ room.id }},
-                            roomNumber: '{{ room.room_number }}',
-                            roomType: '{{ room.get_room_type_display }}',
-                            hotel: '{{ room.hotel.name }}'
-                        }
-                    },
-                {% else %}
-                    {
-                        title: 'Available: Room {{ room.room_number }}',
-                        start: '{{ selected_date|date:"Y-m-d" }}',
-                        className: 'fc-event-available',
-                        extendedProps: {
-                            roomId: {{ room.id }},
-                            roomNumber: '{{ room.room_number }}',
-                            roomType: '{{ room.get_room_type_display }}',
-                            hotel: '{{ room.hotel.name }}'
-                        }
-                    },
-                {% endif %}
-            {% endfor %}
-        ],
-        eventClick: function(info) {
-            var props = info.event.extendedProps;
-            var content = `
-                <p><strong>Room Number:</strong> ${props.roomNumber}</p>
-                <p><strong>Room Type:</strong> ${props.roomType}</p>
-                <p><strong>Hotel:</strong> ${props.hotel}</p>
-                ${props.guest ? '<p><strong>Guest:</strong> ' + props.guest + '</p>' : ''}
-                ${props.totalPrice ? '<p><strong>Total Price:</strong> ₹' + props.totalPrice + '</p>' : ''}
-                ${info.event.start ? '<p><strong>Start:</strong> ' + info.event.start.toLocaleDateString() + '</p>' : ''}
-                ${info.event.end ? '<p><strong>End:</strong> ' + info.event.end.toLocaleDateString() + '</p>' : ''}
-            `;
-            $('#popup-room-title').text(info.event.title);
-            $('#popup-room-content').html(content);
-            $('#roomCalendarPopup').removeClass('d-none');
-        }
-    });
-    calendar.render();
-
-    // Toggle Calendar Visibility
-    $('#toggleCalendarBtn').click(function() {
-        $('#calendarContainer').toggleClass('d-none');
-    });
-
-    // Fullscreen Toggle
-    $('#fullscreenToggleBtn').click(function() {
-        $('#calendarContainer').toggleClass('calendar-fullscreen');
-        $(this).find('i').toggleClass('fa-expand fa-compress');
-        calendar.render();
-    });
-
-    // Close Calendar Popup
-    $('#roomCalendarPopup .close-btn').click(function() {
-        $('#roomCalendarPopup').addClass('d-none');
-    });
-
-    // Apply filter when clicking on summary cards
-    $('.card-footer a[data-filter]').click(function(e) {
-        e.preventDefault();
-        const filter = $(this).data('filter');
-        $('#status-filter').val(filter);
-        $('#filter-form').submit();
-    });
-
-    // Handle room view button click
-    $('.view-room').click(function() {
-        const roomId = $(this).data('room-id');
-        const roomNumber = $(this).data('room-number');
-        const roomType = $(this).data('room-type');
-        const roomPrice = $(this).data('room-price');
-        const roomStatus = $(this).data('room-status');
-        const bookingId = $(this).data('booking-id');
-        const hotelName = $(this).data('hotel-name');
-        const gstRate = $(this).data('gst-rate');
-        const extraPersonCharge = $(this).data('extra-person-charge');
-        const roomCapacity = $(this).data('room-capacity');
-
-        // Set room information
-        $('#modal-room-number').text(roomNumber || 'N/A');
-        $('#modal-room-type').text(roomType || 'N/A');
-        $('#modal-room-price').text(roomPrice ? '₹' + roomPrice : 'N/A');
-        $('#modal-gst-rate').text(gstRate ? gstRate + '%' : 'N/A');
-        $('#modal-extra-person-charge').text(extraPersonCharge ? '₹' + extraPersonCharge : 'N/A');
-        $('#modal-room-capacity').text(roomCapacity || 'N/A');
-        $('#modal-hotel-name').text(hotelName || 'N/A');
+    document.addEventListener('DOMContentLoaded', function() {
+        const progressBars = document.querySelectorAll('.progress');
         
-        // Set status with appropriate badge
-        let statusBadge = '<span class="badge badge-unavailable">Unknown</span>';
-        if (roomStatus === '1') {
-            statusBadge = '<span class="badge badge-available">Available</span>';
-        } else if (roomStatus === '2') {
-            statusBadge = '<span class="badge badge-unavailable">Unavailable</span>';
-        } else if (roomStatus === '3') {
-            statusBadge = '<span class="badge badge-booked">Booked</span>';
-        }
-        $('#modal-room-status').html(statusBadge);
-
-        // Set booking information if exists
-        if (bookingId) {
-            const guestName = $(this).data('guest-name');
-            const checkIn = $(this).data('check-in');
-            const checkOut = $(this).data('check-out');
-            const totalPrice = $(this).data('total-price');
+        progressBars.forEach(progress => {
+            const value = parseFloat(progress.getAttribute('data-value')) || 0;
+            const rightBar = progress.querySelector('.progress-right .progress-bar');
+            const leftBar = progress.querySelector('.progress-left .progress-bar');
             
-            const bookingHtml = `
-                <ul class="list-group list-group-flush">
-                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                        <strong>Guest Name:</strong>
-                        <span>${guestName || 'N/A'}</span>
-                    </li>
-                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                        <strong>Check-in:</strong>
-                        <span>${checkIn || 'N/A'}</span>
-                    </li>
-                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                        <strong>Check-out:</strong>
-                        <span>${checkOut || 'N/A'}</span>
-                    </li>
-                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                        <strong>Total Price:</strong>
-                        <span>${totalPrice ? '₹' + totalPrice : 'N/A'}</span>
-                    </li>
-                </ul>
-            `;
-            $('#modal-booking-info').html(bookingHtml);
-        } else {
-            $('#modal-booking-info').html('<p class="text-muted">No booking for this room.</p>');
-        }
-
-        // Show the modal
-        $('#roomModal').modal('show');
-    });
-
-    // Handle book now button
-    $('.book-now').click(function() {
-        const roomId = $(this).data('room-id');
-        const roomNumber = $(this).data('room-number');
-        const roomType = $(this).data('room-type');
-        const roomPrice = parseFloat($(this).data('room-price') || 0);
-        const hotelName = $(this).data('hotel-name');
-        const hotelLocation = $(this).data('hotel-location');
-        const roomCapacity = $(this).data('room-capacity');
-        const checkIn = $(this).data('check-in');
-        const gstRate = parseFloat($(this).data('gst-rate') || 0);
-
-        // Populate booking modal
-        $('#booking-room-id').val(roomId);
-        $('#booking-hotel').val(hotelName || '');
-        $('#booking-location').val(hotelLocation || '');
-        $('#booking-room-type').val(roomType || '');
-        $('#booking-person').attr('max', roomCapacity).val(1);
-        $('#booking-check-in').val(checkIn).attr('min', '{{ current_date|date:"Y-m-d" }}');
-        $('#booking-check-out').val('').attr('min', checkIn);
-
-        // Initialize price breakdown
-        updateBookingPrice(roomPrice, gstRate);
-
-        // Show booking modal
-        $('#bookingModal').modal('show');
-    });
-
-    // Update price breakdown on date change
-    $('#booking-check-in, #booking-check-out').change(function() {
-        const roomPrice = parseFloat($('.book-now:visible').data('room-price') || 0);
-        const gstRate = parseFloat($('.book-now:visible').data('gst-rate') || 0);
-        updateBookingPrice(roomPrice, gstRate);
-    });
-
-    function updateBookingPrice(roomPrice, gstRate) {
-        const checkIn = $('#booking-check-in').val();
-        const checkOut = $('#booking-check-out').val();
-        let basePrice = 0;
-        let gstAmount = 0;
-        let totalPrice = 0;
-        let stayDays = 0;
-
-        if (checkIn && checkOut) {
-            const start = new Date(checkIn);
-            const end = new Date(checkOut);
-            stayDays = Math.max(1, Math.floor((end - start) / (1000 * 60 * 60 * 24)));
+            // Reset any previous transformations
+            rightBar.style.transform = 'rotate(0deg)';
+            leftBar.style.transform = 'rotate(0deg)';
             
-            basePrice = roomPrice * stayDays;
-            gstAmount = basePrice * (gstRate / 100);
-            totalPrice = basePrice + gstAmount;
+            if (value > 0) {
+                if (value <= 50) {
+                    rightBar.style.transform = `rotate(${value * 3.6}deg)`;
+                } else {
+                    rightBar.style.transform = 'rotate(180deg)';
+                    leftBar.style.transform = `rotate(${(value - 50) * 3.6}deg)`;
+                }
+            }
+        });
+    });
+        const viewer = document.querySelector('.fullscreen-viewer');
+        const viewerImage = viewer.querySelector('img');
 
-            $('#booking-room-info').text(`(${stayDays} night${stayDays > 1 ? 's' : ''} × ₹${roomPrice.toFixed(2)})`);
-            $('#booking-gst-row span:first').text(`GST (${gstRate.toFixed(2)}%)`);
-        } else {
-            $('#booking-room-info').text('');
-            $('#booking-gst-row span:first').text('GST (0.00%)');
+        function showFullscreen(img) {
+            viewerImage.src = img.src;
+            viewer.classList.add('active');
+            document.body.style.overflow = 'hidden';
         }
 
-        $('#booking-base-price').text(`₹${basePrice.toFixed(2)}`);
-        $('#booking-gst-amount').text(`₹${gstAmount.toFixed(2)}`);
-        $('#booking-total-price').text(`₹${totalPrice.toFixed(2)}`);
+        function hideFullscreen(event) {
+            if (event) {
+                event.stopPropagation();
+            }
+            if (event.target === viewer || event.target.classList.contains('close-button')) {
+                viewer.classList.remove('active');
+                document.body.style.overflow = '';
+                setTimeout(() => {
+                    viewerImage.src = '';
+                }, 300);
+            }
+        }
+
+        // Close on escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && viewer.classList.contains('active')) {
+                hideFullscreen();
+            }
+        });
+document.addEventListener('DOMContentLoaded', function() {
+    // Form validation
+    const forms = document.querySelectorAll('.needs-validation');
+    Array.from(forms).forEach(form => {
+        form.addEventListener('submit', function(event) {
+            if (!form.checkValidity()) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+            form.classList.add('was-validated');
+        }, false);
+    });
+    
+    // Multi-step form navigation
+    const formSteps = document.querySelectorAll('.form-step');
+    const nextButtons = document.querySelectorAll('.next-step');
+    const prevButtons = document.querySelectorAll('.prev-step');
+    const progressBar = document.querySelector('.stepper-progress-bar');
+    const stepperSteps = document.querySelectorAll('.stepper-step');
+    let currentStep = 0;
+    
+    // Initialize first step
+    updateStepIndicator();
+    
+    // Next button click
+    nextButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            // Validate current step before proceeding
+            if (validateStep(currentStep)) {
+                formSteps[currentStep].classList.remove('active');
+                stepperSteps[currentStep].classList.remove('active');
+                
+                currentStep++;
+                
+                formSteps[currentStep].classList.add('active');
+                stepperSteps[currentStep].classList.add('active');
+                updateStepIndicator();
+                updateProgressBar();
+            }
+        });
+    });
+    
+    // Previous button click
+    prevButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            formSteps[currentStep].classList.remove('active');
+            stepperSteps[currentStep].classList.remove('active');
+            
+            currentStep--;
+            
+            formSteps[currentStep].classList.add('active');
+            stepperSteps[currentStep].classList.add('active');
+            updateStepIndicator();
+            updateProgressBar();
+        });
+    });
+    
+    // Validate current step
+    function validateStep(step) {
+        let isValid = true;
+        const currentFormStep = formSteps[step];
+        const requiredFields = currentFormStep.querySelectorAll('[required]');
+        
+        requiredFields.forEach(field => {
+            if (!field.value.trim()) {
+                field.classList.add('is-invalid');
+                isValid = false;
+            } else {
+                field.classList.remove('is-invalid');
+            }
+        });
+        
+        return isValid;
     }
-
-    // Handle mark unavailable button
-    $('.mark-unavailable').click(function() {
-        const roomId = $(this).data('room-id');
-        if (confirm('Are you sure you want to mark this room as unavailable?')) {
-            $.ajax({
-                url: `/hotel/update-room-status/${roomId}/`,
-                method: 'POST',
-                data: {
-                    status: '2',
-                    selected_date: '{{ selected_date|date:"Y-m-d" }}',
-                    csrfmiddlewaretoken: '{{ csrf_token }}'
-                },
-                success: function(response) {
-                    if (response.success) {
-                        location.reload();
-                    } else {
-                        alert('Error: ' + response.error);
-                    }
-                },
-                error: function(xhr, status, error) {
-                    alert('Error updating room status: ' + error);
-                }
-            });
+    
+    // Update progress bar
+    function updateProgressBar() {
+        const progress = ((currentStep + 1) / formSteps.length) * 100;
+        progressBar.style.width = `${progress}%`;
+    }
+    
+    // Update step indicator
+    function updateStepIndicator() {
+        stepperSteps.forEach((step, index) => {
+            if (index <= currentStep) {
+                step.classList.add('active');
+            } else {
+                step.classList.remove('active');
+            }
+        });
+    }
+    
+    // Image preview functionality
+    window.previewImage = function(input, previewId) {
+        const preview = document.getElementById(previewId);
+        const file = input.files[0];
+        
+        if (file) {
+            // Validate file size (5MB max)
+            if (file.size > 5 * 1024 * 1024) {
+                alert('File size exceeds 5MB limit');
+                input.value = '';
+                return;
+            }
+            
+            // Validate image type
+            if (!file.type.match('image.*')) {
+                alert('Please select an image file');
+                input.value = '';
+                return;
+            }
+            
+            const reader = new FileReader();
+            
+            reader.onload = function(e) {
+                preview.innerHTML = '';
+                const img = document.createElement('img');
+                img.src = e.target.result;
+                img.style.width = '100%';
+                img.style.height = '100%';
+                img.style.objectFit = 'cover';
+                preview.appendChild(img);
+                
+                // Add image info badge
+                const infoBadge = document.createElement('div');
+                infoBadge.className = 'image-info-badge';
+                infoBadge.innerHTML = `<span>${formatFileSize(file.size)}</span>`;
+                preview.appendChild(infoBadge);
+            };
+            
+            reader.readAsDataURL(file);
         }
+    };
+    
+    // Clear image
+    window.clearImage = function(inputId, previewId) {
+        document.getElementById(inputId).value = '';
+        const preview = document.getElementById(previewId);
+        preview.innerHTML = `
+            <div class="image-placeholder">
+                <i class="fas fa-camera fa-2x"></i>
+                <span>Image ${previewId.replace('preview-image', '')}</span>
+            </div>
+        `;
+    };
+    
+    // Format file size
+    function formatFileSize(bytes) {
+        if (bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+    }
+    
+    // Initialize features with animation
+    const featureItems = document.querySelectorAll('.feature-item');
+    featureItems.forEach((item, index) => {
+        item.style.opacity = 0;
+        item.style.transform = 'translateY(10px)';
+        item.style.transition = `opacity 0.3s ease ${index * 0.05}s, transform 0.3s ease ${index * 0.05}s`;
+        
+        setTimeout(() => {
+            item.style.opacity = 1;
+            item.style.transform = 'translateY(0)';
+        }, 100);
     });
-
-    // Handle mark available button
-    $('.mark-available').click(function() {
-        const roomId = $(this).data('room-id');
-        if (confirm('Are you sure you want to mark this room as available?')) {
-            $.ajax({
-                url: `/hotel/update-room-status/${roomId}/`,
-                method: 'POST',
-                data: {
-                    status: '1',
-                    selected_date: '{{ selected_date|date:"Y-m-d"}}',
-                    csrfmiddlewaretoken: '{{ csrf_token }}'
-                },
-                success: function(response) {
-                    if (response.success) {
-                        location.reload();
-                    } else {
-                        alert('Error: ' + response.error);
-                    }
-                },
-                error: function(xhr, status, error) {
-                    alert('Error updating room status: ' + error);
-                }
-            });
-        }
+    
+    // Drag and drop for image upload
+    const uploadCards = document.querySelectorAll('.image-upload-card');
+    uploadCards.forEach(card => {
+        card.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            this.classList.add('drag-over');
+        });
+        
+        card.addEventListener('dragleave', function() {
+            this.classList.remove('drag-over');
+        });
+        
+        card.addEventListener('drop', function(e) {
+            e.preventDefault();
+            this.classList.remove('drag-over');
+            
+            const input = this.querySelector('input[type="file"]');
+            if (e.dataTransfer.files.length) {
+                input.files = e.dataTransfer.files;
+                const event = new Event('change');
+                input.dispatchEvent(event);
+            }
+        });
     });
 });
+document.addEventListener('DOMContentLoaded', function() {
+    // Get the form and submit button elements
+    const locationForm = document.getElementById('locationForm');
+    const submitButton = document.getElementById('submitButton');
+    
+    if (locationForm && submitButton) {
+        // Disable submit button initially
+        submitButton.disabled = true;
+
+        // Enable/Disable submit button based on form validity
+        locationForm.addEventListener('input', function() {
+            submitButton.disabled = !locationForm.checkValidity();
+        });
+
+        // Form validation on submit
+        locationForm.addEventListener('submit', function(event) {
+            if (!locationForm.checkValidity()) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+            locationForm.classList.add('was-validated');
+        }, false);
+    }
+
+    // Initialize modal
+    var locationModal = document.getElementById('newlocation');
+    if (locationModal) {
+        var modal = new bootstrap.Modal(locationModal);
+        
+        // Manually handle close events if needed
+        var closeButtons = document.querySelectorAll('[data-bs-dismiss="modal"]');
+        closeButtons.forEach(function(button) {
+            button.addEventListener('click', function() {
+                modal.hide();
+            });
+        });
+    }
+});
 </script>
-{% endblock %}
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.1.3/js/bootstrap.bundle.min.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.0/js/bootstrap.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+
+
+
+
+
+
+
+
+
+
+       <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.1.3/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+<style>
+        :root {
+            --primary-color: #0d6efd;
+            --secondary-color: #6c757d;
+            --success-color: #198754;
+            --info-color: #0dcaf0;
+            --warning-color: #ffc107;
+            --danger-color: #dc3545;
+            --light-color: #f8f9fa;
+            --dark-color: #212529;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f8fa;
+            color: #495057;
+        }
+
+        /* Dashboard Main Styling */
+        .dashboard-header {
+            background-color: #fff;
+            box-shadow: 0 2px 15px rgba(0, 0, 0, 0.05);
+            padding: 1.5rem 0;
+            margin-bottom: 2rem;
+        }
+
+        h2.text-primary {
+            font-weight: 600;
+            position: relative;
+            display: inline-block;
+            padding-bottom: 10px;
+        }
+
+        h2.text-primary:after {
+            content: '';
+            display: block;
+            width: 70%;
+            height: 3px;
+            background: var(--primary-color);
+            position: absolute;
+            bottom: 0;
+            left: 15%;
+            border-radius: 3px;
+        }
+
+        .section-container {
+            background-color: #fff;
+            border: none !important;
+            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+            transition: all 0.3s ease;
+        }
+
+        /* Improved Stat Cards */
+        .stat-card {
+            background-color: #fff;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            height: 100%;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+        }
+
+        .stat-card h2.h6 {
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--dark-color);
+        }
+
+        .stat-card small.text-muted {
+            font-size: 0.85rem;
+        }
+
+        /* Enhanced Circular Progress Bars */
+        .progress {
+            width: 100px;
+            height: 100px;
+            background: none;
+            position: relative;
+        }
+
+        .progress::after {
+            content: "";
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            border: 6px solid #eee;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+
+        .progress>span {
+            width: 50%;
+            height: 100%;
+            overflow: hidden;
+            position: absolute;
+            top: 0;
+            z-index: 1;
+        }
+
+        .progress .progress-left {
+            left: 0;
+        }
+
+        .progress .progress-right {
+            right: 0;
+        }
+
+        .progress .progress-bar {
+            width: 100%;
+            height: 100%;
+            background: none;
+            border-width: 6px;
+            border-style: solid;
+            position: absolute;
+            top: 0;
+            border-color: var(--primary-color);
+        }
+
+        .progress .progress-left .progress-bar {
+            left: 100%;
+            border-top-right-radius: 50px;
+            border-bottom-right-radius: 50px;
+            border-left: 0;
+            transform-origin: center left;
+            animation: loading-1 1.5s linear forwards;
+        }
+
+        .progress .progress-right .progress-bar {
+            left: -100%;
+            border-top-left-radius: 50px;
+            border-bottom-left-radius: 50px;
+            border-right: 0;
+            transform-origin: center right;
+            animation: loading-2 1.5s linear forwards;
+        }
+
+        /* Custom colors for different stats */
+        .progress-bar.border-primary {
+            border-color: var(--primary-color);
+        }
+
+        .progress-bar.border-success {
+            border-color: var(--success-color);
+        }
+
+        .progress-bar.border-info {
+            border-color: var(--info-color);
+        }
+
+        .progress-bar.border-warning {
+            border-color: var(--warning-color);
+        }
+
+        .progress-bar.border-danger {
+            border-color: var(--danger-color);
+        }
+        
+        /* Center circle with value */
+        .progress .progress-value {
+            display: flex;
+            border-radius: 50%;
+            font-size: 24px;
+            text-align: center;
+            line-height: 20px;
+            align-items: center;
+            justify-content: center;
+            background-color: #fff;
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .progress-value div {
+            margin-top: 0;
+            font-weight: 700;
+            color: #444;
+        }
+
+        /* Improved Form Controls */
+        .form-control, .btn {
+            border-radius: 8px;
+            font-size: 0.95rem;
+            padding: 0.6rem 1rem;
+        }
+
+        .form-control:focus {
+            box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.15);
+        }
+
+        .btn-primary {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+            font-weight: 500;
+            padding: 0.6rem 1.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary:hover {
+            background-color: #0b5ed7;
+            border-color: #0a58ca;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(13, 110, 253, 0.2);
+        }
+
+        label {
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+            color: var(--dark-color);
+        }
+
+        /* Table Styling */
+        .booking-table {
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .table {
+            margin-bottom: 0;
+        }
+
+        .table th {
+            background-color: #f8f9fa;
+            font-weight: 600;
+            border-top: none;
+            text-transform: uppercase;
+            font-size: 0.85rem;
+            letter-spacing: 0.5px;
+            color:black;
+        }
+
+        .table td {
+            vertical-align: middle;
+            font-size: 0.95rem;
+        }
+
+        /* Animation for Progress Bar */
+        @keyframes loading-1 {
+            0% {
+                transform: rotate(0deg);
+            }
+            100% {
+                transform: rotate(180deg);
+            }
+        }
+
+        @keyframes loading-2 {
+            0% {
+                transform: rotate(0deg);
+            }
+            100% {
+                transform: rotate(180deg);
+            }
+        }
+
+        /* Status Colors */
+        .status-badge {
+            font-size: 0.8rem;
+            padding: 0.35rem 0.65rem;
+            border-radius: 50rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Responsive Adjustments */
+        @media (max-width: 1199px) {
+            .progress {
+                width: 90px;
+                height: 90px;
+            }
+            .progress-value div {
+                font-size: 20px;
+            }
+        }
+
+        @media (max-width: 992px) {
+            .progress {
+                width: 100px;
+                height: 100px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .section-container {
+                padding: 1.5rem !important;
+            }
+            h2.text-primary {
+                font-size: 1.5rem;
+            }
+            .table-responsive {
+                border: none;
+            }
+            .btn {
+                width: 100%;
+                margin-bottom: 1rem;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .progress {
+                width: 80px;
+                height: 80px;
+            }
+            .progress::after, .progress .progress-bar {
+                border-width: 5px;
+            }
+            .progress-value div {
+                font-size: 18px;
+            }
+            .stat-card h2.h6 {
+                font-size: 0.9rem;
+            }
+            .dashboard-header {
+                padding: 1rem 0;
+            }
+        }
+
+        /* Modern Dashboard Navigation */
+        .dashboard-nav {
+            background-color: #fff;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            margin-bottom: 2rem;
+        }
+
+        .dashboard-nav .nav-link {
+            padding: 1rem;
+            color: var(--secondary-color);
+            border-radius: 0;
+            transition: all 0.3s ease;
+            position: relative;
+            font-weight: 500;
+        }
+
+        .dashboard-nav .nav-link.active {
+            color: var(--primary-color);
+            background-color: transparent;
+        }
+
+        .dashboard-nav .nav-link.active::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 40%;
+            height: 3px;
+            background-color: var(--primary-color);
+            border-radius: 3px;
+        }
+
+        .dashboard-nav .nav-link:hover {
+            color: var(--primary-color);
+            background-color: rgba(13, 110, 253, 0.05);
+        }
+
+        .dashboard-nav .nav-link i {
+            margin-right: 0.5rem;
+        }
+
+        /* Date Range Selector */
+        .date-range-selector {
+            display: flex;
+            align-items: center;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            padding: 0.5rem 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .date-range-selector label {
+            margin-bottom: 0;
+            margin-right: 1rem;
+            white-space: nowrap;
+        }
+
+        .date-range-selector .form-control {
+            border: none;
+            box-shadow: none;
+            padding: 0.4rem 0.5rem;
+        }
+
+        .date-range-selector .btn {
+            padding: 0.4rem 1rem;
+            margin-left: 1rem;
+        }
+        a{
+            text-decoration:none;
+        }
+</style>

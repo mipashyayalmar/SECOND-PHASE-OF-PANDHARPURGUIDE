@@ -86,16 +86,24 @@ class HotelAssignmentForm(forms.Form):
         hotel = self.cleaned_data['hotel']
         hotel.assigned_staff.add(staff)
         return hotel
-
+from django import forms
+from .models import Reservation
 
 class ReservationForm(forms.ModelForm):
+    apply_gst = forms.BooleanField(required=False, label="Apply GST")
+    gst_number = forms.CharField(max_length=15, required=False, label="GST Number")
+    is_direct_booking = forms.BooleanField(required=False, label="Direct Booking")
+
     class Meta:
         model = Reservation
-        fields = ['room', 'check_in', 'check_out', 'number_of_guests']
+        fields = ['room', 'check_in', 'check_out', 'number_of_guests', 'apply_gst', 'gst_number', 'is_direct_booking']
         widgets = {
-            'check_in': forms.DateInput(attrs={'type': 'date'}),
-            'check_out': forms.DateInput(attrs={'type': 'date'}),
+            'check_in': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+            'check_out': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
             'room': forms.HiddenInput(),
+            'apply_gst': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'gst_number': forms.TextInput(attrs={'class': 'form-control', 'maxlength': '15'}),
+            'is_direct_booking': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }
 
     def clean(self):
@@ -104,6 +112,8 @@ class ReservationForm(forms.ModelForm):
         check_in = cleaned_data.get('check_in')
         check_out = cleaned_data.get('check_out')
         number_of_guests = cleaned_data.get('number_of_guests')
+        apply_gst = cleaned_data.get('apply_gst')
+        gst_number = cleaned_data.get('gst_number')
 
         if room and check_in and check_out:
             if Reservation.objects.filter(
@@ -113,4 +123,15 @@ class ReservationForm(forms.ModelForm):
                 is_cancelled=False
             ).exists():
                 self.add_error(None, "Room is not available for the selected dates.")
+
+        if apply_gst and not gst_number:
+            self.add_error('gst_number', "GST number is required if GST is applied.")
+        if gst_number and not apply_gst:
+            self.add_error('gst_number', "GST number should not be provided if GST is not applied.")
+
+        if number_of_guests and room:
+            max_capacity = room.capacity + room.extra_capacity
+            if number_of_guests > max_capacity:
+                self.add_error('number_of_guests', f"Number of guests ({number_of_guests}) exceeds room's maximum capacity ({max_capacity}).")
+
         return cleaned_data

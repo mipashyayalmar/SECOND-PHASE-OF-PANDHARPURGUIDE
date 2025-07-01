@@ -43,6 +43,8 @@
     .extra-charge-badge { background-color: #dc3545; color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.8rem; }
     .price-row { display: flex; justify-content: space-between; margin-bottom: 5px; }
     .error-message { color: #dc3545; font-size: 0.8rem; margin-top: 5px; display: none; }
+    .file-input-label { display: block; margin-bottom: 5px; font-weight: bold; }
+    .file-input { width: 100%; padding: 8px; border: 1px solid #ced4da; border-radius: 4px; }
     @media (max-width: 768px) {
         .filter-form { grid-template-columns: 1fr; }
         .fc .fc-toolbar { flex-direction: column; align-items: center; }
@@ -54,7 +56,7 @@
         .room-header { flex-direction: column; align-items: flex-start; gap: 10px; }
         .fc-daygrid-main { display: none; }
         .fc-list-main { display: block; }
-        .room-popup, .booking-modal .modal-dialog { width:95%; padding: 15px; }
+        .room-popup, .booking-modal .modal-dialog { width: 95%; padding: 15px; }
     }
 </style>
 
@@ -364,6 +366,10 @@
                                                 <button type="button" class="btn btn-sm btn-outline-success mark-available" data-room-id="{{ room.id }}">
                                                     <i class="fas fa-check"></i> Available
                                                 </button>
+                                            {% elif room.display_status == '3' %}
+                                                <a href="{% url 'view_customer_info' reservation_id=room.current_booking.id %}" class="btn btn-sm btn-info">
+                                                    <i class="fas fa-user"></i> View Customer Info
+                                                </a>
                                             {% endif %}
                                         </div>
                                     </td>
@@ -397,6 +403,7 @@
                                     <th>Check In</th>
                                     <th>Check Out</th>
                                     <th>Status</th>
+                                    <th>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -417,10 +424,15 @@
                                             Future
                                         {% endif %}
                                     </td>
+                                    <td>
+                                        <a href="{% url 'view_customer_info' reservation_id=each_detail.id %}" class="btn btn-sm btn-info">
+                                            <i class="fas fa-user"></i> View Customer Info
+                                        </a>
+                                    </td>
                                 </tr>
                                 {% empty %}
                                 <tr>
-                                    <td colspan="5" class="text-center text-muted py-4">
+                                    <td colspan="6" class="text-center text-muted py-4">
                                         No booking details found
                                     </td>
                                 </tr>
@@ -522,7 +534,7 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <form id="bookingForm" method="POST">
+                    <form id="bookingForm" method="POST" enctype="multipart/form-data">
                         {% csrf_token %}
                         <div class="form-group mb-3">
                             <label for="booking-hotel-id" class="form-label">Hotel:</label>
@@ -539,6 +551,30 @@
                         <div class="form-group mb-3">
                             <label for="booking-username" class="form-label">Username:</label>
                             <input type="text" class="form-control" id="booking-username" readonly value="{{ request.user.username }}">
+                        </div>
+                        <div class="form-group mb-3">
+                            <label for="full_name" class="form-label">Full Name:</label>
+                            <input type="text" class="form-control" id="full_name" name="full_name" required>
+                        </div>
+                        <div class="form-group mb-3">
+                            <label for="phone_number" class="form-label">Phone Number:</label>
+                            <input type="tel" class="form-control" id="phone_number" name="phone_number" pattern="[0-9]{10}" required>
+                        </div>
+                        <div class="form-group mb-3">
+                            <label for="email" class="form-label">Email:</label>
+                            <input type="email" class="form-control" id="email" name="email" required>
+                        </div>
+                        <div class="form-group mb-3">
+                            <label for="aadhar_front" class="file-input-label">Aadhar Front Image:</label>
+                            <input type="file" class="file-input" id="aadhar_front" name="aadhar_front" accept="image/*" required>
+                        </div>
+                        <div class="form-group mb-3">
+                            <label for="aadhar_back" class="file-input-label">Aadhar Back Image:</label>
+                            <input type="file" class="file-input" id="aadhar_back" name="aadhar_back" accept="image/*" required>
+                        </div>
+                        <div class="form-group mb-3">
+                            <label for="pan_card" class="file-input-label">PAN Card Image:</label>
+                            <input type="file" class="file-input" id="pan_card" name="pan_card" accept="image/*" required>
                         </div>
                         <div class="form-group mb-3">
                             <label for="id_person" class="form-label">Guests (Max: <span id="booking-max-capacity"></span>):</label>
@@ -603,12 +639,10 @@
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment.min.js"></script>
     <script>
-        // Fallback for jQuery if CDN fails
         if (typeof jQuery === 'undefined') {
             document.write('<script src="{% static "js/jquery-3.6.0.min.js" %}"><\/script>');
         }
 
-        // Fallback for Bootstrap if CDN fails
         if (typeof bootstrap === 'undefined') {
             document.write('<script src="{% static "js/bootstrap.bundle.min.js" %}"><\/script>');
         }
@@ -619,7 +653,6 @@
                 jQuery(document).ready(function($) {
                     let selectedRoomData = {};
 
-                    // Initialize FullCalendar
                     var calendarEl = document.getElementById('roomCalendar');
                     if (calendarEl) {
                         var calendar = new FullCalendar.Calendar(calendarEl, {
@@ -693,14 +726,12 @@
                         calendar.render();
                     }
 
-                    // Toggle calendar visibility
                     $('#toggleBtn').on('click', function() {
                         console.log('Toggle calendar clicked');
                         $('#roomCalendarContainer').toggleClass('d-none');
                         calendar.render();
                     });
 
-                    // Toggle fullscreen
                     $('#fullscreenBtn').on('click', function() {
                         console.log('Fullscreen toggle clicked');
                         $('#roomCalendarContainer').toggleClass('calendar-fullscreen');
@@ -708,13 +739,11 @@
                         calendar.render();
                     });
 
-                    // Close calendar popup
                     $('#roomCalendarPopup .close-btn').on('click', function() {
                         console.log('Close popup clicked');
                         $('#roomCalendarPopup').addClass('d-none');
                     });
 
-                    // Filter links in card footers
                     $('.card-footer a[data-filter]').on('click', function(e) {
                         e.preventDefault();
                         console.log('Filter link clicked:', $(this).data('filter'));
@@ -723,7 +752,6 @@
                         $('#filter-form').submit();
                     });
 
-                    // View button handler
                     $(document).on('click', '.view-room', function(e) {
                         e.preventDefault();
                         e.stopPropagation();
@@ -827,7 +855,6 @@
                         }
                     });
 
-                    // Book Now button handler
                     $(document).on('click', '.book-now', function(e) {
                         e.preventDefault();
                         e.stopPropagation();
@@ -863,6 +890,12 @@
                         $('#id_check_out').val('').attr('min', moment(selectedRoomData.checkIn).add(1, 'days').format('YYYY-MM-DD'));
                         $('#booking-gst-rate').text(selectedRoomData.gstRate.toFixed(2));
                         $('#booking-discount-rate').text(selectedRoomData.roomDiscount.toFixed(2));
+                        $('#full_name').val('');
+                        $('#phone_number').val('');
+                        $('#email').val('');
+                        $('#aadhar_front').val('');
+                        $('#aadhar_back').val('');
+                        $('#pan_card').val('');
 
                         let capacityInfo = `Max ${selectedRoomData.totalCapacity} guests (${selectedRoomData.roomCapacity} base`;
                         if (selectedRoomData.roomExtraCapacity > 0) {
@@ -882,13 +915,11 @@
                         }
                     });
 
-                    // Price update on input change
                     $('#id_check_in, #id_check_out, #id_person').on('input change', function() {
                         console.log('Input changed:', $(this).attr('id'), $(this).val());
                         updateBookingPrice();
                     });
 
-                    // Guest validation
                     $('#id_person').on('input', function() {
                         const guests = parseInt($(this).val() || 1);
                         const baseCapacity = selectedRoomData.roomCapacity;
@@ -924,16 +955,21 @@
                         updateBookingPrice();
                     });
 
-                    // Form submission validation
                     $('#bookingForm').on('submit', function(e) {
                         console.log('Booking form submitted');
                         const checkIn = $('#id_check_in').val();
                         const checkOut = $('#id_check_out').val();
                         const guests = parseInt($('#id_person').val() || 0);
+                        const fullName = $('#full_name').val();
+                        const phoneNumber = $('#phone_number').val();
+                        const email = $('#email').val();
+                        const aadharFront = $('#aadhar_front').prop('files')[0];
+                        const aadharBack = $('#aadhar_back').prop('files')[0];
+                        const panCard = $('#pan_card').prop('files')[0];
 
-                        if (!checkIn || !checkOut || !guests) {
+                        if (!checkIn || !checkOut || !guests || !fullName || !phoneNumber || !email || !aadharFront || !aadharBack || !panCard) {
                             e.preventDefault();
-                            $('#booking-person-error').html('Please fill in all required fields.').show();
+                            $('#booking-person-error').html('Please fill in all required fields and upload all documents.').show();
                             setTimeout(() => $('#booking-person-error').hide(), 3000);
                             return false;
                         }
@@ -941,6 +977,13 @@
                         if (new Date(checkOut) <= new Date(checkIn)) {
                             e.preventDefault();
                             $('#booking-person-error').html('Check-out date must be after check-in date.').show();
+                            setTimeout(() => $('#booking-person-error').hide(), 3000);
+                            return false;
+                        }
+
+                        if (!/^[0-9]{10}$/.test(phoneNumber)) {
+                            e.preventDefault();
+                            $('#booking-person-error').html('Please enter a valid 10-digit phone number.').show();
                             setTimeout(() => $('#booking-person-error').hide(), 3000);
                             return false;
                         }
@@ -1001,7 +1044,6 @@
                         $('#booking-total-price').text(`₹${totalPrice.toFixed(2)}`);
                     }
 
-                    // Mark unavailable
                     $(document).on('click', '.mark-unavailable', function(e) {
                         e.preventDefault();
                         console.log('Mark unavailable clicked:', $(this).data('room-id'));
@@ -1029,7 +1071,6 @@
                         }
                     });
 
-                    // Mark available
                     $(document).on('click', '.mark-available', function(e) {
                         e.preventDefault();
                         console.log('Mark available clicked:', $(this).data('room-id'));
