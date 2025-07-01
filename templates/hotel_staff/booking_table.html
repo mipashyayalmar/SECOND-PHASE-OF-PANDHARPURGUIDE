@@ -12,6 +12,9 @@
                 <th scope="col">Hotel</th>
                 <th scope="col">Booking Date</th>
                 <th scope="col">Status</th>
+                <th scope="col">GST Status</th>
+                <th scope="col">GST Number</th>
+                <th scope="col">Booking Type</th>
                 <th scope="col">Price Breakdown</th>
                 <th scope="col">Total</th>
                 <th scope="col">Actions</th>
@@ -22,23 +25,23 @@
                 {% for booking in bookings %}
                 <tr class="status-{{ booking.status }}">
                     <td>{{ booking.id }}</td>
-                  <td class="fw-medium">
-    <a href="{% url 'user:user_profile_detail' username=booking.guest.username %}" 
-       class="text-primary text-decoration-none">
-        {{ booking.guest.get_full_name|default:booking.guest.username }}
-    </a>
-    <br>
-    {% if booking.status == 'current' %}
-        {% with customer=booking.customers.first %}
-            {% if customer %}
-                <a href="{% url 'view_customer_info' reservation_id=booking.id %}" 
-                   class="text-info text-decoration-none">
-                    {{ customer.full_name }}
-                </a>
-            {% endif %}
-        {% endwith %}
-    {% endif %}
-</td>
+                    <td class="fw-medium">
+                        <a href="{% url 'user:user_profile_detail' username=booking.guest.username %}" 
+                           class="text-primary text-decoration-none">
+                            {{ booking.guest.get_full_name|default:booking.guest.username }}
+                        </a>
+                        <br>
+                        {% if booking.status == 'current' %}
+                            {% with customer=booking.customers.first %}
+                                {% if customer %}
+                                    <a href="{% url 'view_customer_info' reservation_id=booking.id %}" 
+                                       class="text-info text-decoration-none">
+                                        {{ customer.full_name }}
+                                    </a>
+                                {% endif %}
+                            {% endwith %}
+                        {% endif %}
+                    </td>
                     <td>
                         <a href="{% url 'viewroom' booking.room.id %}" class="text-decoration-none">
                             {{ booking.room.room_number }} ({{ booking.room.get_room_type_display }})
@@ -87,6 +90,19 @@
                             {{ booking.status|title }}
                         </span>
                     </td>
+                    <td>
+                        {{ booking.gst_status }}
+                    </td>
+                    <td>
+                        {{ booking.gst_number_display }}
+                    </td>
+                    <td>
+                        {% if booking.is_direct_booking %}
+                            <span class="badge bg-info">Direct Booking</span>
+                        {% else %}
+                            <span class="badge bg-secondary">Online Booking</span>
+                        {% endif %}
+                    </td>
                     <td class="fw-medium">
                         <div class="pricing-details">
                             <div class="d-flex justify-content-between">
@@ -102,10 +118,15 @@
                                 ({{ booking.nights }} × {{ booking.extra_persons }} × ₹{{ booking.room.extra_person_charges|floatformat:2 }})
                             </div>
                             {% endif %}
-                            {% if booking.gst_rate > 0 %}
+                            {% if booking.apply_gst %}
                             <div class="d-flex justify-content-between small text-muted">
                                 <span>GST ({{ booking.gst_rate|floatformat:2 }}%):</span>
                                 <span>₹{{ booking.gst_amount|floatformat:2 }}</span>
+                            </div>
+                            {% else %}
+                            <div class="d-flex justify-content-between small text-muted">
+                                <span>GST:</span>
+                                <span>No GST Added</span>
                             </div>
                             {% endif %}
                             <hr class="my-1">
@@ -134,14 +155,17 @@
                                "extra_guest_charges": "{{ booking.extra_guest_charges|floatformat:2|escapejs }}",
                                "gst_rate": "{{ booking.gst_rate|floatformat:2|escapejs }}",
                                "gst_amount": "{{ booking.gst_amount|floatformat:2|escapejs }}",
-                               "total_amount": "{{ booking.total_price|floatformat:2|escapejs }}"
+                               "total_amount": "{{ booking.total_price|floatformat:2|escapejs }}",
+                               "gst_status": "{{ booking.gst_status|escapejs }}",
+                               "gst_number": "{{ booking.gst_number_display|escapejs }}",
+                               "is_direct_booking": {{ booking.is_direct_booking|lower }}
                            }'>View</a>
                     </td>
                 </tr>
                 {% endfor %}
             {% else %}
                 <tr>
-                    <td colspan="13" class="text-center text-muted py-4">
+                    <td colspan="16" class="text-center text-muted py-4">
                         No bookings found matching your criteria.
                     </td>
                 </tr>
@@ -149,8 +173,6 @@
         </tbody>
     </table>
 </div>
-
-<!-- Pagination remains unchanged -->
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {
@@ -192,6 +214,18 @@
                         <span class="info-label">Guests:</span>
                         <span class="info-value">${bookingData.total_guests}${bookingData.extra_persons > 0 ? ` (+${bookingData.extra_persons} extra)` : ''}</span>
                     </div>
+                    <div class="info-row">
+                        <span class="info-label">GST Status:</span>
+                        <span class="info-value">${bookingData.gst_status}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">GST Number:</span>
+                        <span class="info-value">${bookingData.gst_number}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Booking Type:</span>
+                        <span class="info-value">${bookingData.is_direct_booking ? 'Direct Booking' : 'Online Booking'}</span>
+                    </div>
                 </div>
                 
                 <div class="price-breakdown">
@@ -211,7 +245,12 @@
                         <span class="price-label">GST (${parseFloat(bookingData.gst_rate).toFixed(2)}%):</span>
                         <span class="price-value">₹${parseFloat(bookingData.gst_amount).toFixed(2)}</span>
                     </div>
-                    ` : ''}
+                    ` : `
+                    <div class="price-row text-muted">
+                        <span class="price-label">GST:</span>
+                        <span class="price-value">No GST Added</span>
+                    </div>
+                    `}
                     <div class="price-row total-row">
                         <span class="price-label">Total Amount:</span>
                         <span class="price-value">₹${parseFloat(bookingData.total_amount).toFixed(2)}</span>
@@ -241,8 +280,6 @@
         });
     });
 </script>
-
-
 
 <style>
     .booking-popup {

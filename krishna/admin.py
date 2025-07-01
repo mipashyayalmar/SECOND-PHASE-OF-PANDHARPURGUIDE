@@ -85,21 +85,59 @@ class RepliesAdmin(admin.ModelAdmin):
     list_display = ('comment', 'user', 'reply_text', 'created_at')
     list_filter = ('created_at',)
     search_fields = ('comment__comment_text', 'user__username', 'reply_text')
+from django.contrib import admin
+from .models import Reservation, Rooms, Hotels
+from django.core.exceptions import ValidationError
+from decimal import Decimal
 
 @admin.register(Reservation)
 class ReservationAdmin(admin.ModelAdmin):
-    list_display = ('guest', 'room', 'check_in', 'check_out', 'booking_id')
-    list_filter = ('check_in', 'check_out')
-    search_fields = ('guest__username', 'room__room_number', 'booking_id')
+    list_display = (
+        'booking_id', 'guest', 'room', 'hotel_name', 'check_in', 'check_out', 'nights',
+        'number_of_guests', 'apply_gst', 'gst_number', 'gst_amount_value', 'total_price',
+        'booking_time', 'status'
+    )
+    list_filter = ('apply_gst', 'is_cancelled', 'check_in', 'check_out', 'room__hotel')
+    search_fields = ('booking_id', 'guest__username', 'guest__first_name', 'guest__last_name', 'gst_number')
+    readonly_fields = ('booking_time', 'base_price_value', 'gst_amount_value', 'total_price')
+    fields = (
+        'guest', 'room', 'check_in', 'check_out', 'number_of_guests',
+        'apply_gst', 'gst_number', 'is_cancelled', 'cancellation_reason',
+        'spy', 'booking_id', 'booking_time', 'base_price_value', 'gst_amount_value'
+    )
 
-    def changelist_view(self, request, extra_context=None):
+    def hotel_name(self, obj):
+        return obj.room.hotel.name
+    hotel_name.short_description = 'Hotel'
+
+    def status(self, obj):
+        if obj.is_cancelled:
+            return 'Cancelled'
+        elif obj.check_out < timezone.now().date():
+            return 'Past'
+        elif obj.check_in <= timezone.now().date() <= obj.check_out:
+            return 'Current'
+        else:
+            return 'Future'
+    status.short_description = 'Status'
+
+    def save_model(self, request, obj, form, change):
+        """
+        Override save_model to recalculate prices when apply_gst or gst_number is modified.
+        """
         try:
-            return super().changelist_view(request, extra_context)
-        except IntegrityError as e:
-            if "FOREIGN KEY constraint failed" in str(e):
-                messages.error(request, "Cannot complete this action due to a foreign key constraint. Check related data.")
-            else:
-                messages.error(request, f"An error occurred: {str(e)}")
-            return redirect('admin:krishna_reservation_changelist')
+            # Validate the object
+            obj.clean()
 
-# New HotelStaff admin
+            # Recalculate prices
+            obj.base_price_value = obj.base_price
+            obj.gst_amount_value = obj.gst_amount
+            super().save_model(request, obj, form, change)
+        except ValidationError as e:
+            form.add_error(None, str(e))
+            raise
+
+    def get_readonly_fields(self, request, obj=None):
+        # Make price fields readonly to prevent manual edits
+        return ('booking_time', 'base_price_value', 'gst_amount_value', 'total_price')
+

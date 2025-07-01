@@ -554,192 +554,271 @@
                 background-color: #2980b9;
             }
         </style>
-        <div class="popupp-overlay"></div>
-        <div class="popupp">
-            <span class="close-popupp">✖</span>
-            <div class="popupp-content">
-                <div class="row">
-                    <div class="col-12">
-                        <form action="{% url 'bookroom' %}" method="POST">
-                            {% csrf_token %}
-                            <h3 class="text-center mb-4">Confirm Your Booking</h3>
-                            
-                            {% if messages %}
-                            <div class="mb-3">
-                                {% for message in messages %}
-                                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
-                                    {{ message }}
-                                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                                </div>
-                                {% endfor %}
-                            </div>
-                            {% endif %}
-                            
-                            <div class="form-group mb-3">
-                                <label for="hotel" class="form-label">Hotel:</label>
-                                <input type="text" class="form-control" id="hotel" name="hotel" readonly value="{{ room.hotel.name }}">
-                            </div>
-                            
-                            <div class="form-group mb-3">
-                                <label for="location" class="form-label">Location:</label>
-                                <input type="text" class="form-control" id="location" name="location" readonly value="{{ room.hotel.location }}">
-                            </div>
-                            
-                            <div class="form-group mb-3">
-                            <label for="room_type" class="form-label">Room Type:</label>
-                            <div class="form-control" id="room_type" readonly>
-                                {% if room.room_type == '1' %}
-                                    <i class="fas fa-star"></i>
-                                    <small>Premium Room Amenities</small>
-                                {% elif room.room_type == '2' %}
-                                    <i class="fas fa-check-circle"></i>
-                                    <small>Deluxe Room Features</small>
-                                {% elif room.room_type == '3' %}
-                                    <i class="fas fa-check-circle"></i>
-                                    <small>Basic Room Features</small>
-                                {% endif %}
-                            </div>
+<!-- bookroom.html -->
+<div class="popupp-overlay"></div>
+<div class="popupp">
+    <span class="close-popupp">✖</span>
+    <div class="popupp-content">
+        <div class="row">
+            <div class="col-12">
+                <form action="{% url 'bookroompage' %}?roomid={{ room.id }}" method="POST">
+                   {% csrf_token %}
+                    <h3 class="text-center mb-4">Confirm Your Booking</h3>
+
+                    {% if messages %}
+                    <div class="mb-3">
+                        {% for message in messages %}
+                        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                         </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
 
-                            
-                            <div class="form-group mb-3">
-                                <label for="username" class="form-label">Username:</label>
-                                <input type="text" class="form-control" id="username" name="username" readonly value="{{ request.user.username }}">
-                            </div>
-                            
-                            <div class="form-group mb-3">
-                                <label for="person" class="form-label">Guests:</label>
-                                <input type="number" class="form-control" id="person"  readonly name="person"  value="{{ capacity|default:room.capacity }}">
-                            </div>
+                    {% if form.errors %}
+                    <div class="alert alert-danger">
+                        <ul>
+                            {% for field in form %}
+                                {% for error in field.errors %}
+                                    <li>{{ field.label }}: {{ error }}</li>
+                                {% endfor %}
+                            {% endfor %}
+                            {% for error in form.non_field_errors %}
+                                <li>{{ error }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    {% endif %}
 
-                            
-                            <div class="row mb-3">
-                                <div class="col-md-6">
-                                    <label for="cin" class="form-label">Check-in:</label>
-                                    <input type="date" class="form-control" id="cin"  readonly name="check_in" value="{{ check_in }}">
-                                </div>
-                                <div class="col-md-6">
-                                    <label for="cout" class="form-label">Check-out:</label>
-                                    <input type="date" class="form-control" id="cout"  readonly name="check_out"  value="{{ check_out }}">
-                                </div>
-                            </div>
-                            
-                            <div class="row mb-4">
-                                <div class="col-md-6">
-                                    <label for="check_in_time" class="form-label">Check-In Time:</label>
-                                    <input type="text" class="form-control" id="check_in_time" name="check_in_time" disabled value="{{ room.check_in_time|default_if_none:'N/A' }}">
-                                </div>
-                                <div class="col-md-6">
-                                    <label for="check_out_time" class="form-label">Check-Out Time:</label>
-                                    <input type="text" class="form-control" id="check_out_time" name="check_out_time" disabled value="{{ room.check_out_time|default_if_none:'N/A' }}">
-                                </div>
-                            </div>
-                            
-                            <div class="form-group mb-3">
-                                <label for="total_price" class="form-label">Total Price:</label>
-                                <div class="form-group mb-3">
-        <label class="form-label">Price Breakdown:</label>
-        <div class="price-breakdown">
-            <!-- Room Price -->
-            <div class="d-flex justify-content-between">
-                <span>
-                    Room Price 
-                    {% if stay_days > 0 %}
-                        ({{ stay_days }} night{{ stay_days|pluralize }} × ₹{{ room_price_per_night|floatformat:2 }})
-                    {% endif %}:
-                </span>
-                <span>₹{{ base_price|floatformat:2 }}</span>
-            </div>
-              {% if extra_person_charges > 0 %}
+                    <div class="form-group mb-3">
+                        <label for="hotel" class="form-label">Hotel:</label>
+                        <input type="text" class="form-control" id="hotel" name="hotel" readonly value="{{ room.hotel.name }}">
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label for="location" class="form-label">Location:</label>
+                        <input type="text" class="form-control" id="location" name="location" readonly value="{{ room.hotel.location }}">
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label for="room_type" class="form-label">Room Type:</label>
+                        <div class="form-control" id="room_type" readonly>
+                            {% if room.room_type == '1' %}
+                                <i class="fas fa-star"></i>
+                                <small>Premium Room Amenities</small>
+                            {% elif room.room_type == '2' %}
+                                <i class="fas fa-check-circle"></i>
+                                <small>Deluxe Room Features</small>
+                            {% elif room.room_type == '3' %}
+                                <i class="fas fa-check-circle"></i>
+                                <small>Basic Room Features</small>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label for="username" class="form-label">Guest Name:</label>
+                        <input type="text" class="form-control" id="username" name="username" readonly value="{{ request.user.get_full_name|default:request.user.username }}">
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label for="person" class="form-label">Number of Guests:</label>
+                        <input type="number" class="form-control" id="person" name="number_of_guests" value="{{ capacity|default:room.capacity }}" min="1" max="{{ max_capacity }}">
+                        {% if extra_persons > 0 %}
+                        <small class="text-success">
+                            Including {{ extra_persons }} extra guest{{ extra_persons|pluralize }}
+                            ({{ stay_days }} night{{ stay_days|pluralize }} × ₹{{ room.extra_person_charges|floatformat:2 }})
+                        </small>
+                        {% endif %}
+                        <small class="text-info">Room Capacity: {{ room.capacity }} (Max: {{ max_capacity }})</small>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="cin" class="form-label">Check-in:</label>
+                            {{ form.check_in }}
+                        </div>
+                        <div class="col-md-6">
+                            <label for="cout" class="form-label">Check-out:</label>
+                            {{ form.check_out }}
+                        </div>
+                    </div>
+
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <label for="check_in_time" class="form-label">Check-In Time:</label>
+                            <input type="text" class="form-control" id="check_in_time" name="check_in_time" disabled value="{{ room.check_in_time|default_if_none:'N/A' }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="check_out_time" class="form-label">Check-Out Time:</label>
+                            <input type="text" class="form-control" id="check_out_time" name="check_out_time" disabled value="{{ room.check_out_time|default_if_none:'N/A' }}">
+                        </div>
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <div class="form-check">
+                            {{ form.apply_gst }}
+                            <label class="form-check-label" for="{{ form.apply_gst.id_for_label }}">Apply GST</label>
+                        </div>
+                        <div id="gst_number_field" style="display: none;">
+                            <label for="{{ form.gst_number.id_for_label }}" class="form-label">GST Number:</label>
+                            {{ form.gst_number }}
+                            <div id="gst_number_error" class="text-danger" style="display: none;"></div>
+                        </div>
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <div class="form-check">
+                            {{ form.is_direct_booking }}
+                            <label class="form-check-label" for="{{ form.is_direct_booking.id_for_label }}">Direct Booking</label>
+                        </div>
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label class="form-label">Price Breakdown:</label>
+                        <div class="price-breakdown">
                             <div class="d-flex justify-content-between">
                                 <span>
-                                    Extra {{ extra_persons }} person{{ extra_persons|pluralize }} 
+                                    Room Price
+                                    {% if stay_days > 0 %}
+                                        ({{ stay_days }} night{{ stay_days|pluralize }} × ₹{{ room_price_per_night|floatformat:2 }})
+                                    {% endif %}:
+                                </span>
+                                <span>₹{{ base_price|floatformat:2 }}</span>
+                            </div>
+                            {% if extra_person_charges > 0 %}
+                            <div class="d-flex justify-content-between">
+                                <span>
+                                    Extra {{ extra_persons }} person{{ extra_persons|pluralize }}
                                     ({{ stay_days }} night{{ stay_days|pluralize }} × ₹{{ room.extra_person_charges|floatformat:2 }}):
                                 </span>
                                 <span>₹{{ extra_person_charges|floatformat:2 }}</span>
                             </div>
                             {% endif %}
-                                    <!-- GST (only shown if applicable) -->
-                                    {% if has_gst %}
-                                    <div class="d-flex justify-content-between">
-                                        <span>GST ({{ gst_percentage|floatformat:2 }}%):</span>
-                                        <span>₹{{ gst_amount|floatformat:2 }}</span>
-                                    </div>
-                                    {% endif %}
-                                    
-                                    <hr>
-                                    
-                                    <!-- Total Price -->
-                                    <div class="d-flex justify-content-between fw-bold">
-                                        <span>Total Amount:</span>
-                                        <span>₹{{ total_price|floatformat:2 }}</span>
-                                    </div>
+                            <div id="gst_amount_row" style="display: none;">
+                                <div class="d-flex justify-content-between">
+                                    <span>GST (<span id="gst_percentage">{{ gst_percentage|floatformat:2 }}</span>%):</span>
+                                    <span id="gst_amount">₹{{ gst_amount|floatformat:2 }}</span>
                                 </div>
                             </div>
+                            <hr>
+                            <div class="d-flex justify-content-between fw-bold">
+                                <span>Total Amount:</span>
+                                <span id="total_price">₹{{ total_price|floatformat:2 }}</span>
                             </div>
-                            
-                            <div class="d-grid gap-2">
-                                <button type="submit" class="btn btn-primary btn-lg">Confirm Booking</button>
-                            </div>
-                            
-                            <input type="hidden" name="room_id" value="{{ room.id }}">
-                        </form>
+                        </div>
                     </div>
-                </div>
+
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary btn-lg">Confirm Booking</button>
+                    </div>
+
+                    {{ form.room }}
+                </form>
             </div>
         </div>
-        
-        <script>
-        // Close popup when clicking the close button or overlay
-        document.querySelector('.close-popupp').addEventListener('click', function() {
-            document.querySelector('.popupp').style.display = 'none';
-            document.querySelector('.popupp-overlay').style.display = 'none';
-        });
-        
-        document.querySelector('.popupp-overlay').addEventListener('click', function() {
-            document.querySelector('.popupp').style.display = 'none';
-            this.style.display = 'none';
-        });
-        </script>
+    </div>
+</div>
 
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const popuppOverlay = document.querySelector('.popupp-overlay');
-        const popupp = document.querySelector('.popupp');
-        const bookButtons = document.querySelectorAll('.action-button.book-button, .continue-button');
-        const closePopupp = document.querySelector('.close-popupp');
+document.addEventListener('DOMContentLoaded', function() {
+    const popuppOverlay = document.querySelector('.popupp-overlay');
+    const popupp = document.querySelector('.popupp');
+    const bookButtons = document.querySelectorAll('.action-button.book-button, .continue-button');
+    const closePopupp = document.querySelector('.close-popupp');
 
-        function openPopupp() {
-            popuppOverlay.classList.add('show');
-            popupp.classList.add('show');
-        }
+    function openPopupp() {
+        popuppOverlay.classList.add('show');
+        popupp.classList.add('show');
+    }
 
-        function closePopuppFunc() {
-            popuppOverlay.classList.remove('show');
-            popupp.classList.remove('show');
-            
-            // Small delay to allow animation to complete before hiding
-            setTimeout(() => {
-                popuppOverlay.style.display = 'none';
-                popupp.style.display = 'none';
-            }, 300);
-        }
+    function closePopuppFunc() {
+        popuppOverlay.classList.remove('show');
+        popupp.classList.remove('show');
+        setTimeout(() => {
+            popuppOverlay.style.display = 'none';
+            popupp.style.display = 'none';
+        }, 300);
+    }
 
-        bookButtons.forEach(button => {
-            button.addEventListener('click', () => {
-                popuppOverlay.style.display = 'block';
-                popupp.style.display = 'block';
-                
-                // Small delay to trigger CSS transition
-                setTimeout(openPopupp, 10);
-            });
+    bookButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            popuppOverlay.style.display = 'block';
+            popupp.style.display = 'block';
+            setTimeout(openPopupp, 10);
         });
-
-        closePopupp.addEventListener('click', closePopuppFunc);
-        popuppOverlay.addEventListener('click', closePopuppFunc);
     });
+
+    closePopupp.addEventListener('click', closePopuppFunc);
+    popuppOverlay.addEventListener('click', closePopuppFunc);
+
+    // GST toggle and price update logic
+    const applyGstCheckbox = document.getElementById('id_apply_gst');
+    const gstNumberField = document.getElementById('gst_number_field');
+    const gstNumberInput = document.getElementById('id_gst_number');
+    const gstNumberError = document.getElementById('gst_number_error');
+    const gstAmountRow = document.getElementById('gst_amount_row');
+    const totalPriceSpan = document.getElementById('total_price');
+    const gstAmountSpan = document.getElementById('gst_amount');
+    const basePrice = parseFloat('{{ base_price }}');
+    const extraPersonCharges = parseFloat('{{ extra_person_charges }}');
+    const gstPercentage = parseFloat('{{ gst_percentage }}');
+    const totalBeforeTax = basePrice + extraPersonCharges;
+
+    function validateGSTNumber(value) {
+        const gstRegex = /^\d{2}[A-Z0-9]{5}\d{4}[A-Z0-9]{1}\d{1}[A-Z0-9]{1}$/;
+        return gstRegex.test(value);
+    }
+
+    function toggleGSTField() {
+        if (applyGstCheckbox.checked) {
+            gstNumberField.style.display = 'block';
+            gstAmountRow.style.display = 'flex';
+            const gstAmount = (totalBeforeTax * gstPercentage) / 100;
+            gstAmountSpan.textContent = `₹${gstAmount.toFixed(2)}`;
+            totalPriceSpan.textContent = `₹${(totalBeforeTax + gstAmount).toFixed(2)}`;
+        } else {
+            gstNumberField.style.display = 'none';
+            gstAmountRow.style.display = 'none';
+            gstNumberInput.value = '';
+            gstNumberError.style.display = 'none';
+            totalPriceSpan.textContent = `₹${totalBeforeTax.toFixed(2)}`;
+        }
+    }
+
+    applyGstCheckbox.addEventListener('change', toggleGSTField);
+
+    gstNumberInput.addEventListener('input', function() {
+        if (applyGstCheckbox.checked && gstNumberInput.value) {
+            if (!validateGSTNumber(gstNumberInput.value)) {
+                gstNumberError.textContent = 'GST number must be 15 characters (e.g., 12ABCDE1234F5GH)';
+                gstNumberError.style.display = 'block';
+            } else {
+                gstNumberError.style.display = 'none';
+            }
+        } else {
+            gstNumberError.style.display = 'none';
+        }
+    });
+
+    document.querySelector('form').addEventListener('submit', function(event) {
+        if (applyGstCheckbox.checked && gstNumberInput.value && !validateGSTNumber(gstNumberInput.value)) {
+            event.preventDefault();
+            gstNumberError.textContent = 'Please enter a valid GST number (e.g., 12ABCDE1234F5GH)';
+            gstNumberError.style.display = 'block';
+        } else if (applyGstCheckbox.checked && !gstNumberInput.value) {
+            event.preventDefault();
+            gstNumberError.textContent = 'GST number is required if GST is applied.';
+            gstNumberError.style.display = 'block';
+        } else if (!applyGstCheckbox.checked && gstNumberInput.value) {
+            event.preventDefault();
+            gstNumberError.textContent = 'GST number should not be provided if GST is not applied.';
+            gstNumberError.style.display = 'block';
+        }
+    });
+});
 </script>
-    
     <div class="container-fluid px-4">
         <hr>
         <div class="bookings-section">
