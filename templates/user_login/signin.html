@@ -42,11 +42,12 @@
                 <div class="popup-container">
                     {% if message %}
                     <div class="popup alert-{{ message.tags }}" role="alert">
-                        <button class="cancel-btn" aria-label="Cancel">×</button>
                         <div class="popup-content">
                             <p>{{ message }}</p>
                             <div class="popup-buttons">
-                                <button class="btn close-btn">Close</button>
+                                <button class="btn close-btn">
+                                 <a href="{% url 'user:signin' %}"style="text-decoration:none;color:black;" >Close</a></button>
+                                </a>
                             </div>
                         </div>
                     </div>

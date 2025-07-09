@@ -442,10 +442,13 @@ def user_profile_edit(request):
     if not request.user.is_authenticated:
         messages.error(request, "Please sign in to edit your profile.")
         return redirect('user:signin')
+
     
     if request.user.is_staff:
-        messages.error(request, "Staff accounts cannot edit user profiles.")
+        messages.success(request, "You are redirect at Landing page ")
         return redirect('user:staff_signin')
+
+
     
     user = request.user
     social_data = {}

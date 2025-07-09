@@ -639,7 +639,7 @@
         </nav>
         <div class="deal-section">
             <span class="price-text">from</span>
-            <span class="price-amount"><span class="currency">Rs.</span> {{ cheapest_room.discounted_price }}</span>
+            <span class="price-amount"><span class="currency">Rs.</span> {{ cheapest_room.discounted_price|floatformat:"0" }}</span>
             <button class="deal-btn" type="button">
                 <a href="#room-section" style="color:white">VIEW THIS DEAL</a>
             </button>
