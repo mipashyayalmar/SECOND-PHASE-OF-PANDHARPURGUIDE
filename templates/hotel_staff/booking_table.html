@@ -5,16 +5,13 @@
                 <th scope="col">Booking ID</th>
                 <th scope="col">Guest</th>
                 <th scope="col">Room</th>
+                <th scope="col">Date Range (Nights)</th>
                 <th scope="col">Guests Details</th>
-                <th scope="col">Check-in</th>
-                <th scope="col">Check-out</th>
-                <th scope="col">Nights</th>
                 <th scope="col">Hotel</th>
                 <th scope="col">Booking Date</th>
                 <th scope="col">Status</th>
-                <th scope="col">GST Status</th>
-                <th scope="col">GST Number</th>
-                <th scope="col">Booking Type</th>
+                <th scope="col">GST</th>
+                <th scope="col">Type</th>
                 <th scope="col">Price Breakdown</th>
                 <th scope="col">Total</th>
                 <th scope="col">Actions</th>
@@ -47,6 +44,25 @@
                             {{ booking.room.room_number }} ({{ booking.room.get_room_type_display }})
                         </a>
                     </td>
+                    <td class="date-range-cell">
+                        <div class="d-flex flex-column">
+                            <span class="fw-semibold">
+                                {{ booking.check_in|date:"M d" }} to {{ booking.check_out|date:"M d" }}
+                            </span>
+                            <span class="small text-muted">
+                                {% with nights=booking.nights %}
+                                    {% if nights > 1 %}
+                                        {% with start_date=booking.check_in end_date=booking.check_out %}
+                                            
+                                        {% endwith %}
+                                    {% else %}
+                                        {{ booking.check_in|date:"d" }}
+                                    {% endif %}
+                                {% endwith %}
+                                ({{ booking.nights }} night{{ booking.nights|pluralize }})
+                            </span>
+                        </div>
+                    </td>
                     <td>
                         <div class="guest-details">
                             <div class="d-flex justify-content-between">
@@ -68,15 +84,6 @@
                             </div>
                         </div>
                     </td>
-                    <td class="bg-success bg-opacity-10 {% if booking.check_in == current_date %}date-highlight{% endif %}">
-                        {{ booking.check_in|date:"M d, Y" }}
-                    </td>
-                    <td class="bg-warning bg-opacity-10 {% if booking.check_out == current_date %}date-highlight{% endif %}">
-                        {{ booking.check_out|date:"M d, Y" }}
-                    </td>
-                    <td>
-                        {{ booking.nights }} night{{ booking.nights|pluralize }}
-                    </td>
                     <td>{{ booking.room.hotel.name }}</td>
                     <td class="bg-primary bg-opacity-10">
                         {{ booking.booking_time|date:"M d, Y H:i" }}
@@ -90,17 +97,15 @@
                             {{ booking.status|title }}
                         </span>
                     </td>
+                   
                     <td>
-                        {{ booking.gst_status }}
-                    </td>
-                    <td>
-                        {{ booking.gst_number_display }}
+                       ({{ booking.gst_status }}) {{ booking.gst_number_display }}
                     </td>
                     <td>
                         {% if booking.is_direct_booking %}
-                            <span class="badge bg-info">Direct Booking</span>
+                            <span class="badge bg-info">Direct</span>
                         {% else %}
-                            <span class="badge bg-secondary">Online Booking</span>
+                            <span class="badge bg-secondary">Online</span>
                         {% endif %}
                     </td>
                     <td class="fw-medium">
@@ -159,13 +164,15 @@
                                "gst_status": "{{ booking.gst_status|escapejs }}",
                                "gst_number": "{{ booking.gst_number_display|escapejs }}",
                                "is_direct_booking": {{ booking.is_direct_booking|lower }}
-                           }'>View</a>
+                           }'>
+                           <i class="fas fa-eye"></i> View
+                        </a>
                     </td>
                 </tr>
                 {% endfor %}
             {% else %}
                 <tr>
-                    <td colspan="16" class="text-center text-muted py-4">
+                    <td colspan="13" class="text-center text-muted py-4">
                         No bookings found matching your criteria.
                     </td>
                 </tr>
@@ -173,6 +180,44 @@
         </tbody>
     </table>
 </div>
+
+<style>
+    .table {
+        font-size: 0.9rem;
+    }
+    .table th {
+        white-space: nowrap;
+        vertical-align: middle;
+    }
+    .table td {
+        vertical-align: middle;
+    }
+    .status-current {
+        background-color: rgba(25, 135, 84, 0.05);
+    }
+    .status-past {
+        background-color: rgba(108, 117, 125, 0.05);
+    }
+    .status-cancelled {
+        background-color: rgba(220, 53, 69, 0.05);
+    }
+    .date-range-cell {
+        min-width: 120px;
+    }
+    .guest-details {
+        min-width: 180px;
+    }
+    .pricing-details {
+        min-width: 160px;
+    }
+    .badge {
+        font-weight: 500;
+        padding: 0.35em 0.5em;
+    }
+    .table-hover tbody tr:hover {
+        background-color: rgba(0, 0, 0, 0.02);
+    }
+</style>
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {
@@ -248,7 +293,7 @@
                     ` : `
                     <div class="price-row text-muted">
                         <span class="price-label">GST:</span>
-                        <span class="price-value">No GST Added</span>
+                        <span class="price-value"><i class="fa-solid fa-xmark"></i> Not Added</span>
                     </div>
                     `}
                     <div class="price-row total-row">
@@ -288,53 +333,77 @@
         left: 50%;
         transform: translate(-50%, -50%);
         background: white;
-        padding: 20px;
-        border-radius: 8px;
-        box-shadow: 0 0 20px rgba(0,0,0,0.2);
+        padding: 25px;
+        border-radius: 10px;
+        box-shadow: 0 5px 30px rgba(0,0,0,0.2);
         z-index: 1050;
         width: 90%;
-        max-width: 500px;
-        max-height: 80vh;
+        max-width: 550px;
+        max-height: 85vh;
         overflow-y: auto;
+        border: 1px solid #e0e0e0;
     }
     .booking-popup .close-btn {
         position: absolute;
-        top: 10px;
-        right: 15px;
-        font-size: 24px;
+        top: 15px;
+        right: 20px;
+        font-size: 28px;
         cursor: pointer;
+        color: #999;
+        transition: color 0.2s;
+    }
+    .booking-popup .close-btn:hover {
+        color: #333;
     }
     .booking-popup h3 {
         margin-bottom: 20px;
-        padding-bottom: 10px;
+        padding-bottom: 15px;
         border-bottom: 1px solid #eee;
+        color: #333;
     }
     .booking-info .info-row {
         display: flex;
         justify-content: space-between;
-        margin-bottom: 8px;
+        margin-bottom: 10px;
+        padding: 5px 0;
+        border-bottom: 1px dashed #f0f0f0;
     }
     .booking-info .info-label {
+        font-weight: 600;
+        color: #555;
+        min-width: 120px;
+    }
+    .booking-info .info-value {
         font-weight: 500;
-        color: #666;
+        color: #222;
+        text-align: right;
     }
     .price-breakdown {
-        margin-top: 20px;
-        padding-top: 15px;
+        margin-top: 25px;
+        padding-top: 20px;
         border-top: 1px solid #eee;
     }
     .price-breakdown h4 {
-        margin-bottom: 15px;
+        margin-bottom: 18px;
+        color: #333;
     }
     .price-row {
         display: flex;
         justify-content: space-between;
-        margin-bottom: 5px;
+        margin-bottom: 8px;
+        padding: 3px 0;
+    }
+    .price-label {
+        color: #555;
+    }
+    .price-value {
+        font-weight: 500;
     }
     .total-row {
-        margin-top: 10px;
-        padding-top: 8px;
-        border-top: 1px dashed #ddd;
+        margin-top: 15px;
+        padding-top: 10px;
+        border-top: 1px solid #ddd;
         font-weight: bold;
+        font-size: 1.05em;
     }
 </style>
